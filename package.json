@@ -1,0 +1,21 @@
+{
+  "name": "bazavprasalnikov",
+  "version": "0.1.0",
+  "description": "Baza vprasalnikov delavnice Moj AI nacrt - Acenta.si",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "migrate": "node src/migrate.js",
+    "check": "node --check src/server.js && node --check src/db.js && node --check src/routes/webhook.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.11.5"
+  }
+}
