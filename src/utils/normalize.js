@@ -11,19 +11,24 @@ function normalizirajNaziv(naziv) {
 
   let n = naziv.toLowerCase().trim();
 
-  // Odstrani pravne oblike
-  n = n.replace(/\b(d\.o\.o\.?|d\.d\.?|s\.p\.?|k\.d\.?|gmbh|ltd|inc|llc)\b/gi, '');
+  // 1) Pike zbrisi BREZ presledka, da "d.o.o." → "doo" (en zeton, ne trije).
+  //    Ostalo interpunkcijo (vejice, oklepaje) pa zamenjaj s presledkom.
+  n = n.replace(/\./g, '');
+  n = n.replace(/[,;:()'"`]/g, ' ');
 
-  // Odstrani tipicne hotelske prefikse/sufikse (le ce niso edina beseda)
-  const orig = n;
-  n = n.replace(/\b(hotel|hostel|gostisce|gostilna|penzion|apartmaji|terme|wellness)\b/gi, '');
-  // Ce smo s tem vse zbrisali, vrnemo prvotno
-  if (!n.trim()) n = orig;
+  // 2) Razdeli v zetone in odstrani pravne + hotelske oblike
+  const dropTokens = new Set([
+    'doo', 'dd', 'sp', 'kd', 'gmbh', 'ltd', 'inc', 'llc',
+    'hotel', 'hostel', 'gostisce', 'gostilna', 'penzion',
+    'apartmaji', 'apartma', 'terme', 'wellness', 'resort',
+  ]);
 
-  // Vec presledkov → en presledek
-  n = n.replace(/\s+/g, ' ').trim();
+  const tokens = n.split(/\s+/).filter(t => t && !dropTokens.has(t));
 
-  return n;
+  // 3) Ce smo izbrisali vse (npr. vnos je bil samo "Hotel"), vrnemo originalni lowercased
+  if (tokens.length === 0) return naziv.toLowerCase().trim();
+
+  return tokens.join(' ');
 }
 
 // SHA256 hash IP-ja (GDPR-friendly — IP ni shranjen v plaintextu).
