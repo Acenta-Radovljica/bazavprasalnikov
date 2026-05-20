@@ -2,6 +2,8 @@
 // Bo odstranjena ko bo AI matching tuninja koncan.
 import express from 'express';
 import { dbQuery } from '../db.js';
+import { generirajPriporocila } from '../ai/generate_priporocila.js';
+import { generirajPovzetek } from '../ai/generate_povzetek.js';
 
 const router = express.Router();
 
@@ -29,6 +31,27 @@ router.post('/cleanup', async (req, res) => {
   await dbQuery('ALTER SEQUENCE responses_id_seq RESTART WITH 1');
   await dbQuery('ALTER SEQUENCE companies_id_seq RESTART WITH 1');
   res.json({ ok: true, cleared: ['responses', 'companies'] });
+});
+
+// Sinhron klic priporocil — za debug. Ce je napaka, vrne stack trace.
+router.post('/run-priporocila/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const r = await generirajPriporocila(id);
+    res.json({ ok: true, length: r?.length ?? 0, preview: r?.slice(0, 200) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message, stack: err.stack });
+  }
+});
+
+router.post('/run-povzetek/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const r = await generirajPovzetek(id);
+    res.json({ ok: true, length: r?.length ?? 0, preview: r?.slice(0, 200) });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message, stack: err.stack });
+  }
 });
 
 export { router };
