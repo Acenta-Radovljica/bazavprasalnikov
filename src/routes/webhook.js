@@ -1,7 +1,8 @@
 // ── DEL 1: Imports ────────────────────────────────────────────────────────
 import express from 'express';
 import { dbQuery } from '../db.js';
-import { normalizirajNaziv, hashIp } from '../utils/normalize.js';
+import { hashIp } from '../utils/normalize.js';
+import { najdiPodjetjeAI } from '../ai/match_company.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -21,31 +22,6 @@ function izlusciPodjetje(payload) {
   return `NEZNANO_PODJETJE_${Date.now()}`;
 }
 
-// Najdi ali ustvari company. V tej fazi (MVP) samo exact match na
-// naziv_normaliziran — AI matching prihaja v Fazi 2.
-async function najdiAliUstvariPodjetje(nazivPrikaz) {
-  const norm = normalizirajNaziv(nazivPrikaz);
-
-  // 1) Poskusi najti obstojece
-  const existing = await dbQuery(
-    'SELECT id FROM companies WHERE naziv_normaliziran = $1',
-    [norm]
-  );
-  if (existing?.rows?.length > 0) {
-    return existing.rows[0].id;
-  }
-
-  // 2) Ustvari novo
-  const created = await dbQuery(
-    `INSERT INTO companies (naziv_normaliziran, naziv_prikaz)
-     VALUES ($1, $2)
-     ON CONFLICT (naziv_normaliziran) DO UPDATE SET naziv_prikaz = EXCLUDED.naziv_prikaz
-     RETURNING id`,
-    [norm, nazivPrikaz]
-  );
-  return created?.rows?.[0]?.id ?? null;
-}
-
 // ── DEL 4: Glavni handler ────────────────────────────────────────────────
 // POST /webhook/formspree
 // Formspree poslje JSON s polji obrazca. Vrne 200 takoj — AI obdelava bo
@@ -59,12 +35,13 @@ router.post('/formspree', async (req, res) => {
   const consent = payload.gdpr_consent === 'on' || payload.gdpr_consent === true;
 
   const podjetje = izlusciPodjetje(payload);
-  const companyId = await najdiAliUstvariPodjetje(podjetje);
+  const matchRes = await najdiPodjetjeAI(podjetje);
 
-  if (!companyId) {
+  if (!matchRes?.companyId) {
     console.error('[webhook] ni mogel ustvariti/najti companies vrstice za:', podjetje);
     return res.status(500).json({ ok: false, error: 'db_company_failed' });
   }
+  const companyId = matchRes.companyId;
 
   // Deduplikacija: ce isti IP+timestamp v zadnji minuti, preskoci.
   // Razlog: Formspree retrya na network napakah — ne zelimo duplikatov.
@@ -97,10 +74,33 @@ router.post('/formspree', async (req, res) => {
   );
 
   const responseId = inserted?.rows?.[0]?.id;
-  console.log(`[webhook] shranjeno: company=${companyId} response=${responseId} podjetje="${podjetje}"`);
+  console.log(`[webhook] shranjeno: company=${companyId} response=${responseId} podjetje="${podjetje}" match=${matchRes.source}`);
 
   // TODO Faza 3: sprozi async AI obdelavo (generate_povzetek, generate_priporocila)
-  return res.json({ ok: true, responseId, companyId });
+  return res.json({ ok: true, responseId, companyId, matchSource: matchRes.source });
+});
+
+// ── DEL 4b: Debug endpoint (zacasno, brez auth — odstrani v Fazi 4) ─────
+// GET /webhook/debug/last → zadnjih 10 responses + companies za hitro preverjanje
+router.get('/debug/last', async (_req, res) => {
+  const responses = await dbQuery(
+    `SELECT r.id, r.company_id, c.naziv_prikaz, c.naziv_normaliziran,
+            r.submitted_at, r.raw_data
+       FROM responses r
+       JOIN companies c ON c.id = r.company_id
+      ORDER BY r.id DESC
+      LIMIT 10`
+  );
+  const companies = await dbQuery(
+    `SELECT id, naziv_prikaz, naziv_normaliziran, created_at, last_response_at
+       FROM companies
+      ORDER BY id DESC
+      LIMIT 20`
+  );
+  res.json({
+    responses: responses?.rows ?? [],
+    companies: companies?.rows ?? [],
+  });
 });
 
 // ── DEL 5: Named export ──────────────────────────────────────────────────
