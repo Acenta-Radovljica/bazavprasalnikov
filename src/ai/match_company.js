@@ -4,23 +4,30 @@ import { normalizirajNaziv } from '../utils/normalize.js';
 import { klicHaiku } from './claude.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
-// Pragovi za pg_trgm similarity (0.0 = popolnoma razlicno, 1.0 = identicno):
-const PRAG_AVTO_MATCH = 0.85;  // nad tem: avtomatsko zlij (brez AI)
-const PRAG_AI_VPRASAJ = 0.40;  // nad tem: vprasaj Claude. Pod tem: novo podjetje.
+// Pragovi za matching. Kombiniramo dve metriki:
+// - pg_trgm similarity (0.0 = razlicno, 1.0 = identicno) — dobro za daljse fraze
+// - Levenshtein distance (stevilo sprememb znakov) — dobro za enoznakovne typo-e
+const PRAG_TRGM_AVTO  = 0.85;  // pg_trgm: nad tem avto-zlij
+const LEV_AVTO        = 2;     // levenshtein: <=2 spremembi avto-zlij (npr. "Cubo" vs "Kubo")
+const PRAG_TRGM_AI    = 0.20;  // pg_trgm: nad tem vprasaj AI
+const LEV_AI          = 4;     // levenshtein: <=4 spremembi vprasaj AI
 
 // ── DEL 3: Helper funkcije ────────────────────────────────────────────────
 
-// Najde top 5 podjetij s podobnim normaliziranim nazivom.
-// Uporablja pg_trgm GIN indeks (idx_companies_norm_trgm iz 001_init.sql).
+// Najde top 5 podjetij, kjer JE pg_trgm similarity > 0.2 ALI Levenshtein <= 4.
+// Razlog za OR: "kubo" vs "cubo" ima sim=0.25 (komaj) ampak lev=1 (jasno typo) —
+// pg_trgm sam tega ne ujame zanesljivo pri kratkih besedah.
 async function najdiKandidate(normIme) {
   const res = await dbQuery(
     `SELECT id, naziv_prikaz, naziv_normaliziran,
-            similarity(naziv_normaliziran, $1) AS sim
+            similarity(naziv_normaliziran, $1) AS sim,
+            levenshtein(naziv_normaliziran, $1) AS lev
        FROM companies
       WHERE similarity(naziv_normaliziran, $1) > $2
-      ORDER BY sim DESC
+         OR levenshtein(naziv_normaliziran, $1) <= $3
+      ORDER BY sim DESC, lev ASC
       LIMIT 5`,
-    [normIme, PRAG_AI_VPRASAJ]
+    [normIme, PRAG_TRGM_AI, LEV_AI]
   );
   return res?.rows ?? [];
 }
@@ -84,16 +91,19 @@ async function najdiPodjetjeAI(nazivPrikaz) {
     return { companyId: exact.rows[0].id, source: 'exact' };
   }
 
-  // 2) Fuzzy match preko pg_trgm
+  // 2) Fuzzy match preko pg_trgm + Levenshtein
   const kandidati = await najdiKandidate(norm);
 
-  // 2a) En kandidat z visoko similarity → avtomatsko zlij
-  if (kandidati.length === 1 && kandidati[0].sim >= PRAG_AVTO_MATCH) {
-    console.log(`[match] fuzzy_auto: "${nazivPrikaz}" → id=${kandidati[0].id} sim=${kandidati[0].sim.toFixed(2)}`);
-    return { companyId: kandidati[0].id, source: 'fuzzy_auto' };
+  // 2a) En kandidat z visoko similarity ALI majhno Levenshtein → avto-zlij brez AI
+  if (kandidati.length === 1) {
+    const k = kandidati[0];
+    if (k.sim >= PRAG_TRGM_AVTO || k.lev <= LEV_AVTO) {
+      console.log(`[match] fuzzy_auto: "${nazivPrikaz}" → id=${k.id} sim=${k.sim.toFixed(2)} lev=${k.lev}`);
+      return { companyId: k.id, source: 'fuzzy_auto' };
+    }
   }
 
-  // 2b) Vec kandidatov ALI ena z nizjo similarity → AI razresi
+  // 2b) Vec kandidatov ALI en sumljiv → AI razresi
   if (kandidati.length > 0) {
     const aiMatch = await vprasajAI(nazivPrikaz, kandidati);
     if (aiMatch) {
