@@ -7,6 +7,8 @@ import { dirname, join } from 'node:path';
 import { dbPing, pool } from './db.js';
 import { router as webhookRouter } from './routes/webhook.js';
 import { router as debugSimRouter } from './routes/debug-sim.js';
+import { router as apiRouter } from './routes/api.js';
+import { basicAuth } from './middleware/auth.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
@@ -47,6 +49,9 @@ app.use('/webhook', webhookRouter);
 
 // Zacasna debug ruta za tuninje similarity pragov
 app.use('/debug', debugSimRouter);
+
+// Admin API — zascitena z basic auth (vsi /api/* endpointi)
+app.use('/api', basicAuth, apiRouter);
 
 // 404 fallback
 app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
