@@ -4,7 +4,8 @@ import 'dotenv/config';
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const API_URL = 'https://api.anthropic.com/v1/messages';
-const TIMEOUT_MS = 15000;
+const TIMEOUT_HAIKU_MS = 30000;  // Haiku hitri, 30s je vec kot dovolj
+const TIMEOUT_OPUS_MS  = 90000;  // Opus lahko traja 30-60s pri velikih outputih
 
 // Modeli — uporabljaj te konstante, nikoli string literal v kodi.
 // Razlog: ce Anthropic izda nov model, posodobimo na enem mestu.
@@ -21,8 +22,12 @@ async function callClaudeRaw(body, retryCount = 0) {
     return null;
   }
 
+  // Daljsi timeout za Opus (lahko generira 2500 tokenov, kar traja vec 10s)
+  const isOpus = body.model?.includes('opus');
+  const timeoutMs = isOpus ? TIMEOUT_OPUS_MS : TIMEOUT_HAIKU_MS;
+
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
     const res = await fetch(API_URL, {
