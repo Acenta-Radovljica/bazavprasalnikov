@@ -1,7 +1,10 @@
 // ── DEL 1: Imports ────────────────────────────────────────────────────────
 import 'dotenv/config';
 import express from 'express';
-import { dbPing } from './db.js';
+import { readFile, readdir } from 'node:fs/promises';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { dbPing, pool } from './db.js';
 import { router as webhookRouter } from './routes/webhook.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
@@ -51,6 +54,41 @@ app.use((err, _req, res, _next) => {
 });
 
 // ── DEL 6: Start ──────────────────────────────────────────────────────────
+
+// Auto-migracija ob zagonu. Vsi SQL-i so idempotentni (CREATE TABLE IF NOT EXISTS),
+// zato je varno klicati ob vsakem deployu. Ce baza se ni pripravljena, retry 5x.
+async function runMigracije() {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const sqlDir = join(__dirname, '..', 'sql');
+
+  let files;
+  try {
+    files = (await readdir(sqlDir)).filter(f => f.endsWith('.sql')).sort();
+  } catch (err) {
+    console.log('[migrate] ni mape sql/, preskocim:', err.message);
+    return;
+  }
+
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    const ok = await dbPing();
+    if (ok) break;
+    console.log(`[migrate] baza se ni pripravljena (poskus ${attempt}/5), pocakam 3s...`);
+    await new Promise(r => setTimeout(r, 3000));
+  }
+
+  for (const file of files) {
+    const sql = await readFile(join(sqlDir, file), 'utf-8');
+    try {
+      await pool.query(sql);
+      console.log(`[migrate] ${file} OK`);
+    } catch (err) {
+      console.error(`[migrate] ${file} NAPAKA:`, err.message);
+    }
+  }
+}
+
+await runMigracije();
+
 app.listen(PORT, () => {
   console.log(`[server] bazavprasalnikov-api posluša na portu ${PORT}`);
 });
