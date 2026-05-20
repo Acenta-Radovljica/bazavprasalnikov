@@ -20,4 +20,15 @@ router.get('/sim', async (req, res) => {
   res.json({ query: q, results: r?.rows ?? [] });
 });
 
+// Zacasno cisti testne podatke (rabi ?token=acenta-test-clean)
+// Ko bo admin UI s pravim auth-om gotov (Faza 4), to izbrisi.
+router.post('/cleanup', async (req, res) => {
+  if (req.query.token !== 'acenta-test-clean') return res.status(403).json({ error: 'forbidden' });
+  await dbQuery('DELETE FROM responses');
+  await dbQuery('DELETE FROM companies');
+  await dbQuery('ALTER SEQUENCE responses_id_seq RESTART WITH 1');
+  await dbQuery('ALTER SEQUENCE companies_id_seq RESTART WITH 1');
+  res.json({ ok: true, cleared: ['responses', 'companies'] });
+});
+
 export { router };
