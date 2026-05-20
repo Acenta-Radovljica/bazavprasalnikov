@@ -28,7 +28,11 @@ function izlusciPodjetje(payload) {
 // Formspree poslje JSON s polji obrazca. Vrne 200 takoj — AI obdelava bo
 // (v Fazi 3) potekala asinhrono, da ne blokiramo Formspree retry logike.
 router.post('/formspree', async (req, res) => {
-  const payload = req.body || {};
+  // Formspree poslje payload v obliki { form, keys, submission: { ...polja } }.
+  // Direkten POST (npr. test prek curl-a brez Formspree) pa ima polja na korenu.
+  // Podpremo oba formata — ce ima telo `submission` objekt, ga "unwrappamo".
+  const body = req.body || {};
+  const payload = (body.submission && typeof body.submission === 'object') ? body.submission : body;
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
   const ipHash = hashIp(ip);
 
