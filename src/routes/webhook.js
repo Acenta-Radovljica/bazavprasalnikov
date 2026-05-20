@@ -3,6 +3,7 @@ import express from 'express';
 import { dbQuery } from '../db.js';
 import { hashIp } from '../utils/normalize.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
+import { sproziPovzetek, sproziPriporocila } from '../ai/queue.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -43,19 +44,30 @@ router.post('/formspree', async (req, res) => {
   }
   const companyId = matchRes.companyId;
 
-  // Deduplikacija: ce isti IP+timestamp v zadnji minuti, preskoci.
-  // Razlog: Formspree retrya na network napakah — ne zelimo duplikatov.
-  if (ipHash) {
+  // Deduplikacija: ce isti email + isto podjetje v zadnjih 10 minutah, preskoci.
+  // Razlog: Formspree retrya na network napakah, in isti respondent ne odda
+  // 2x v 10 minutah — varna meja proti duplikatom brez napacnih pozitivov.
+  const email = (payload.email || payload['3_email'] || payload._replyto || '').toString().toLowerCase().trim();
+  if (email) {
     const dup = await dbQuery(
       `SELECT id FROM responses
-       WHERE ip_hash = $1
-         AND company_id = $2
-         AND submitted_at > NOW() - INTERVAL '1 minute'
+       WHERE company_id = $1
+         AND lower(raw_data->>'email') = $2
+         AND submitted_at > NOW() - INTERVAL '10 minutes'
        LIMIT 1`,
-      [ipHash, companyId]
+      [companyId, email]
     );
-    if (dup?.rows?.length > 0) {
-      console.log('[webhook] duplikat zaznan (ip+1min), preskocim');
+    // Tudi preveri po "3_email" kljucu (Formspree pogosto pripne stevilko polja)
+    const dup2 = await dbQuery(
+      `SELECT id FROM responses
+       WHERE company_id = $1
+         AND lower(raw_data->>'3_email') = $2
+         AND submitted_at > NOW() - INTERVAL '10 minutes'
+       LIMIT 1`,
+      [companyId, email]
+    );
+    if (dup?.rows?.length > 0 || dup2?.rows?.length > 0) {
+      console.log('[webhook] duplikat zaznan (email+10min), preskocim');
       return res.json({ ok: true, deduplicated: true });
     }
   }
@@ -76,23 +88,28 @@ router.post('/formspree', async (req, res) => {
   const responseId = inserted?.rows?.[0]?.id;
   console.log(`[webhook] shranjeno: company=${companyId} response=${responseId} podjetje="${podjetje}" match=${matchRes.source}`);
 
-  // TODO Faza 3: sprozi async AI obdelavo (generate_povzetek, generate_priporocila)
+  // Sprozi AI obdelavo v ozadju — webhook odgovori takoj, AI tece async.
+  if (responseId) sproziPovzetek(responseId);
+  sproziPriporocila(companyId);
+
   return res.json({ ok: true, responseId, companyId, matchSource: matchRes.source });
 });
 
-// ── DEL 4b: Debug endpoint (zacasno, brez auth — odstrani v Fazi 4) ─────
-// GET /webhook/debug/last → zadnjih 10 responses + companies za hitro preverjanje
+// ── DEL 4b: Debug endpointi (zacasno, brez auth — odstrani v Fazi 4) ────
+
+// Zadnjih 10 responses + companies za hitro preverjanje
 router.get('/debug/last', async (_req, res) => {
   const responses = await dbQuery(
     `SELECT r.id, r.company_id, c.naziv_prikaz, c.naziv_normaliziran,
-            r.submitted_at, r.raw_data
+            r.submitted_at, r.raw_data, r.ai_povzetek, r.ai_processed_at
        FROM responses r
        JOIN companies c ON c.id = r.company_id
       ORDER BY r.id DESC
       LIMIT 10`
   );
   const companies = await dbQuery(
-    `SELECT id, naziv_prikaz, naziv_normaliziran, created_at, last_response_at
+    `SELECT id, naziv_prikaz, naziv_normaliziran, created_at, last_response_at,
+            ai_priporocila, ai_priporocila_updated_at
        FROM companies
       ORDER BY id DESC
       LIMIT 20`
@@ -101,6 +118,18 @@ router.get('/debug/last', async (_req, res) => {
     responses: responses?.rows ?? [],
     companies: companies?.rows ?? [],
   });
+});
+
+// Hitri AI status — koliko responses ima povzetek, koliko podjetij priporocila
+router.get('/debug/ai-status', async (_req, res) => {
+  const r = await dbQuery(`
+    SELECT
+      (SELECT count(*) FROM responses) AS responses_total,
+      (SELECT count(*) FROM responses WHERE ai_povzetek IS NOT NULL) AS responses_z_povzetkom,
+      (SELECT count(*) FROM companies) AS companies_total,
+      (SELECT count(*) FROM companies WHERE ai_priporocila IS NOT NULL) AS companies_z_priporocili
+  `);
+  res.json(r?.rows?.[0] ?? {});
 });
 
 // ── DEL 5: Named export ──────────────────────────────────────────────────
