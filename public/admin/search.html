@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acenta — Iskanje</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* ts_headline obkroza zadetke v <b>...</b> */
+    b { background: #fef08a; padding: 0 2px; border-radius: 2px; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header id="nav"></header>
+
+  <main class="max-w-5xl mx-auto px-6 py-8">
+    <h1 class="text-2xl font-bold text-[#1a1a2e] mb-4">Polnotekstovno iskanje</h1>
+
+    <form id="form" class="mb-6">
+      <input
+        id="q"
+        type="text"
+        placeholder="Vnesi iskalno geslo (npr. wellness, chatbot, AI orodja)..."
+        class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#00b894]"
+      >
+    </form>
+
+    <div id="results"></div>
+  </main>
+
+  <script src="/admin/app.js"></script>
+  <script>
+    renderNav('search');
+
+    const input = document.getElementById('q');
+    const initialQ = qs('q') ?? '';
+    input.value = initialQ;
+    if (initialQ) iskanje(initialQ);
+
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const q = input.value.trim();
+      const url = new URL(window.location.href);
+      url.searchParams.set('q', q);
+      window.history.replaceState({}, '', url);
+      iskanje(q);
+    });
+
+    async function iskanje(q) {
+      if (!q) {
+        document.getElementById('results').innerHTML = '';
+        return;
+      }
+      showLoading('results', 'Iščem...');
+      const data = await apiFetch(`/api/search?q=${encodeURIComponent(q)}`);
+      if (!data) { showError('results', 'Napaka pri iskanju.'); return; }
+      renderResults(data.results ?? [], q);
+    }
+
+    function renderResults(results, q) {
+      const el = document.getElementById('results');
+      if (!results.length) {
+        el.innerHTML = `<div class="bg-white rounded shadow p-6 text-gray-500">Brez zadetkov za "${esc(q)}".</div>`;
+        return;
+      }
+      el.innerHTML = `
+        <div class="text-sm text-gray-500 mb-3">${results.length} zadetkov</div>
+        ${results.map(r => `
+          <div class="bg-white rounded shadow p-4 mb-3">
+            <div class="flex items-center justify-between mb-2">
+              <a href="/admin/response.html?id=${r.response_id}" class="text-sm font-medium text-[#00b894] hover:underline">
+                ${esc(r.naziv_prikaz)} — odgovor #${r.response_id}
+              </a>
+              <span class="text-xs text-gray-500">${formatDatum(r.submitted_at)}</span>
+            </div>
+            <div class="text-sm text-gray-700">${r.highlight ?? ''}</div>
+          </div>
+        `).join('')}
+      `;
+    }
+  </script>
+</body>
+</html>

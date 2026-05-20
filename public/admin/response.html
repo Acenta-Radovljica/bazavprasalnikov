@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acenta — Odgovor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header id="nav"></header>
+
+  <main class="max-w-5xl mx-auto px-6 py-8">
+    <a id="back" href="/admin/" class="text-sm text-[#00b894] hover:underline">← Nazaj</a>
+    <div id="content" class="mt-4"></div>
+  </main>
+
+  <script src="/admin/app.js"></script>
+  <script>
+    renderNav('home');
+
+    const id = qs('id');
+    if (!id) {
+      document.getElementById('content').innerHTML = '<div class="bg-red-50 text-red-700 p-4 rounded">Manjka ?id= parameter</div>';
+      throw new Error('no id');
+    }
+
+    function renderRawData(raw) {
+      if (!raw || typeof raw !== 'object') return '<div class="text-gray-400">—</div>';
+      const vrstice = Object.entries(raw).map(([k, v]) => {
+        const val = typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v ?? '');
+        return `
+          <tr class="border-b">
+            <td class="px-4 py-2 text-sm font-medium text-gray-700 align-top w-1/3">${esc(k)}</td>
+            <td class="px-4 py-2 text-sm text-gray-900 whitespace-pre-wrap">${esc(val)}</td>
+          </tr>
+        `;
+      }).join('');
+      return `<table class="w-full bg-white rounded shadow">${vrstice}</table>`;
+    }
+
+    (async () => {
+      showLoading('content');
+      const data = await apiFetch(`/api/responses/${id}`);
+      if (!data?.response) {
+        showError('content', 'Odgovor ni najden.');
+        return;
+      }
+      const r = data.response;
+      document.getElementById('back').href = `/admin/company.html?id=${r.company_id}`;
+
+      const povzetek = r.ai_povzetek
+        ? `<pre class="whitespace-pre-wrap text-sm text-gray-800 font-sans bg-white p-4 rounded shadow">${esc(r.ai_povzetek)}</pre>`
+        : '<div class="text-sm text-gray-400 italic">AI povzetek še ni generiran.</div>';
+
+      const gdpr = r.consent_gdpr ? 'DA ✓' : 'NE';
+
+      document.getElementById('content').innerHTML = `
+        <div class="mb-6">
+          <h1 class="text-2xl font-bold text-[#1a1a2e]">Odgovor #${r.id}</h1>
+          <div class="text-sm text-gray-500 mt-1">
+            <a class="text-[#00b894] hover:underline" href="/admin/company.html?id=${r.company_id}">${esc(r.naziv_prikaz)}</a>
+            · ${formatDatum(r.submitted_at)} · GDPR: ${gdpr}
+          </div>
+        </div>
+
+        <div class="mb-6">
+          <h2 class="text-lg font-bold text-[#1a1a2e] mb-3">AI povzetek</h2>
+          ${povzetek}
+        </div>
+
+        <div>
+          <h2 class="text-lg font-bold text-[#1a1a2e] mb-3">Surovi odgovori</h2>
+          ${renderRawData(r.raw_data)}
+        </div>
+      `;
+    })();
+  </script>
+</body>
+</html>

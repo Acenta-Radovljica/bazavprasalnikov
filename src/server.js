@@ -53,6 +53,12 @@ app.use('/debug', debugSimRouter);
 // Admin API — zascitena z basic auth (vsi /api/* endpointi)
 app.use('/api', basicAuth, apiRouter);
 
+// Admin UI — staticne HTML strani, prav tako za basic auth.
+// Brskalnik bo zahteval login pri prvem obisku, nato cache-a.
+const __filename = fileURLToPath(import.meta.url);
+const __dirnameSrv = dirname(__filename);
+app.use('/admin', basicAuth, express.static(join(__dirnameSrv, '..', 'public', 'admin')));
+
 // 404 fallback
 app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
 

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acenta — Podjetja</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header id="nav"></header>
+
+  <main class="max-w-6xl mx-auto px-6 py-8">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold text-[#1a1a2e]">Podjetja</h1>
+      <div class="text-sm text-gray-500" id="meta">—</div>
+    </div>
+
+    <div class="mb-4">
+      <input
+        id="filter"
+        type="text"
+        placeholder="Filtriraj po nazivu..."
+        class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-[#00b894]"
+      >
+    </div>
+
+    <div id="content" class="bg-white rounded shadow"></div>
+  </main>
+
+  <script src="/admin/app.js"></script>
+  <script>
+    renderNav('home');
+
+    let vsaPodjetja = [];
+
+    function renderSeznam(podjetja) {
+      const el = document.getElementById('content');
+      if (!podjetja.length) {
+        el.innerHTML = '<div class="p-8 text-center text-gray-500">Ni podjetij.</div>';
+        return;
+      }
+
+      const vrstice = podjetja.map(p => {
+        const aiBadge = p.has_priporocila
+          ? '<span class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">AI ✓</span>'
+          : '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">AI —</span>';
+        return `
+          <tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.href='/admin/company.html?id=${p.id}'">
+            <td class="px-4 py-3 font-medium text-[#1a1a2e]">${esc(p.naziv_prikaz)}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${p.st_odgovorov}</td>
+            <td class="px-4 py-3 text-sm text-gray-600">${formatDatum(p.zadnji_odgovor)}</td>
+            <td class="px-4 py-3">${aiBadge}</td>
+          </tr>
+        `;
+      }).join('');
+
+      el.innerHTML = `
+        <table class="w-full">
+          <thead class="bg-gray-50 border-b">
+            <tr>
+              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Naziv</th>
+              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Odgovori</th>
+              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Zadnji odgovor</th>
+              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">AI status</th>
+            </tr>
+          </thead>
+          <tbody>${vrstice}</tbody>
+        </table>
+      `;
+    }
+
+    document.getElementById('filter').addEventListener('input', (e) => {
+      const q = e.target.value.toLowerCase().trim();
+      const filtrirana = q
+        ? vsaPodjetja.filter(p => (p.naziv_prikaz || '').toLowerCase().includes(q))
+        : vsaPodjetja;
+      renderSeznam(filtrirana);
+    });
+
+    (async () => {
+      showLoading('content');
+      const data = await apiFetch('/api/companies');
+      if (!data) {
+        showError('content', 'Napaka pri nalaganju podjetij.');
+        return;
+      }
+      vsaPodjetja = data.companies ?? [];
+      document.getElementById('meta').textContent = `${vsaPodjetja.length} podjetij`;
+      renderSeznam(vsaPodjetja);
+    })();
+  </script>
+</body>
+</html>
