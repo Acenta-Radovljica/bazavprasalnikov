@@ -81,7 +81,9 @@ async function generirajPriporocila(companyId) {
     `## 5. RIZIKI / OVIRE\n` +
     `Top 2 stvari, ki bi jih lahko zaustavile, in kako jih nasloviti.`;
 
-  const priporocila = await klicOpus({ system: SYSTEM_PROMPT, user, maxTokens: 2500 });
+  // 4000 tokenov ~= 12-15k znakov — dovolj za 5 sekcij z tabelami + buffer.
+  // Prej je bilo 2500 in se je tekst presekal sredi 5. sekcije.
+  const priporocila = await klicOpus({ system: SYSTEM_PROMPT, user, maxTokens: 4000 });
   if (!priporocila) {
     console.warn(`[priporocila] AI ni vrnil odgovora za company=${companyId}`);
     return null;
