@@ -146,6 +146,49 @@ router.post('/companies/:id/merge', async (req, res) => {
   });
 });
 
+// GET /api/stats — agregacije za dashboard (totals + timeline)
+router.get('/stats', async (_req, res) => {
+  // Skupne vrednosti
+  const totals = await dbQuery(`
+    SELECT
+      (SELECT count(*) FROM companies)::int AS podjetja_total,
+      (SELECT count(*) FROM responses)::int AS odgovori_total,
+      (SELECT count(*) FROM companies WHERE ai_priporocila IS NULL)::int AS brez_priporocil,
+      (SELECT count(*) FROM responses WHERE submitted_at > NOW() - INTERVAL '7 days')::int AS odgovori_7d,
+      (SELECT count(*) FROM responses WHERE submitted_at > NOW() - INTERVAL '14 days' AND submitted_at <= NOW() - INTERVAL '7 days')::int AS odgovori_prej_7d,
+      (SELECT count(*) FROM companies WHERE created_at > NOW() - INTERVAL '7 days')::int AS podjetja_7d,
+      (SELECT count(*) FROM companies WHERE created_at > NOW() - INTERVAL '14 days' AND created_at <= NOW() - INTERVAL '7 days')::int AS podjetja_prej_7d
+  `);
+
+  // Zastarela = podjetje ima priporocila, ampak je nov response prisel po generaciji
+  const zastarela = await dbQuery(`
+    SELECT count(*)::int AS n FROM companies
+     WHERE ai_priporocila IS NOT NULL
+       AND last_response_at > ai_priporocila_updated_at
+  `);
+
+  // Timeline: stevilo responsov po dnevu zadnjih 30 dni
+  const timeline = await dbQuery(`
+    SELECT
+      to_char(date_trunc('day', d), 'YYYY-MM-DD') AS dan,
+      count(r.id)::int AS st
+    FROM generate_series(
+      date_trunc('day', NOW() - INTERVAL '29 days'),
+      date_trunc('day', NOW()),
+      INTERVAL '1 day'
+    ) AS d
+    LEFT JOIN responses r ON date_trunc('day', r.submitted_at) = d
+    GROUP BY d
+    ORDER BY d ASC
+  `);
+
+  res.json({
+    totals: totals?.rows?.[0] ?? {},
+    zastarela: zastarela?.rows?.[0]?.n ?? 0,
+    timeline: timeline?.rows ?? [],
+  });
+});
+
 // GET /api/insights — najnovejsi cross-client insights
 router.get('/insights', async (_req, res) => {
   const r = await dbQuery(

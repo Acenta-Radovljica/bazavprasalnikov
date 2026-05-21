@@ -3,100 +3,493 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Podjetja</title>
+  <title>Acenta — Pregled</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --acenta-teal: #00b894;
+      --acenta-teal-soft: #d4f4ec;
+      --acenta-teal-dark: #006e5a;
+      --acenta-navy: #1a1a2e;
+      --bg: #f6f7f9;
+      --card-border: #ececf1;
+      --muted: #8b8b95;
+    }
+    body {
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif;
+      color: var(--acenta-navy);
+    }
+    .card {
+      background: #fff;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+    }
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-radius: 12px;
+      color: #4a4a55;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .sidebar-item:hover { background: #ececf1; }
+    .sidebar-item.active {
+      background: #fff;
+      color: var(--acenta-navy);
+      box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
+      border: 1px solid var(--card-border);
+    }
+    .sidebar-sub {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px 8px 46px;
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+    }
+    .sidebar-sub:hover { background: #ececf1; color: var(--acenta-navy); }
+    .badge-warning { background: #ffeacc; color: #9a5a00; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+    .badge-success { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+    .badge-neutral { background: #ececf1; color: #6b6b75; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+    .stat-number {
+      font-size: 56px;
+      line-height: 1;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    .stat-number.muted { color: #c4c4cb; }
+    .delta-up { display: inline-flex; align-items: center; gap: 4px; background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+    .delta-down { display: inline-flex; align-items: center; gap: 4px; background: #fde2e2; color: #a02020; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+    .delta-flat { display: inline-flex; align-items: center; gap: 4px; background: #ececf1; color: #6b6b75; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+    .icon-bg { width: 56px; height: 56px; border-radius: 16px; background: #f1f2f5; display: flex; align-items: center; justify-content: center; }
+    .icon-bg.muted { background: #f6f7f9; }
+    .icon-bg svg { width: 26px; height: 26px; stroke: var(--acenta-navy); stroke-width: 1.8; fill: none; }
+    .icon-bg.muted svg { stroke: #c4c4cb; }
+    .icon-bg.warn { background: #fff4e0; }
+    .icon-bg.warn svg { stroke: #d97706; }
+    .skeleton { background: linear-gradient(90deg, #f1f2f5 0%, #e8e9ee 50%, #f1f2f5 100%); background-size: 200% 100%; animation: skel 1.2s infinite; border-radius: 8px; }
+    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .avatar {
+      width: 40px; height: 40px;
+      border-radius: 999px;
+      background: var(--acenta-teal-soft);
+      color: var(--acenta-teal-dark);
+      font-weight: 600;
+      font-size: 14px;
+      display: flex; align-items: center; justify-content: center;
+    }
+  </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <header id="nav"></header>
+<body>
+  <div class="flex min-h-screen">
 
-  <main class="max-w-6xl mx-auto px-6 py-8">
-    <div class="flex items-center justify-between mb-6">
-      <h1 class="text-2xl font-bold text-[#1a1a2e]">Podjetja</h1>
-      <div class="text-sm text-gray-500" id="meta">—</div>
-    </div>
+    <!-- ── SIDEBAR ── -->
+    <aside class="w-64 bg-[#f6f7f9] border-r border-[#ececf1] p-5 flex flex-col">
+      <div class="flex items-center gap-3 mb-8 px-2">
+        <div class="w-10 h-10 rounded-xl bg-[#1a1a2e] flex items-center justify-center text-white font-bold">A</div>
+        <div>
+          <div class="font-semibold text-[#1a1a2e] leading-tight">Acenta</div>
+          <div class="text-xs text-gray-500">Moj AI načrt</div>
+        </div>
+      </div>
 
-    <div class="mb-4">
-      <input
-        id="filter"
-        type="text"
-        placeholder="Filtriraj po nazivu..."
-        class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-[#00b894]"
-      >
-    </div>
+      <nav class="space-y-1 flex-1">
+        <a href="/admin/" class="sidebar-item active">
+          <!-- Grid icon -->
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Pregled</span>
+        </a>
 
-    <div id="content" class="bg-white rounded shadow"></div>
-  </main>
+        <div>
+          <div class="sidebar-item" onclick="toggleSub()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+            <span class="flex-1">Podjetja</span>
+            <svg id="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div id="sub" class="mt-1 space-y-0.5">
+            <a href="/admin/podjetja.html" class="sidebar-sub">
+              <span>Vsa</span>
+              <span class="badge-neutral" id="sub-vsa">—</span>
+            </a>
+            <a href="/admin/podjetja.html" class="sidebar-sub">
+              <span>Brez priporočil</span>
+              <span class="badge-warning" id="sub-brez">—</span>
+            </a>
+            <a href="/admin/podjetja.html" class="sidebar-sub">
+              <span>Zastarela</span>
+              <span class="badge-warning" id="sub-zastarela">—</span>
+            </a>
+            <a href="/admin/podjetja.html" class="sidebar-sub">
+              <span>Posodobljena</span>
+              <span class="badge-success" id="sub-posodobljena">—</span>
+            </a>
+          </div>
+        </div>
+
+        <a href="/admin/search.html" class="sidebar-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>Iskanje</span>
+        </a>
+
+        <a href="/admin/insights.html" class="sidebar-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>Insights</span>
+        </a>
+      </nav>
+
+      <div class="card p-3 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-[#00b894] text-white flex items-center justify-center font-semibold text-sm">AI</div>
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-[#1a1a2e] truncate">ai@acenta.si</div>
+          <div class="text-xs text-gray-500">Admin</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <main class="flex-1 p-10 max-w-[1280px]">
+      <div class="flex items-end justify-between mb-8">
+        <div>
+          <h1 class="text-3xl font-bold">Pregled</h1>
+          <div class="text-sm text-gray-500 mt-1">Moj AI načrt — delavnica</div>
+        </div>
+        <div class="text-sm text-gray-500" id="last-update">—</div>
+      </div>
+
+      <!-- Stat cards top -->
+      <div class="card p-8 mb-6">
+        <div class="text-sm font-medium text-gray-500 mb-6">Glavni podatki</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <!-- Podjetja -->
+          <div>
+            <div class="icon-bg mb-6">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
+            </div>
+            <div class="text-sm text-gray-500 mb-2 flex items-center gap-1.5">
+              Podjetja
+              <span class="text-gray-300 cursor-help text-base" title="Skupno število podjetij v bazi">ⓘ</span>
+            </div>
+            <div class="flex items-end gap-6 mb-3">
+              <div class="stat-number" id="stat-podjetja">—</div>
+              <svg viewBox="0 0 120 40" class="w-32 h-12" id="spark-podjetja">
+                <path d="M 0 32 L 120 32" stroke="#ececf1" stroke-width="1"/>
+              </svg>
+            </div>
+            <div class="flex items-center gap-3">
+              <span id="delta-podjetja" class="delta-flat">—</span>
+              <span class="text-sm text-gray-500">vs prejšnji teden</span>
+            </div>
+          </div>
+
+          <!-- Odgovori -->
+          <div>
+            <div class="icon-bg mb-6">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <div class="text-sm text-gray-500 mb-2 flex items-center gap-1.5">
+              Odgovori
+              <span class="text-gray-300 cursor-help text-base" title="Skupno število Formspree submissionov">ⓘ</span>
+            </div>
+            <div class="flex items-end gap-6 mb-3">
+              <div class="stat-number" id="stat-odgovori">—</div>
+              <svg viewBox="0 0 120 40" class="w-32 h-12" id="spark-odgovori">
+                <path d="M 0 32 L 120 32" stroke="#ececf1" stroke-width="1"/>
+              </svg>
+            </div>
+            <div class="flex items-center gap-3">
+              <span id="delta-odgovori" class="delta-flat">—</span>
+              <span class="text-sm text-gray-500">vs prejšnji teden</span>
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-8 border-[#ececf1]">
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+          <!-- Zastarela -->
+          <div>
+            <div class="icon-bg warn mb-6">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div class="text-sm text-gray-500 mb-2">Zastarela priporočila</div>
+            <div class="flex items-end gap-6 mb-3">
+              <div class="stat-number" id="stat-zastarela" style="color: #d97706;">—</div>
+            </div>
+            <div class="text-sm text-gray-500">Klikni "Regeneriraj" v podjetju.</div>
+          </div>
+
+          <!-- Brez priporocil -->
+          <div>
+            <div class="icon-bg muted mb-6">
+              <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            </div>
+            <div class="text-sm text-gray-500 mb-2">Brez priporočil</div>
+            <div class="flex items-end gap-6 mb-3">
+              <div class="stat-number muted" id="stat-brez">—</div>
+            </div>
+            <div class="text-sm text-gray-500">Še nikoli generirana.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline chart -->
+      <div class="card p-8 mb-6">
+        <div class="flex items-center justify-between mb-6">
+          <div>
+            <div class="text-lg font-bold">Odgovori v zadnjih 30 dneh</div>
+            <div class="text-sm text-gray-500 mt-1" id="timeline-meta">—</div>
+          </div>
+        </div>
+        <div id="timeline-chart" class="h-60">
+          <div class="skeleton w-full h-full"></div>
+        </div>
+      </div>
+
+      <!-- Aktivnost -->
+      <div class="card p-8">
+        <div class="flex items-center justify-between mb-6">
+          <div class="text-lg font-bold">Aktivnost podjetij</div>
+          <a href="/admin/podjetja.html" class="text-sm text-[#00b894] hover:underline">Odpri seznam →</a>
+        </div>
+        <div id="aktivnost">
+          <div class="space-y-3">
+            <div class="skeleton h-14"></div>
+            <div class="skeleton h-14"></div>
+            <div class="skeleton h-14"></div>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
 
   <script src="/admin/app.js"></script>
   <script>
-    renderNav('home');
+    function toggleSub() {
+      const sub = document.getElementById('sub');
+      const chev = document.getElementById('chev');
+      const hidden = sub.style.display === 'none';
+      sub.style.display = hidden ? 'block' : 'none';
+      chev.style.transform = hidden ? '' : 'rotate(-90deg)';
+    }
 
-    let vsaPodjetja = [];
+    function relativnoTime(iso) {
+      if (!iso) return 'nikoli';
+      const ms = Date.now() - new Date(iso).getTime();
+      const min = Math.floor(ms / 60000);
+      if (min < 1) return 'pred trenutkom';
+      if (min < 60) return `pred ${min} min`;
+      const h = Math.floor(min / 60);
+      if (h < 24) return `pred ${h} h`;
+      const d = Math.floor(h / 24);
+      if (d < 30) return `pred ${d} d`;
+      return formatDatum(iso);
+    }
 
-    function renderSeznam(podjetja) {
-      const el = document.getElementById('content');
-      if (!podjetja.length) {
-        el.innerHTML = '<div class="p-8 text-center text-gray-500">Ni podjetij.</div>';
+    function deltaBadge(elId, current, previous) {
+      const el = document.getElementById(elId);
+      if (previous === 0 && current === 0) {
+        el.className = 'delta-flat';
+        el.textContent = '—';
         return;
       }
+      if (previous === 0) {
+        el.className = 'delta-up';
+        el.innerHTML = '↑ <span>nov</span>';
+        return;
+      }
+      const pct = Math.round(((current - previous) / previous) * 100);
+      if (pct > 0) {
+        el.className = 'delta-up';
+        el.innerHTML = `↑ ${pct}%`;
+      } else if (pct < 0) {
+        el.className = 'delta-down';
+        el.innerHTML = `↓ ${Math.abs(pct)}%`;
+      } else {
+        el.className = 'delta-flat';
+        el.textContent = '0%';
+      }
+    }
 
-      const vrstice = podjetja.map(p => {
-        // Tri stanja: brez priporocil / posodobljena / zastarela (nov response po generaciji)
-        const zastarela = p.has_priporocila
-          && p.ai_priporocila_updated_at
-          && p.zadnji_odgovor
-          && new Date(p.zadnji_odgovor) > new Date(p.ai_priporocila_updated_at);
-        let aiBadge;
-        if (!p.has_priporocila) {
-          aiBadge = '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded" title="Priporočila še niso generirana">AI —</span>';
-        } else if (zastarela) {
-          aiBadge = '<span class="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded" title="Nov odgovor po zadnji generaciji — priporočila so zastarela">AI ⚠</span>';
-        } else {
-          aiBadge = '<span class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded" title="Priporočila so posodobljena">AI ✓</span>';
-        }
-        return `
-          <tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.href='/admin/company.html?id=${p.id}'">
-            <td class="px-4 py-3 font-medium text-[#1a1a2e]">${esc(p.naziv_prikaz)}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">${p.st_odgovorov}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">${formatDatum(p.zadnji_odgovor)}</td>
-            <td class="px-4 py-3">${aiBadge}</td>
-          </tr>
-        `;
-      }).join('');
-
-      el.innerHTML = `
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b">
-            <tr>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Naziv</th>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Odgovori</th>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Zadnji odgovor</th>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">AI status</th>
-            </tr>
-          </thead>
-          <tbody>${vrstice}</tbody>
-        </table>
+    // Sparkline iz timeline data (zadnjih N tock)
+    function renderSparkline(svgId, values) {
+      const svg = document.getElementById(svgId);
+      if (!values.length) return;
+      const W = 120, H = 40, padY = 4;
+      const max = Math.max(1, ...values);
+      const min = Math.min(...values);
+      const range = max - min || 1;
+      const pts = values.map((v, i) => {
+        const x = (i / (values.length - 1 || 1)) * W;
+        const y = H - padY - ((v - min) / range) * (H - 2 * padY);
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      });
+      const d = 'M ' + pts.join(' L ');
+      svg.innerHTML = `
+        <path d="${d}" stroke="#00b894" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       `;
     }
 
-    document.getElementById('filter').addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      const filtrirana = q
-        ? vsaPodjetja.filter(p => (p.naziv_prikaz || '').toLowerCase().includes(q))
-        : vsaPodjetja;
-      renderSeznam(filtrirana);
-    });
-
-    (async () => {
-      showLoading('content');
-      const data = await apiFetch('/api/companies');
-      if (!data) {
-        showError('content', 'Napaka pri nalaganju podjetij.');
+    // Glavni line chart za 30 dni
+    function renderTimelineChart(rows) {
+      const el = document.getElementById('timeline-chart');
+      if (!rows.length) {
+        el.innerHTML = '<div class="text-center text-gray-500 py-16">Ni podatkov.</div>';
         return;
       }
-      vsaPodjetja = data.companies ?? [];
-      document.getElementById('meta').textContent = `${vsaPodjetja.length} podjetij`;
-      renderSeznam(vsaPodjetja);
+      const values = rows.map(r => r.st);
+      const W = 1100, H = 220, padL = 40, padR = 16, padT = 16, padB = 30;
+      const innerW = W - padL - padR;
+      const innerH = H - padT - padB;
+      const max = Math.max(3, ...values);
+
+      // Y axis ticks (0, max/2, max)
+      const yTicks = [0, Math.round(max / 2), max];
+
+      const xStep = innerW / (rows.length - 1 || 1);
+
+      const points = values.map((v, i) => {
+        const x = padL + i * xStep;
+        const y = padT + innerH - (v / max) * innerH;
+        return { x, y, v, dan: rows[i].dan };
+      });
+
+      const pathD = 'M ' + points.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ');
+      const areaD = pathD + ` L ${points[points.length-1].x.toFixed(1)} ${padT + innerH} L ${padL} ${padT + innerH} Z`;
+
+      const gridLines = yTicks.map(t => {
+        const y = padT + innerH - (t / max) * innerH;
+        return `<line x1="${padL}" y1="${y}" x2="${padL + innerW}" y2="${y}" stroke="#ececf1" stroke-dasharray="3,3"/>
+                <text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#8b8b95">${t}</text>`;
+      }).join('');
+
+      // X axis labels — pokazi vsak 5. datum
+      const xLabels = points.map((p, i) => {
+        if (i % 5 !== 0 && i !== points.length - 1) return '';
+        const date = new Date(p.dan);
+        const lbl = `${date.getDate()}.${date.getMonth()+1}`;
+        return `<text x="${p.x}" y="${padT + innerH + 18}" text-anchor="middle" font-size="11" fill="#8b8b95">${lbl}</text>`;
+      }).join('');
+
+      const dots = points.map(p => p.v > 0
+        ? `<circle cx="${p.x}" cy="${p.y}" r="3" fill="#00b894"/>`
+        : ''
+      ).join('');
+
+      el.innerHTML = `
+        <svg viewBox="0 0 ${W} ${H}" class="w-full h-full" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#00b894" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#00b894" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          ${gridLines}
+          <path d="${areaD}" fill="url(#areaGrad)"/>
+          <path d="${pathD}" stroke="#00b894" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          ${dots}
+          ${xLabels}
+        </svg>
+      `;
+    }
+
+    (async () => {
+      // Pridobi oba endpointa hkrati
+      const [stats, companies] = await Promise.all([
+        apiFetch('/api/stats'),
+        apiFetch('/api/companies'),
+      ]);
+
+      if (!stats || !companies) {
+        document.getElementById('aktivnost').innerHTML =
+          '<div class="text-red-700 bg-red-50 p-4 rounded">Napaka pri nalaganju.</div>';
+        return;
+      }
+
+      const t = stats.totals;
+      const podjetja = companies.companies ?? [];
+
+      // Glavne stevilke
+      document.getElementById('stat-podjetja').textContent = t.podjetja_total;
+      document.getElementById('stat-odgovori').textContent = t.odgovori_total;
+      document.getElementById('stat-zastarela').textContent = stats.zastarela;
+      document.getElementById('stat-brez').textContent = t.brez_priporocil;
+
+      // Delte (vs prejšnji teden)
+      deltaBadge('delta-podjetja', t.podjetja_7d, t.podjetja_prej_7d);
+      deltaBadge('delta-odgovori', t.odgovori_7d, t.odgovori_prej_7d);
+
+      // Sidebar badges
+      const zastarela = stats.zastarela;
+      const brez = t.brez_priporocil;
+      const posodobljena = t.podjetja_total - brez - zastarela;
+      document.getElementById('sub-vsa').textContent = t.podjetja_total;
+      document.getElementById('sub-brez').textContent = brez;
+      document.getElementById('sub-zastarela').textContent = zastarela;
+      document.getElementById('sub-posodobljena').textContent = posodobljena;
+
+      // Sparklines iz timeline — zadnjih 14 dni za odgovore
+      const last14 = stats.timeline.slice(-14).map(r => r.st);
+      renderSparkline('spark-odgovori', last14);
+      renderSparkline('spark-podjetja', last14); // ista oblika trenda
+
+      // Glavni chart
+      renderTimelineChart(stats.timeline);
+      const skupaj30 = stats.timeline.reduce((s, r) => s + r.st, 0);
+      document.getElementById('timeline-meta').textContent = `Skupaj ${skupaj30} odgovorov v zadnjih 30 dneh`;
+
+      // Last update
+      const najnovejsi = podjetja.map(p => p.zadnji_odgovor).filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0];
+      document.getElementById('last-update').textContent =
+        najnovejsi ? 'Zadnji odgovor ' + relativnoTime(najnovejsi) : 'Brez odgovorov';
+
+      // Aktivnost — top 5
+      const aktivni = [...podjetja]
+        .filter(p => p.zadnji_odgovor)
+        .sort((a, b) => new Date(b.zadnji_odgovor) - new Date(a.zadnji_odgovor))
+        .slice(0, 5);
+
+      const el = document.getElementById('aktivnost');
+      if (!aktivni.length) {
+        el.innerHTML = '<div class="text-gray-500 text-center py-8">Še ni aktivnosti.</div>';
+        return;
+      }
+
+      el.innerHTML = aktivni.map(p => {
+        const isZastarela = p.has_priporocila && p.ai_priporocila_updated_at && p.zadnji_odgovor
+          && new Date(p.zadnji_odgovor) > new Date(p.ai_priporocila_updated_at);
+        let badge;
+        if (!p.has_priporocila)  badge = '<span class="badge-neutral">AI —</span>';
+        else if (isZastarela)    badge = '<span class="badge-warning">AI ⚠ zastarela</span>';
+        else                     badge = '<span class="badge-success">AI ✓</span>';
+
+        return `
+          <a href="/admin/company.html?id=${p.id}"
+             class="flex items-center justify-between py-4 border-b border-[#ececf1] last:border-0 hover:bg-[#f8f9fb] px-3 rounded-lg transition"
+             style="text-decoration: none; color: inherit;">
+            <div class="flex items-center gap-4">
+              <div class="avatar">${esc((p.naziv_prikaz || '?')[0].toUpperCase())}</div>
+              <div>
+                <div class="font-semibold">${esc(p.naziv_prikaz)}</div>
+                <div class="text-xs text-gray-500">${p.st_odgovorov} odgovor${p.st_odgovorov === 1 ? '' : 'ov'} · ${relativnoTime(p.zadnji_odgovor)}</div>
+              </div>
+            </div>
+            ${badge}
+          </a>
+        `;
+      }).join('');
     })();
   </script>
 </body>
