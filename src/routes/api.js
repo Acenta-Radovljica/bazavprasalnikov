@@ -4,6 +4,7 @@ import { dbQuery } from '../db.js';
 import { generirajPovzetek } from '../ai/generate_povzetek.js';
 import { generirajPriporocila } from '../ai/generate_priporocila.js';
 import { sproziPovzetek, sproziPriporocila } from '../ai/queue.js';
+import { renderiraj as renderirajPdf } from '../pdf/render.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -223,6 +224,42 @@ router.get('/search', async (req, res) => {
   `, [q]);
 
   res.json({ query: q, results: r?.rows ?? [] });
+});
+
+// GET /api/companies/:id/pdf — render Acenta-branded PDF reporta in streamaj nazaj
+router.get('/companies/:id/pdf', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+
+  const c = await dbQuery(
+    'SELECT naziv_prikaz, ai_priporocila FROM companies WHERE id = $1',
+    [id]
+  );
+  if (!c?.rows?.length) return res.status(404).json({ error: 'not_found' });
+
+  const { naziv_prikaz, ai_priporocila } = c.rows[0];
+  if (!ai_priporocila) return res.status(400).json({ error: 'no_priporocila_yet' });
+
+  try {
+    const pdfBuffer = await renderirajPdf({
+      nazivPrikaz: naziv_prikaz,
+      prirocila: ai_priporocila,
+    });
+    if (!pdfBuffer) return res.status(500).json({ error: 'render_failed' });
+
+    const slug = (naziv_prikaz || 'podjetje').toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+    const ts = new Date().toISOString().slice(0, 10);
+    const filename = `${slug}-opportunity-report-${ts}.pdf`;
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.end(pdfBuffer);
+  } catch (err) {
+    console.error('[api/pdf] napaka:', err);
+    res.status(500).json({ error: 'render_failed', message: err.message });
+  }
 });
 
 // DELETE /api/companies/:id — GDPR delete (kaskadno brise responses)

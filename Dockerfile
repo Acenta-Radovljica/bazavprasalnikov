@@ -1,5 +1,19 @@
 FROM node:20-alpine
 
+# Chromium za Puppeteer (PDF render). Alpine paket je manjsi od puppeteer-jevega
+# bundled Chromium-a (~300MB → ~150MB), zato uporabimo puppeteer-core in pokazemo
+# na sistemski binary.
+RUN apk add --no-cache \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont
+
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+
 WORKDIR /app
 
 # Najprej samo package.json — Docker cache trik, da se npm install

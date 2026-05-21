@@ -1,0 +1,125 @@
+/* ─── Acenta PDF Shared Stylesheet ──────────────────────────────────────
+ * Univerzalni page-break + spacing fix za vse Acenta PDF outpute.
+ * Render.js ga avtomatsko vstavi v <head> vsakega HTMLja.
+ * Če ne želiš, kliči render z opcijo { injectStyle: false }.
+ * ───────────────────────────────────────────────────────────────────── */
+
+/* ─── @page: rezerviraj prostor za header/footer ─────────────────────── */
+@page {
+  size: A4;
+  margin: 22mm 18mm 25mm 18mm;
+}
+
+@page :first {
+  margin-top: 18mm;
+}
+
+/* ─── Print color fix (sicer ozadja in barve izginejo) ───────────────── */
+* {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
+}
+
+/* ─── Naslovi: ne pusti naslova samega na dnu strani ─────────────────── */
+h1, h2, h3, h4 {
+  break-after: avoid;
+  page-break-after: avoid;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ─── Tekst: minimalno število vrstic na vrhu/dnu strani ─────────────── */
+p, li, blockquote {
+  orphans: 3;
+  widows: 3;
+}
+
+/* ─── Bloki, ki se ne smejo prelomiti sredi ──────────────────────────── */
+table,
+figure,
+blockquote,
+pre,
+.card,
+.service-card,
+.section,
+.signature,
+.price-table,
+.summary,
+.summary-card,
+.cta,
+.cta-box,
+.note,
+.callout,
+.testimonial,
+.kartica,
+.povzetek {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ─── Tabele: vrstice se ne lomijo + header se ponovi na vsaki strani ── */
+tr {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+thead { display: table-header-group; }
+tfoot { display: table-footer-group; }
+
+/* ─── Slike: nikoli ne prelomljene + responsive ──────────────────────── */
+img {
+  max-width: 100%;
+  height: auto;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* ─── Eksplicitne prelome ────────────────────────────────────────────── */
+.page-break,
+.new-page,
+.nova-stran {
+  break-before: page;
+  page-break-before: always;
+}
+
+.no-break,
+.keep-together,
+.ne-lomi {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.keep-with-next {
+  break-after: avoid;
+  page-break-after: avoid;
+}
+
+/* ─── Privzeta tipografija (lahko prepiše projekt) ───────────────────── */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+}
+
+h1 { font-size: 22pt; margin: 0 0 8mm 0; line-height: 1.2; }
+h2 { font-size: 16pt; margin: 8mm 0 4mm 0; line-height: 1.25; }
+h3 { font-size: 13pt; margin: 6mm 0 3mm 0; line-height: 1.3; }
+h4 { font-size: 11pt; margin: 5mm 0 2mm 0; }
+
+p { margin: 0 0 3mm 0; }
+ul, ol { margin: 0 0 3mm 0; padding-left: 5mm; }
+li { margin-bottom: 1mm; }
+
+/* ─── Acenta brand barve (uporabne kot helper razredi) ───────────────── */
+.acenta-primary  { color: #00AFAA; }
+.acenta-accent   { color: #FF0A60; }
+.acenta-secondary{ color: #0180AE; }
+.acenta-dark     { color: #0B0F10; }
+.acenta-muted    { color: #888; }
+
+.bg-acenta-primary { background: #00AFAA; color: #fff; }
+.bg-acenta-light   { background: #f7f9fa; }
