@@ -118,22 +118,7 @@
             <svg id="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div id="sub" class="mt-1 space-y-0.5">
-            <a href="/admin/podjetja.html" class="sidebar-sub">
-              <span>Vsa</span>
-              <span class="badge-neutral" id="sub-vsa">—</span>
-            </a>
-            <a href="/admin/podjetja.html" class="sidebar-sub">
-              <span>Brez priporočil</span>
-              <span class="badge-warning" id="sub-brez">—</span>
-            </a>
-            <a href="/admin/podjetja.html" class="sidebar-sub">
-              <span>Zastarela</span>
-              <span class="badge-warning" id="sub-zastarela">—</span>
-            </a>
-            <a href="/admin/podjetja.html" class="sidebar-sub">
-              <span>Posodobljena</span>
-              <span class="badge-success" id="sub-posodobljena">—</span>
-            </a>
+            <div id="sub-loading" class="sidebar-sub"><span class="text-gray-400">Nalagam...</span></div>
           </div>
         </div>
 
@@ -431,14 +416,28 @@
       deltaBadge('delta-podjetja', t.podjetja_7d, t.podjetja_prej_7d);
       deltaBadge('delta-odgovori', t.odgovori_7d, t.odgovori_prej_7d);
 
-      // Sidebar badges
-      const zastarela = stats.zastarela;
-      const brez = t.brez_priporocil;
-      const posodobljena = t.podjetja_total - brez - zastarela;
-      document.getElementById('sub-vsa').textContent = t.podjetja_total;
-      document.getElementById('sub-brez').textContent = brez;
-      document.getElementById('sub-zastarela').textContent = zastarela;
-      document.getElementById('sub-posodobljena').textContent = posodobljena;
+      // Sidebar — seznam podjetij namesto filtrov.
+      // Razvrsceno po zadnji aktivnosti (najnovejsi prvi). Badge prikazuje status AI priporocil.
+      const sub = document.getElementById('sub');
+      const razvrscena = [...podjetja].sort((a, b) => {
+        const ta = a.zadnji_odgovor ? new Date(a.zadnji_odgovor).getTime() : 0;
+        const tb = b.zadnji_odgovor ? new Date(b.zadnji_odgovor).getTime() : 0;
+        return tb - ta;
+      });
+      sub.innerHTML = razvrscena.map(p => {
+        const isZastarela = p.has_priporocila && p.ai_priporocila_updated_at && p.zadnji_odgovor
+          && new Date(p.zadnji_odgovor) > new Date(p.ai_priporocila_updated_at);
+        let badge;
+        if (!p.has_priporocila)  badge = '<span class="badge-warning" title="Brez priporočil">—</span>';
+        else if (isZastarela)    badge = '<span class="badge-warning" title="Zastarela priporočila">⚠</span>';
+        else                     badge = '<span class="badge-success" title="Posodobljeno">✓</span>';
+        return `
+          <a href="/admin/company.html?id=${p.id}" class="sidebar-sub" title="${esc(p.naziv_prikaz)}">
+            <span class="truncate" style="max-width: 150px;">${esc(p.naziv_prikaz)}</span>
+            ${badge}
+          </a>
+        `;
+      }).join('') || '<div class="sidebar-sub text-gray-400">Brez podjetij</div>';
 
       // Sparklines iz timeline — zadnjih 14 dni za odgovore
       const last14 = stats.timeline.slice(-14).map(r => r.st);
