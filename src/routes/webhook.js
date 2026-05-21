@@ -3,7 +3,7 @@ import express from 'express';
 import { dbQuery } from '../db.js';
 import { hashIp } from '../utils/normalize.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
-import { sproziPovzetek, sproziPriporocila } from '../ai/queue.js';
+import { sproziPovzetek } from '../ai/queue.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -93,8 +93,11 @@ router.post('/formspree', async (req, res) => {
   console.log(`[webhook] shranjeno: company=${companyId} response=${responseId} podjetje="${podjetje}" match=${matchRes.source}`);
 
   // Sprozi AI obdelavo v ozadju — webhook odgovori takoj, AI tece async.
+  // POVZETEK (Haiku, poceni ~$0.001/klic) tece avtomatsko ob vsakem responseu.
+  // PRIPOROCILA (Opus, drago ~$0.30/klic) NE tecejo avtomatsko — admin jih sprozi
+  // rocno prek gumba v admin UI. Razlog: pri visokem stevilu responseov je Opus
+  // strosek prevelik (75x drazji od Haikuja). Glej /admin/company.html.
   if (responseId) sproziPovzetek(responseId);
-  sproziPriporocila(companyId);
 
   return res.json({ ok: true, responseId, companyId, matchSource: matchRes.source });
 });

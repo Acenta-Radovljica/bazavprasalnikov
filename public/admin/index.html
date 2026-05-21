@@ -41,9 +41,19 @@
       }
 
       const vrstice = podjetja.map(p => {
-        const aiBadge = p.has_priporocila
-          ? '<span class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded">AI ✓</span>'
-          : '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">AI —</span>';
+        // Tri stanja: brez priporocil / posodobljena / zastarela (nov response po generaciji)
+        const zastarela = p.has_priporocila
+          && p.ai_priporocila_updated_at
+          && p.zadnji_odgovor
+          && new Date(p.zadnji_odgovor) > new Date(p.ai_priporocila_updated_at);
+        let aiBadge;
+        if (!p.has_priporocila) {
+          aiBadge = '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded" title="Priporočila še niso generirana">AI —</span>';
+        } else if (zastarela) {
+          aiBadge = '<span class="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded" title="Nov odgovor po zadnji generaciji — priporočila so zastarela">AI ⚠</span>';
+        } else {
+          aiBadge = '<span class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded" title="Priporočila so posodobljena">AI ✓</span>';
+        }
         return `
           <tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.href='/admin/company.html?id=${p.id}'">
             <td class="px-4 py-3 font-medium text-[#1a1a2e]">${esc(p.naziv_prikaz)}</td>

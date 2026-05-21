@@ -35,12 +35,24 @@
         ? `AI priporočila: ${formatDatum(company.ai_priporocila_updated_at)}`
         : 'AI priporočila še niso generirana';
 
+      // Zastarela priporocila: nov response je prisel po zadnji generaciji
+      const zastarela = company.ai_priporocila_updated_at
+        && company.last_response_at
+        && new Date(company.last_response_at) > new Date(company.ai_priporocila_updated_at);
+
+      const warning = zastarela
+        ? `<div class="bg-yellow-100 border border-yellow-300 text-yellow-900 px-3 py-2 rounded text-sm mb-3">
+             ⚠️ Priporočila so <b>zastarela</b> — nov odgovor je prišel po zadnji generaciji. Klikni "Regeneriraj priporočila" za posodobitev.
+           </div>`
+        : '';
+
       document.getElementById('header').innerHTML = `
         <div class="bg-white rounded shadow p-6">
           <h1 class="text-2xl font-bold text-[#1a1a2e] mb-2">${esc(company.naziv_prikaz)}</h1>
           <div class="text-sm text-gray-500 mb-4">
             Normalizirano: <code class="bg-gray-100 px-1 rounded">${esc(company.naziv_normaliziran)}</code> · ${ai}
           </div>
+          ${warning}
           <div class="flex flex-wrap gap-2">
             <button onclick="regenerirajPriporocila()" class="px-4 py-2 bg-[#00b894] text-white rounded text-sm hover:bg-[#019272]">
               Regeneriraj priporočila
