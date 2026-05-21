@@ -4,14 +4,32 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Acenta — Cross-client insights</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    .prose table { font-size: 0.875rem; }
+    .prose th { background: #f6f7f9; }
+    .prose h2 { color: #1a1a2e; border-bottom: 2px solid #00b894; padding-bottom: 0.3rem; }
+    .prose h3 { color: #1a1a2e; }
+    .prose strong { color: #1a1a2e; }
+    .prose blockquote { border-left-color: #00b894; }
+  </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
   <header id="nav"></header>
 
   <main class="max-w-5xl mx-auto px-6 py-8">
-    <h1 class="text-2xl font-bold text-[#1a1a2e] mb-2">Cross-client insights</h1>
-    <p class="text-sm text-gray-500 mb-6">Tedenska AI analiza vzorcev čez vse kliente (Faza 5).</p>
+    <div class="flex items-start justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-bold text-[#1a1a2e]">Cross-client insights</h1>
+        <p class="text-sm text-gray-500 mt-1">AI analiza vzorcev čez vse kliente (Faza 5).</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="regenerirajInsights()" class="px-4 py-2 bg-[#00b894] text-white rounded text-sm hover:bg-[#019272]">
+          Generiraj nove (Opus, ~$0.30)
+        </button>
+      </div>
+    </div>
 
     <div id="content"></div>
   </main>
@@ -20,25 +38,56 @@
   <script>
     renderNav('insights');
 
+    function renderEmpty() {
+      document.getElementById('content').innerHTML = `
+        <div class="bg-yellow-50 border border-yellow-200 rounded p-6 text-sm text-yellow-800">
+          Cross-client insights še niso generirani. Klikni <b>"Generiraj nove (Opus)"</b> zgoraj.
+        </div>
+      `;
+    }
+
+    function renderInsight(i) {
+      const meta = i.vsebina && typeof i.vsebina === 'object' ? i.vsebina : {};
+      const content = meta.content ?? (typeof i.vsebina === 'string' ? i.vsebina : JSON.stringify(i.vsebina, null, 2));
+      const isMarkdown = meta.format === 'markdown' || (typeof content === 'string' && content.includes('##'));
+      const html = isMarkdown ? marked.parse(content) : `<pre class="whitespace-pre-wrap text-sm">${esc(content)}</pre>`;
+
+      const metaLine = [
+        meta.st_klientov ? `${meta.st_klientov} klientov` : null,
+        meta.st_respondentov ? `${meta.st_respondentov} respondentov` : null,
+        meta.dni_obdobja ? `zadnjih ${meta.dni_obdobja} dni` : null,
+        meta.source === 'manual_import' ? 'rocni uvoz' : null,
+      ].filter(Boolean).join(' · ');
+
+      document.getElementById('content').innerHTML = `
+        <div class="bg-white rounded shadow p-6">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <div>
+              <div class="text-xs text-gray-500">Generirano: ${formatDatum(i.generated_at)}</div>
+              ${metaLine ? `<div class="text-xs text-gray-400 mt-1">${metaLine}</div>` : ''}
+            </div>
+            <a href="javascript:window.print()" class="text-sm text-gray-600 hover:underline">Natisni</a>
+          </div>
+          <div class="prose prose-sm max-w-none">${html}</div>
+        </div>
+      `;
+    }
+
+    async function regenerirajInsights() {
+      if (!confirm('Zagnati Opus generacijo cross-client insights? (~$0.30, traja ~60-90s)')) return;
+      const r = await apiFetch('/api/insights/regenerate', { method: 'POST', body: JSON.stringify({}) });
+      if (r?.ok) alert('Sproženo. Osveži stran čez ~90s.');
+      else alert('Napaka pri sproženju.');
+    }
+
     (async () => {
       showLoading('content');
       const data = await apiFetch('/api/insights');
       if (!data || !data.insights) {
-        document.getElementById('content').innerHTML = `
-          <div class="bg-yellow-50 border border-yellow-200 rounded p-6 text-sm text-yellow-800">
-            Cross-client insights še niso generirani. (Faza 5 — tedenski cron še ni nastavljen.)
-          </div>
-        `;
+        renderEmpty();
         return;
       }
-      const i = data.insights;
-      const vsebina = typeof i.vsebina === 'string' ? i.vsebina : JSON.stringify(i.vsebina, null, 2);
-      document.getElementById('content').innerHTML = `
-        <div class="bg-white rounded shadow p-6">
-          <div class="text-xs text-gray-500 mb-3">Generirano: ${formatDatum(i.generated_at)}</div>
-          <pre class="whitespace-pre-wrap text-sm text-gray-800 font-sans">${esc(vsebina)}</pre>
-        </div>
-      `;
+      renderInsight(data.insights);
     })();
   </script>
 </body>

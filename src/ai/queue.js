@@ -1,6 +1,7 @@
 // ── DEL 1: Imports ────────────────────────────────────────────────────────
 import { generirajPovzetek } from './generate_povzetek.js';
 import { generirajPriporocila } from './generate_priporocila.js';
+import { generirajInsights } from './generate_insights.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 // Debounce za priporocila: ko pride nov response za isto podjetje, resetiramo timer.
@@ -53,5 +54,11 @@ function sproziPriporocila(companyId) {
   console.log(`[queue] priporocila za company=${companyId} bodo sprozena cez ${PRIPOROCILA_DEBOUNCE_MS / 1000}s`);
 }
 
+// Sprozi cross-client insights v ozadju (brez debounce — admin klika ga sproza).
+// Opcijsko: dni - koliko dni nazaj naj gleda response (default 90).
+function sproziInsights({ dni } = {}) {
+  vOzadju('insights', () => generirajInsights(dni ? { dni } : {}));
+}
+
 // ── DEL 5: Named exports ─────────────────────────────────────────────────
-export { sproziPovzetek, sproziPriporocila };
+export { sproziPovzetek, sproziPriporocila, sproziInsights };

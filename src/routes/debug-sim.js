@@ -131,4 +131,28 @@ router.post('/set-priporocila/:id', async (req, res) => {
   res.json({ ok: true, company: r.rows[0], length: content.length });
 });
 
+// Direkten zapis cross-client insights v bazo (brez klica AI).
+// Za uvoz analize narejene rocno v Claude Code (brez API stroska).
+// Body: { content: "markdown...", dni?: 90, st_klientov?: number, st_respondentov?: number }
+router.post('/set-insights', async (req, res) => {
+  if (req.query.token !== 'acenta-test-clean') return res.status(403).json({ error: 'forbidden' });
+  const { content, dni, st_klientov, st_respondentov } = req.body || {};
+  if (!content || typeof content !== 'string') return res.status(400).json({ error: 'missing_content' });
+
+  const vsebina = {
+    format: 'markdown',
+    dni_obdobja: Number.isInteger(dni) ? dni : null,
+    st_klientov: Number.isInteger(st_klientov) ? st_klientov : null,
+    st_respondentov: Number.isInteger(st_respondentov) ? st_respondentov : null,
+    content,
+    source: 'manual_import',
+  };
+
+  const r = await dbQuery(
+    `INSERT INTO cross_client_insights (vsebina) VALUES ($1) RETURNING id, generated_at`,
+    [JSON.stringify(vsebina)]
+  );
+  res.json({ ok: true, insight: r?.rows?.[0] ?? null, length: content.length });
+});
+
 export { router };

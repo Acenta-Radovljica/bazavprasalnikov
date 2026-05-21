@@ -3,7 +3,7 @@ import express from 'express';
 import { dbQuery } from '../db.js';
 import { generirajPovzetek } from '../ai/generate_povzetek.js';
 import { generirajPriporocila } from '../ai/generate_priporocila.js';
-import { sproziPovzetek, sproziPriporocila } from '../ai/queue.js';
+import { sproziPovzetek, sproziPriporocila, sproziInsights } from '../ai/queue.js';
 import { renderiraj as renderirajPdf } from '../pdf/render.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
@@ -196,6 +196,15 @@ router.get('/insights', async (_req, res) => {
     'SELECT id, generated_at, vsebina FROM cross_client_insights ORDER BY generated_at DESC LIMIT 1'
   );
   res.json({ insights: r?.rows?.[0] ?? null });
+});
+
+// POST /api/insights/regenerate — sprozi Opus generacijo cross-client insights
+// Body: { dni?: number } — koliko dni nazaj gledamo responses (default 90)
+// Opozorilo: vsak klic ~$0.30. Admin ga sproza rocno.
+router.post('/insights/regenerate', async (req, res) => {
+  const dni = parseInt(req.body?.dni, 10);
+  sproziInsights({ dni: Number.isInteger(dni) && dni > 0 ? dni : undefined });
+  res.json({ ok: true, queued_at: new Date().toISOString() });
 });
 
 // GET /api/search?q=... — polnotekstovno iskanje
