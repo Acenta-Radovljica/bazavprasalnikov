@@ -4,6 +4,9 @@ import express from 'express';
 import { dbQuery } from '../db.js';
 import { generirajPriporocila } from '../ai/generate_priporocila.js';
 import { generirajPovzetek } from '../ai/generate_povzetek.js';
+import { najdiPodjetjeAI } from '../ai/match_company.js';
+import { sproziPovzetek } from '../ai/queue.js';
+import { hashIp } from '../utils/normalize.js';
 
 const router = express.Router();
 
@@ -31,6 +34,61 @@ router.post('/cleanup', async (req, res) => {
   await dbQuery('ALTER SEQUENCE responses_id_seq RESTART WITH 1');
   await dbQuery('ALTER SEQUENCE companies_id_seq RESTART WITH 1');
   res.json({ ok: true, cleared: ['responses', 'companies'] });
+});
+
+// Bulk import endpoint za uvoz starih Formspree submission-ov.
+// Token-protected (acenta-test-clean). Sprejme original submitted_at.
+// Body: { payload: {...formspree fields...}, submitted_at: "ISO date", podjetje?: "name" }
+router.post('/import', async (req, res) => {
+  if (req.query.token !== 'acenta-test-clean') return res.status(403).json({ error: 'forbidden' });
+
+  const { payload, submitted_at, podjetje: explicitPodjetje } = req.body || {};
+  if (!payload || typeof payload !== 'object') {
+    return res.status(400).json({ error: 'missing_payload' });
+  }
+  if (!submitted_at) return res.status(400).json({ error: 'missing_submitted_at' });
+
+  // Izvleci podjetje iz payloada (preveri obe varianti: 2_podjetje + podjetje)
+  const podjetje = explicitPodjetje
+    || payload['2_podjetje']
+    || payload['podjetje']
+    || payload['company']
+    || null;
+
+  if (!podjetje || !podjetje.trim()) {
+    return res.status(400).json({ error: 'missing_company_name' });
+  }
+
+  const matchRes = await najdiPodjetjeAI(podjetje.trim());
+  if (!matchRes?.companyId) {
+    return res.status(500).json({ error: 'company_match_failed', podjetje });
+  }
+  const companyId = matchRes.companyId;
+
+  const consent = payload.gdpr_consent === 'on' || payload.gdpr_consent === true;
+  const ipHash = hashIp('import-script');
+
+  // INSERT z eksplicitnim submitted_at (override DB default)
+  const inserted = await dbQuery(
+    `INSERT INTO responses (company_id, raw_data, ip_hash, consent_gdpr, submitted_at)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id`,
+    [companyId, JSON.stringify(payload), ipHash, consent, submitted_at]
+  );
+  const responseId = inserted?.rows?.[0]?.id;
+
+  // Posodobi last_response_at na max (current vs new)
+  await dbQuery(
+    `UPDATE companies
+        SET last_response_at = GREATEST(COALESCE(last_response_at, $2::timestamptz), $2::timestamptz)
+      WHERE id = $1`,
+    [companyId, submitted_at]
+  );
+
+  // Sprozi Haiku povzetek async (povzetek ostane avtomatski — poceni)
+  if (responseId) sproziPovzetek(responseId);
+
+  res.json({ ok: true, companyId, responseId, matchSource: matchRes.source, podjetje });
 });
 
 // Sinhron klic priporocil — za debug. Ce je napaka, vrne stack trace.
