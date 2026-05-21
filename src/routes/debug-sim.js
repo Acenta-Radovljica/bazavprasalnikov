@@ -112,4 +112,23 @@ router.post('/run-povzetek/:id', async (req, res) => {
   }
 });
 
+// Direkten zapis priporocil v bazo (brez klica AI). Za uvoz analize narejene
+// rocno v Claude Code (brez API stroska).
+// Body: { content: "markdown..." }
+router.post('/set-priporocila/:id', async (req, res) => {
+  if (req.query.token !== 'acenta-test-clean') return res.status(403).json({ error: 'forbidden' });
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+  const content = req.body?.content;
+  if (!content || typeof content !== 'string') return res.status(400).json({ error: 'missing_content' });
+
+  const r = await dbQuery(
+    `UPDATE companies SET ai_priporocila = $1, ai_priporocila_updated_at = NOW()
+      WHERE id = $2 RETURNING id, naziv_prikaz`,
+    [content, id]
+  );
+  if (!r?.rows?.length) return res.status(404).json({ error: 'not_found' });
+  res.json({ ok: true, company: r.rows[0], length: content.length });
+});
+
 export { router };

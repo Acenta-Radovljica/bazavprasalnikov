@@ -4,7 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Acenta — Podjetje</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    /* Acenta brand za tabele in headerje znotraj .prose */
+    .prose table { font-size: 0.875rem; }
+    .prose th { background: #f6f7f9; }
+    .prose h2 { color: #1a1a2e; border-bottom: 2px solid #00b894; padding-bottom: 0.3rem; }
+    .prose h3 { color: #1a1a2e; }
+    .prose strong { color: #1a1a2e; }
+    .prose blockquote { border-left-color: #00b894; }
+  </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
   <header id="nav"></header>
@@ -81,10 +91,16 @@
         `;
         return;
       }
+      // marked.parse() renderira markdown → HTML (tabele, headerji, **bold**, sezname).
+      // Vir je AI generiran ali rocno uvozen iz Claude Code, zato je vsebina zaupanja vredna.
+      const html = marked.parse(company.ai_priporocila);
       el.innerHTML = `
         <div class="bg-white rounded shadow p-6">
-          <h2 class="text-lg font-bold text-[#1a1a2e] mb-3">AI priporočila za delavnico</h2>
-          <pre class="whitespace-pre-wrap text-sm text-gray-800 font-sans">${esc(company.ai_priporocila)}</pre>
+          <div class="flex items-center justify-between mb-4 pb-3 border-b">
+            <h2 class="text-lg font-bold text-[#1a1a2e]">AI Opportunity Report</h2>
+            <a href="javascript:window.print()" class="text-sm text-[#00b894] hover:underline">Natisni / PDF</a>
+          </div>
+          <div class="prose prose-sm max-w-none">${html}</div>
         </div>
       `;
     }
