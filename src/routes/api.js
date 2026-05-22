@@ -78,7 +78,8 @@ router.get('/responses/:id', async (req, res) => {
 
   const r = await dbQuery(`
     SELECT r.*, c.naziv_prikaz, c.id AS company_id_full,
-           q.slug AS q_slug, q.naziv_prikaz AS q_naziv
+           q.slug AS q_slug, q.naziv_prikaz AS q_naziv,
+           q.questions AS q_questions
       FROM responses r
       JOIN companies c ON c.id = r.company_id
       JOIN questionnaires q ON q.id = r.questionnaire_id
