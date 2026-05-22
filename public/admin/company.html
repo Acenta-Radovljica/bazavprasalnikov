@@ -14,6 +14,20 @@
     .prose h3 { color: #1a1a2e; }
     .prose strong { color: #1a1a2e; }
     .prose blockquote { border-left-color: #00b894; }
+
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #ececf1; color: #6b6b75; }
+    .pill.teal { background: #d4f4ec; color: #006e5a; }
+    .pill.warn { background: #ffeacc; color: #9a5a00; }
+    .pill.muted { background: #f1f2f5; color: #8b8b95; }
+
+    .tab-btn {
+      padding: 10px 16px; border-radius: 12px 12px 0 0;
+      font-size: 14px; font-weight: 600; color: #6b6b75;
+      cursor: pointer; border: 1px solid transparent; border-bottom: none;
+      background: transparent;
+    }
+    .tab-btn.active { background: #fff; color: #1a1a2e; border-color: #ececf1; }
+    .tab-btn:hover:not(.active) { color: #1a1a2e; background: #f6f7f9; }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -24,10 +38,11 @@
 
     <div id="header" class="mt-4 mb-6"></div>
 
-    <div id="priporocila-section" class="mb-8"></div>
+    <!-- Priporocila po vprasalnikih -->
+    <div id="priporocila-tabs" class="mb-8"></div>
 
-    <h2 class="text-xl font-bold text-[#1a1a2e] mb-4">Odgovori</h2>
-    <div id="responses"></div>
+    <!-- Odgovori (grouped by questionnaire) -->
+    <div id="odgovori-section"></div>
   </main>
 
   <script src="/admin/app.js"></script>
@@ -40,36 +55,23 @@
       throw new Error('no id');
     }
 
-    function renderHeader(company) {
-      const ai = company.ai_priporocila_updated_at
-        ? `AI priporočila: ${formatDatum(company.ai_priporocila_updated_at)}`
-        : 'AI priporočila še niso generirana';
+    // ── Stanje ────────────────────────────────────────────────────────────
+    let podjetje = null;
+    let odgovori = [];        // [{id, questionnaire_id, q_slug, q_naziv, submitted_at, ...}]
+    let priporocila = [];     // [{questionnaire_id, slug, naziv_prikaz, vsebina, updated_at}]
+    let aktivniTab = null;    // questionnaire_id
 
-      // Zastarela priporocila: nov response je prisel po zadnji generaciji
-      const zastarela = company.ai_priporocila_updated_at
-        && company.last_response_at
-        && new Date(company.last_response_at) > new Date(company.ai_priporocila_updated_at);
-
-      const warning = zastarela
-        ? `<div class="bg-yellow-100 border border-yellow-300 text-yellow-900 px-3 py-2 rounded text-sm mb-3">
-             ⚠️ Priporočila so <b>zastarela</b> — nov odgovor je prišel po zadnji generaciji. Klikni "Regeneriraj priporočila" za posodobitev.
-           </div>`
-        : '';
-
+    // ── Header (osnovni podatki podjetja) ─────────────────────────────────
+    function renderHeader() {
       document.getElementById('header').innerHTML = `
         <div class="bg-white rounded shadow p-6">
-          <h1 class="text-2xl font-bold text-[#1a1a2e] mb-2">${esc(company.naziv_prikaz)}</h1>
+          <h1 class="text-2xl font-bold text-[#1a1a2e] mb-2">${esc(podjetje.naziv_prikaz)}</h1>
           <div class="text-sm text-gray-500 mb-4">
-            Normalizirano: <code class="bg-gray-100 px-1 rounded">${esc(company.naziv_normaliziran)}</code> · ${ai}
+            Normalizirano: <code class="bg-gray-100 px-1 rounded">${esc(podjetje.naziv_normaliziran)}</code>
+            · ${odgovori.length} ${odgovori.length === 1 ? 'odgovor' : 'odgovorov'} skupaj
+            · Zadnji: ${podjetje.last_response_at ? formatDatum(podjetje.last_response_at) : '—'}
           </div>
-          ${warning}
           <div class="flex flex-wrap gap-2">
-            <button onclick="regenerirajPriporocila()" class="px-4 py-2 bg-[#00b894] text-white rounded text-sm hover:bg-[#019272]">
-              Regeneriraj priporočila
-            </button>
-            <button onclick="regenerirajVse()" class="px-4 py-2 bg-[#1a1a2e] text-white rounded text-sm hover:bg-black">
-              Regeneriraj VSE (povzetki + priporočila)
-            </button>
             <button onclick="odpriMerge()" class="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50">
               Zlij z drugim podjetjem
             </button>
@@ -81,77 +83,195 @@
       `;
     }
 
-    function renderPriporocila(company) {
-      const el = document.getElementById('priporocila-section');
-      if (!company.ai_priporocila) {
+    // ── Priporocila — tabs po vprasalniku ─────────────────────────────────
+    function renderPriporocila() {
+      const el = document.getElementById('priporocila-tabs');
+
+      // Pripravi seznam tabov: vsi vprasalniki, za katere podjetje ima
+      // odgovore ALI priporocila. Vir resnice: unique questionnaire_id iz obeh.
+      const tabMap = new Map();  // qid -> { qid, slug, naziv, imaPriporocila, imaOdgovore }
+
+      for (const o of odgovori) {
+        const k = o.questionnaire_id;
+        if (!tabMap.has(k)) tabMap.set(k, { qid: k, slug: o.q_slug, naziv: o.q_naziv, imaPriporocila: false, imaOdgovore: true });
+      }
+      for (const p of priporocila) {
+        const k = p.questionnaire_id;
+        if (!tabMap.has(k)) tabMap.set(k, { qid: k, slug: p.slug, naziv: p.naziv_prikaz, imaPriporocila: true, imaOdgovore: false });
+        else tabMap.get(k).imaPriporocila = true;
+      }
+
+      const tabs = Array.from(tabMap.values()).sort((a, b) => a.naziv.localeCompare(b.naziv));
+
+      if (!tabs.length) {
         el.innerHTML = `
           <div class="bg-yellow-50 border border-yellow-200 rounded p-4 text-sm text-yellow-800">
-            AI priporočila še niso generirana. Klikni "Regeneriraj priporočila" za zagon.
+            Podjetje še nima odgovorov ali priporočil.
           </div>
         `;
         return;
       }
-      // marked.parse() renderira markdown → HTML (tabele, headerji, **bold**, sezname).
-      // Vir je AI generiran ali rocno uvozen iz Claude Code, zato je vsebina zaupanja vredna.
-      const html = marked.parse(company.ai_priporocila);
+
+      // Aktivni tab: izberi tistega z zadnjo aktivnostjo, ce ni nastavljen
+      if (aktivniTab === null || !tabs.some(t => t.qid === aktivniTab)) {
+        aktivniTab = tabs[0].qid;
+      }
+
+      // Render tab bar
+      const tabBar = tabs.map(t => {
+        const stOdg = odgovori.filter(o => o.questionnaire_id === t.qid).length;
+        const status = t.imaPriporocila ? '<span class="pill teal">✓</span>' : '<span class="pill warn">brez</span>';
+        return `
+          <button class="tab-btn ${t.qid === aktivniTab ? 'active' : ''}" onclick="izberiTab(${t.qid})">
+            ${esc(t.naziv)}
+            <span class="pill muted ml-1">${stOdg}</span>
+            ${status}
+          </button>
+        `;
+      }).join('');
+
       el.innerHTML = `
-        <div class="bg-white rounded shadow p-6">
-          <div class="flex items-center justify-between mb-4 pb-3 border-b">
-            <h2 class="text-lg font-bold text-[#1a1a2e]">AI Opportunity Report</h2>
-            <div class="flex items-center gap-3">
-              <a href="/api/companies/${id}/pdf" class="text-sm bg-[#00b894] text-white px-3 py-1.5 rounded hover:bg-[#019272]" download>
-                Izvozi PDF (Acenta branding)
-              </a>
-              <a href="javascript:window.print()" class="text-sm text-gray-600 hover:underline">Natisni</a>
-            </div>
-          </div>
-          <div class="prose prose-sm max-w-none">${html}</div>
+        <div class="flex items-end gap-1 border-b border-[#ececf1]">${tabBar}</div>
+        <div id="tab-content" class="bg-white rounded-b shadow p-6"></div>
+      `;
+
+      renderTabContent();
+    }
+
+    function izberiTab(qid) {
+      aktivniTab = qid;
+      renderPriporocila();
+    }
+
+    function renderTabContent() {
+      const el = document.getElementById('tab-content');
+      const qid = aktivniTab;
+      const p = priporocila.find(x => x.questionnaire_id === qid);
+      const odgovoriZaTab = odgovori.filter(o => o.questionnaire_id === qid);
+      const tabInfo = odgovoriZaTab[0] || (p ? { q_naziv: p.naziv_prikaz, q_slug: p.slug } : null);
+
+      // Zastarela = obstaja response novejsi od priporocila updated_at
+      const zadnjiResponse = odgovoriZaTab[0]?.submitted_at;
+      const zastarela = p && zadnjiResponse && new Date(zadnjiResponse) > new Date(p.updated_at);
+
+      const warning = zastarela
+        ? `<div class="bg-yellow-100 border border-yellow-300 text-yellow-900 px-3 py-2 rounded text-sm mb-4">
+             ⚠️ Priporočila so <b>zastarela</b> — nov odgovor je prišel po zadnji generaciji. Klikni "Regeneriraj priporočila" za posodobitev.
+           </div>`
+        : '';
+
+      // Akcijski gumbi (vedno enaki, glede na ali ima priporocila)
+      const akcijeHTML = `
+        <div class="flex flex-wrap gap-2 mb-4">
+          <button onclick="regeneriraj(${qid}, 'priporocila')" class="px-4 py-2 bg-[#00b894] text-white rounded text-sm hover:bg-[#019272]">
+            ${p ? 'Regeneriraj priporočila' : 'Generiraj priporočila prvič'}
+          </button>
+          ${odgovoriZaTab.length ? `
+            <button onclick="regeneriraj(${qid}, 'vse')" class="px-4 py-2 bg-[#1a1a2e] text-white rounded text-sm hover:bg-black">
+              Regeneriraj VSE (povzetki + priporočila)
+            </button>
+          ` : ''}
+          ${p ? `
+            <a href="/api/companies/${id}/pdf?questionnaire_id=${qid}" class="px-4 py-2 bg-white border border-[#00b894] text-[#00b894] rounded text-sm hover:bg-[#d4f4ec]" download>
+              Izvozi PDF (Acenta branding)
+            </a>
+            <a href="javascript:window.print()" class="px-4 py-2 text-sm text-gray-600 hover:underline">Natisni</a>
+          ` : ''}
         </div>
+      `;
+
+      const hdrInfo = `
+        <div class="flex items-center justify-between mb-1">
+          <div>
+            <div class="text-xs text-gray-500 uppercase tracking-wide">Vprašalnik</div>
+            <div class="text-lg font-bold text-[#1a1a2e]">${esc(tabInfo?.q_naziv || '?')}</div>
+            <div class="text-xs text-gray-500">/f/${esc(tabInfo?.q_slug || '')}</div>
+          </div>
+          <div class="text-xs text-gray-500 text-right">
+            ${p ? `Generirano: <b>${formatDatum(p.updated_at)}</b>` : 'Še ni generirano'}
+          </div>
+        </div>
+        <hr class="my-4 border-[#ececf1]">
+      `;
+
+      if (!p) {
+        el.innerHTML = `
+          ${hdrInfo}
+          ${akcijeHTML}
+          <div class="bg-yellow-50 border border-yellow-200 rounded p-4 text-sm text-yellow-800">
+            AI priporočila še niso generirana za ta vprašalnik. Klikni <b>Generiraj priporočila prvič</b>.
+          </div>
+        `;
+        return;
+      }
+
+      const html = marked.parse(p.vsebina);
+      el.innerHTML = `
+        ${hdrInfo}
+        ${warning}
+        ${akcijeHTML}
+        <div class="prose prose-sm max-w-none">${html}</div>
       `;
     }
 
-    function renderResponses(responses) {
-      const el = document.getElementById('responses');
-      if (!responses.length) {
+    // ── Odgovori (grouped by questionnaire) ───────────────────────────────
+    function renderOdgovori() {
+      const el = document.getElementById('odgovori-section');
+      if (!odgovori.length) {
         el.innerHTML = '<div class="bg-white rounded shadow p-6 text-gray-500">Še ni odgovorov.</div>';
         return;
       }
-      el.innerHTML = responses.map(r => {
-        const povzetek = r.ai_povzetek
-          ? `<pre class="whitespace-pre-wrap text-sm text-gray-700 font-sans mt-3 bg-gray-50 p-3 rounded">${esc(r.ai_povzetek)}</pre>`
-          : '<div class="mt-3 text-sm text-gray-400 italic">AI povzetek še ni generiran...</div>';
-        return `
-          <div class="bg-white rounded shadow p-5 mb-3">
-            <div class="flex items-center justify-between mb-2">
-              <a href="/admin/response.html?id=${r.id}" class="text-sm font-medium text-[#00b894] hover:underline">
-                Odgovor #${r.id}
-              </a>
-              <span class="text-xs text-gray-500">${formatDatum(r.submitted_at)}</span>
-            </div>
-            ${povzetek}
+
+      // Grupiraj po questionnaire_id
+      const grupe = new Map();
+      for (const r of odgovori) {
+        if (!grupe.has(r.questionnaire_id)) grupe.set(r.questionnaire_id, { naziv: r.q_naziv, slug: r.q_slug, items: [] });
+        grupe.get(r.questionnaire_id).items.push(r);
+      }
+
+      const skupineHTML = Array.from(grupe.values())
+        .sort((a, b) => a.naziv.localeCompare(b.naziv))
+        .map(g => `
+          <h2 class="text-xl font-bold text-[#1a1a2e] mt-8 mb-3">
+            ${esc(g.naziv)}
+            <span class="pill muted ml-2">${g.items.length}</span>
+          </h2>
+          <div class="space-y-3">
+            ${g.items.map(r => {
+              const povzetek = r.ai_povzetek
+                ? `<pre class="whitespace-pre-wrap text-sm text-gray-700 font-sans mt-3 bg-gray-50 p-3 rounded">${esc(r.ai_povzetek)}</pre>`
+                : '<div class="mt-3 text-sm text-gray-400 italic">AI povzetek še ni generiran...</div>';
+              return `
+                <div class="bg-white rounded shadow p-5">
+                  <div class="flex items-center justify-between mb-2">
+                    <a href="/admin/response.html?id=${r.id}" class="text-sm font-medium text-[#00b894] hover:underline">
+                      Odgovor #${r.id}
+                    </a>
+                    <span class="text-xs text-gray-500">${formatDatum(r.submitted_at)}</span>
+                  </div>
+                  ${povzetek}
+                </div>
+              `;
+            }).join('')}
           </div>
-        `;
-      }).join('');
+        `).join('');
+
+      el.innerHTML = skupineHTML;
     }
 
-    async function regenerirajPriporocila() {
-      if (!confirm('Zagnati regeneracijo priporočil? (~70 sekund)')) return;
-      const r = await apiFetch(`/api/companies/${id}/regenerate-ai`, {
-        method: 'POST',
-        body: JSON.stringify({ mode: 'priporocila' }),
-      });
-      if (r?.ok) alert('Sproženo. Osveži stran čez ~70s.');
-      else alert('Napaka pri sproženju.');
-    }
+    // ── Akcije ────────────────────────────────────────────────────────────
+    async function regeneriraj(qid, mode) {
+      const opis = mode === 'vse' ? 'VSE (povzetki + priporočila)' : 'priporočila';
+      const cas  = mode === 'vse' ? 'nekaj minut' : '~70 sekund';
+      if (!confirm(`Zagnati regeneracijo ${opis}? (${cas})`)) return;
 
-    async function regenerirajVse() {
-      if (!confirm('Zagnati regeneracijo VSEH povzetkov + priporočil? (lahko traja minute)')) return;
-      const r = await apiFetch(`/api/companies/${id}/regenerate-ai`, {
+      const res = await fetch(`/api/companies/${id}/regenerate-ai`, {
         method: 'POST',
-        body: JSON.stringify({ mode: 'vse' }),
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ mode, questionnaire_id: qid }),
       });
-      if (r?.ok) alert('Sproženo. Osveži stran čez nekaj minut.');
-      else alert('Napaka pri sproženju.');
+      if (!res.ok) { alert('Napaka pri sproženju.'); return; }
+      alert(`Sproženo. Osveži stran čez ${cas}.`);
     }
 
     async function odpriMerge() {
@@ -184,15 +304,19 @@
       }
     }
 
+    // ── Init ──────────────────────────────────────────────────────────────
     (async () => {
       const data = await apiFetch(`/api/companies/${id}`);
       if (!data) {
         document.getElementById('header').innerHTML = '<div class="bg-red-50 text-red-700 p-4 rounded">Napaka pri nalaganju.</div>';
         return;
       }
-      renderHeader(data.company);
-      renderPriporocila(data.company);
-      renderResponses(data.responses ?? []);
+      podjetje    = data.company;
+      odgovori    = data.responses ?? [];
+      priporocila = data.priporocila ?? [];
+      renderHeader();
+      renderPriporocila();
+      renderOdgovori();
     })();
   </script>
 </body>

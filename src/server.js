@@ -8,6 +8,8 @@ import { dbPing, pool } from './db.js';
 import { router as webhookRouter } from './routes/webhook.js';
 import { router as debugSimRouter } from './routes/debug-sim.js';
 import { router as apiRouter } from './routes/api.js';
+import { router as questionnairesRouter } from './routes/questionnaires.js';
+import { router as formRouter } from './routes/form.js';
 import { basicAuth } from './middleware/auth.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
@@ -40,17 +42,30 @@ app.get('/', (_req, res) => {
   res.json({
     service: 'bazavprasalnikov-api',
     agency: 'Acenta.si',
-    routes: ['/health', 'POST /webhook/formspree'],
+    routes: [
+      '/health',
+      'POST /webhook/formspree (legacy)',
+      'POST /webhook/:slug',
+      'GET  /f/:slug (javni obrazec)',
+      'POST /f/:slug (submission)',
+      '/admin (basic auth)',
+    ],
   });
 });
 
 // Webhook ruta (javna, brez auth)
 app.use('/webhook', webhookRouter);
 
+// Lasten obrazec — javni (brez auth). GET renderira HTML, POST sprejme submission.
+app.use('/f', formRouter);
+
 // Zacasna debug ruta za tuninje similarity pragov
 app.use('/debug', debugSimRouter);
 
-// Admin API — zascitena z basic auth (vsi /api/* endpointi)
+// Admin API — zascitena z basic auth.
+// Questionnaires CRUD je pred apiRouter-jem mountan na /api/questionnaires,
+// da ne kolidiraj z /api/companies/:id (kjer :id lahko biti "questionnaires").
+app.use('/api/questionnaires', basicAuth, questionnairesRouter);
 app.use('/api', basicAuth, apiRouter);
 
 // Admin UI — staticne HTML strani, prav tako za basic auth.

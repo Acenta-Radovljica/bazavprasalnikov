@@ -3,11 +3,9 @@ import { dbQuery } from '../db.js';
 import { klicOpus } from './claude.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
-const SYSTEM_PROMPT =
-  'Si svetovalec agencije Acenta.si za AI delavnice za turisticne in gostinske kliente. ' +
-  'Tvoja naloga je iz odgovorov respondentov podjetja sestaviti konkretno agendo workshopa, ' +
-  'priporocena AI orodja in primere uporabe. Odgovor v slovenscini. Brez floskul kot ' +
-  '"ekipa je odlicna" — bodi konkreten in operativen.';
+// Prompti se nalozijo iz questionnaires (per slug/id). Priporocila se shranijo
+// v company_priporocila (UPSERT po company_id × questionnaire_id) — eno podjetje
+// ima lahko priporocila za vec razlicnih vprasalnikov hkrati.
 
 // ── DEL 3: Helper funkcije ────────────────────────────────────────────────
 
@@ -30,33 +28,43 @@ function formatirajRespondenta(idx, raw, povzetek) {
   return lines.join('\n');
 }
 
+function uporabiTemplate(template, vars) {
+  return String(template ?? '').replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
+
 // ── DEL 4: Glavna exported funkcija ──────────────────────────────────────
 
-async function generirajPriporocila(companyId) {
-  if (!companyId) return null;
+// Generira priporocila za en (company × questionnaire). Idempotentno — ce že
+// obstajajo, se prepisejo (UPSERT). Bere prompte iz questionnaires, responses
+// pa filtrira po questionnaire_id, da Opus ne meša odgovorov iz različnih
+// vprašalnikov v eno priporocilo.
+async function generirajPriporocila(companyId, questionnaireId) {
+  if (!companyId || !questionnaireId) return null;
 
-  // Naloži podjetje
-  const c = await dbQuery(
-    'SELECT id, naziv_prikaz FROM companies WHERE id = $1',
-    [companyId]
-  );
-  if (!c?.rows?.length) {
-    console.warn(`[priporocila] company ${companyId} ne obstaja`);
+  // Naloži podjetje + vprasalnik (prompt + template)
+  const meta = await dbQuery(`
+    SELECT c.naziv_prikaz,
+           q.priporocila_system_prompt, q.priporocila_user_template
+      FROM companies c, questionnaires q
+     WHERE c.id = $1 AND q.id = $2
+  `, [companyId, questionnaireId]);
+  if (!meta?.rows?.length) {
+    console.warn(`[priporocila] company=${companyId} ali questionnaire=${questionnaireId} ne obstaja`);
     return null;
   }
-  const naziv = c.rows[0].naziv_prikaz;
+  const { naziv_prikaz: naziv, priporocila_system_prompt: system, priporocila_user_template: tpl } = meta.rows[0];
 
-  // Naloži vse responses + povzetke za to podjetje
+  // Naloži responses + povzetke samo za ta vprasalnik (ne mesaj odgovorov iz drugih vprasalnikov)
   const r = await dbQuery(
     `SELECT id, raw_data, ai_povzetek
        FROM responses
-      WHERE company_id = $1
+      WHERE company_id = $1 AND questionnaire_id = $2
       ORDER BY submitted_at ASC`,
-    [companyId]
+    [companyId, questionnaireId]
   );
   const respondenti = r?.rows ?? [];
   if (respondenti.length === 0) {
-    console.warn(`[priporocila] ni respondentov za company=${companyId}`);
+    console.warn(`[priporocila] ni respondentov za company=${companyId} q=${questionnaireId}`);
     return null;
   }
 
@@ -64,40 +72,28 @@ async function generirajPriporocila(companyId) {
     .map((row, i) => formatirajRespondenta(i, row.raw_data, row.ai_povzetek))
     .join('\n\n');
 
-  const user =
-    `Podjetje: ${naziv}\n` +
-    `Stevilo respondentov: ${respondenti.length}\n\n` +
-    respondentiBlok +
-    `\n\n` +
-    `Iz teh odgovorov sestavi:\n\n` +
-    `## 1. AGENDA WORKSHOPA (max 4 ure)\n` +
-    `Konkretne tematske bloke z ocenjenim casom. Prilagojeno tej panogi in njihovim ovi ram.\n\n` +
-    `## 2. PRIPOROCENA AI ORODJA\n` +
-    `3-5 orodij, ki bi takoj prinesla vrednost. Za vsako: ime + 1 stavek zakaj ravno zanje.\n\n` +
-    `## 3. PRIMERI UPORABE\n` +
-    `3 konkretni use case-i iz njihovega vsakdanjega posla.\n\n` +
-    `## 4. PRICAKOVANI ROI\n` +
-    `Pol stavka — kaj naj pricakujejo v 30 dneh implementacije.\n\n` +
-    `## 5. RIZIKI / OVIRE\n` +
-    `Top 2 stvari, ki bi jih lahko zaustavile, in kako jih nasloviti.`;
+  const user = uporabiTemplate(tpl, {
+    naziv,
+    st_respondentov: String(respondenti.length),
+    respondenti: respondentiBlok,
+  });
 
   // 4000 tokenov ~= 12-15k znakov — dovolj za 5 sekcij z tabelami + buffer.
-  // Prej je bilo 2500 in se je tekst presekal sredi 5. sekcije.
-  const priporocila = await klicOpus({ system: SYSTEM_PROMPT, user, maxTokens: 4000 });
+  const priporocila = await klicOpus({ system, user, maxTokens: 4000 });
   if (!priporocila) {
-    console.warn(`[priporocila] AI ni vrnil odgovora za company=${companyId}`);
+    console.warn(`[priporocila] AI ni vrnil odgovora za company=${companyId} q=${questionnaireId}`);
     return null;
   }
 
-  await dbQuery(
-    `UPDATE companies
-        SET ai_priporocila = $1,
-            ai_priporocila_updated_at = NOW()
-      WHERE id = $2`,
-    [priporocila, companyId]
-  );
+  // UPSERT v company_priporocila (po UNIQUE company_id + questionnaire_id)
+  await dbQuery(`
+    INSERT INTO company_priporocila (company_id, questionnaire_id, vsebina, updated_at)
+    VALUES ($1, $2, $3, NOW())
+    ON CONFLICT (company_id, questionnaire_id)
+    DO UPDATE SET vsebina = EXCLUDED.vsebina, updated_at = NOW()
+  `, [companyId, questionnaireId, priporocila]);
 
-  console.log(`[priporocila] OK company=${companyId} (${priporocila.length} znakov, iz ${respondenti.length} respondentov)`);
+  console.log(`[priporocila] OK company=${companyId} q=${questionnaireId} (${priporocila.length} znakov, iz ${respondenti.length} respondentov)`);
   return priporocila;
 }
 

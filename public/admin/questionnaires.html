@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acenta — Vprašalniki</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --acenta-teal: #00b894;
+      --acenta-teal-soft: #d4f4ec;
+      --acenta-teal-dark: #006e5a;
+      --acenta-navy: #1a1a2e;
+      --bg: #f6f7f9;
+      --card-border: #ececf1;
+      --muted: #8b8b95;
+    }
+    body {
+      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif;
+      color: var(--acenta-navy);
+    }
+    .card { background: #fff; border: 1px solid var(--card-border); border-radius: 20px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04); }
+    .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px; color: #4a4a55; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; transition: background 0.15s, color 0.15s; }
+    .sidebar-item:hover { background: #ececf1; }
+    .sidebar-item.active { background: #fff; color: var(--acenta-navy); box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06); border: 1px solid var(--card-border); }
+    .badge-warning { background: #ffeacc; color: #9a5a00; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+    .badge-success { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+    .badge-neutral { background: #ececf1; color: #6b6b75; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+
+    .btn-primary { background: var(--acenta-teal); color: #fff; padding: 10px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; transition: background 0.15s; }
+    .btn-primary:hover { background: var(--acenta-teal-dark); }
+    .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
+    .btn-secondary { background: #fff; color: var(--acenta-navy); padding: 10px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; border: 1px solid var(--card-border); cursor: pointer; }
+    .btn-secondary:hover { background: #f6f7f9; }
+    .btn-danger { background: #fff; color: #a02020; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; border: 1px solid #fde2e2; cursor: pointer; }
+    .btn-danger:hover { background: #fde2e2; }
+
+    .field-label { display: block; font-size: 13px; font-weight: 600; color: var(--acenta-navy); margin-bottom: 6px; }
+    .field-help  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .input, .select, .textarea {
+      width: 100%; background: #fff; border: 1px solid var(--card-border); border-radius: 10px;
+      padding: 9px 12px; font-size: 14px; color: var(--acenta-navy);
+      font-family: inherit;
+    }
+    .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--acenta-teal); box-shadow: 0 0 0 3px var(--acenta-teal-soft); }
+    .textarea { resize: vertical; min-height: 80px; }
+    .textarea.code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 13px; }
+
+    .q-row { background: #fafbfc; border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; }
+    .q-row + .q-row { margin-top: 10px; }
+
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
+      background: #ececf1; color: #6b6b75;
+    }
+    .pill.teal { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); }
+  </style>
+</head>
+<body>
+  <div class="flex min-h-screen">
+
+    <!-- ── SIDEBAR ── -->
+    <aside class="w-64 bg-[#f6f7f9] border-r border-[#ececf1] p-5 flex flex-col">
+      <div class="flex items-center gap-3 mb-8 px-2">
+        <div class="w-10 h-10 rounded-xl bg-[#1a1a2e] flex items-center justify-center text-white font-bold">A</div>
+        <div>
+          <div class="font-semibold text-[#1a1a2e] leading-tight">Acenta</div>
+          <div class="text-xs text-gray-500">Baza vprašalnikov</div>
+        </div>
+      </div>
+
+      <nav class="space-y-1 flex-1">
+        <a href="/admin/" class="sidebar-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Pregled</span>
+        </a>
+
+        <a href="/admin/podjetja.html" class="sidebar-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+          <span>Podjetja</span>
+        </a>
+
+        <a href="/admin/questionnaires.html" class="sidebar-item active">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+          <span>Vprašalniki</span>
+        </a>
+
+        <a href="/admin/search.html" class="sidebar-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <span>Iskanje</span>
+        </a>
+
+        <a href="/admin/insights.html" class="sidebar-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+          <span>Insights</span>
+        </a>
+      </nav>
+
+      <div class="card p-3 flex items-center gap-3">
+        <div class="w-9 h-9 rounded-full bg-[#00b894] text-white flex items-center justify-center font-semibold text-sm">AI</div>
+        <div class="min-w-0">
+          <div class="text-sm font-semibold text-[#1a1a2e] truncate">ai@acenta.si</div>
+          <div class="text-xs text-gray-500">Admin</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── MAIN ── -->
+    <main class="flex-1 p-10 max-w-[1280px]">
+
+      <!-- ── SEZNAM ── -->
+      <section id="view-list">
+        <div class="flex items-end justify-between mb-8">
+          <div>
+            <h1 class="text-3xl font-bold">Vprašalniki</h1>
+            <div class="text-sm text-gray-500 mt-1">Upravljaj obrazce in AI prompte za posamezne delavnice</div>
+          </div>
+          <button class="btn-primary" onclick="odpriUrejevalnik(null)">+ Nov vprašalnik</button>
+        </div>
+
+        <div id="seznam" class="card p-2">
+          <div class="text-gray-500 text-center py-12">Nalagam...</div>
+        </div>
+      </section>
+
+      <!-- ── UREJEVALNIK ── -->
+      <section id="view-editor" style="display:none;">
+        <div class="flex items-end justify-between mb-8">
+          <div>
+            <button class="text-sm text-gray-500 hover:text-[#00b894] mb-2" onclick="zapriUrejevalnik()">← Nazaj na seznam</button>
+            <h1 class="text-3xl font-bold" id="editor-naslov">Nov vprašalnik</h1>
+            <div class="text-sm text-gray-500 mt-1" id="editor-podnaslov">—</div>
+          </div>
+          <div class="flex items-center gap-3" id="editor-akcije">
+            <!-- Predogled / Soft delete -->
+          </div>
+        </div>
+
+        <!-- Osnove -->
+        <div class="card p-8 mb-6">
+          <div class="text-lg font-bold mb-6">Osnovni podatki</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label class="field-label" for="f-slug">URL slug</label>
+              <input id="f-slug" class="input" placeholder="npr. moj-ai-nacrt" autocomplete="off">
+              <div class="field-help">Samo male črke, številke in vezaji. Uporablja se v <code class="text-xs">/f/&lt;slug&gt;</code>.</div>
+            </div>
+            <div>
+              <label class="field-label" for="f-naziv">Naziv za prikaz</label>
+              <input id="f-naziv" class="input" placeholder="Moj AI načrt" autocomplete="off">
+              <div class="field-help">Vidno v admin pregledu in v naslovu obrazca.</div>
+            </div>
+            <div class="md:col-span-2">
+              <label class="field-label" for="f-opis">Kratek opis (opcijsko)</label>
+              <textarea id="f-opis" class="textarea" placeholder="Delavnica Acenta.si — kratek vodič po stanju AI v podjetju..." rows="2"></textarea>
+            </div>
+            <div class="md:col-span-2 flex items-center gap-2">
+              <input id="f-aktivna" type="checkbox" class="w-4 h-4 accent-[#00b894]">
+              <label for="f-aktivna" class="text-sm font-medium">Aktivna — obrazec sprejema submissione</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vprašanja -->
+        <div class="card p-8 mb-6">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <div class="text-lg font-bold">Vprašanja</div>
+              <div class="text-sm text-gray-500 mt-1">Strukturni opis polj. ID je interni ključ (gre v JSON), Label je vidno besedilo.</div>
+            </div>
+            <button class="btn-secondary" onclick="dodajVprasanje()">+ Vprašanje</button>
+          </div>
+          <div id="vprasanja-list"></div>
+          <div id="vprasanja-prazno" class="text-center text-gray-500 py-8" style="display:none;">
+            Ni vprašanj. Klikni <strong>+ Vprašanje</strong> za začetek.
+          </div>
+        </div>
+
+        <!-- Povzetek prompti -->
+        <div class="card p-8 mb-6">
+          <div class="text-lg font-bold mb-1">Povzetek — Haiku</div>
+          <div class="text-sm text-gray-500 mb-6">Generira se avtomatsko po vsakem submissionu. Hiter, poceni. Uporabi <code class="text-xs">{podatki}</code> za vse odgovore.</div>
+          <div class="space-y-6">
+            <div>
+              <label class="field-label" for="f-povzetek-sys">System prompt</label>
+              <textarea id="f-povzetek-sys" class="textarea code" rows="6" placeholder="Si AI asistent, ki..."></textarea>
+            </div>
+            <div>
+              <label class="field-label" for="f-povzetek-usr">User template</label>
+              <textarea id="f-povzetek-usr" class="textarea code" rows="8" placeholder="Naredi povzetek odgovorov:&#10;&#10;{podatki}"></textarea>
+              <div class="field-help">Spremenljivke: <code class="text-xs">{podatki}</code> (vsi odgovori formatirani kot list).</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Priporocila prompti -->
+        <div class="card p-8 mb-6">
+          <div class="text-lg font-bold mb-1">Priporočila — Opus</div>
+          <div class="text-sm text-gray-500 mb-6">Generira se ročno z gumbom "Regeneriraj" v podjetju. Premišljeno, drag(o). Uporabi <code class="text-xs">{naziv}</code>, <code class="text-xs">{st_respondentov}</code>, <code class="text-xs">{respondenti}</code>.</div>
+          <div class="space-y-6">
+            <div>
+              <label class="field-label" for="f-priporocila-sys">System prompt</label>
+              <textarea id="f-priporocila-sys" class="textarea code" rows="8" placeholder="Si Acenta strateški AI svetovalec..."></textarea>
+            </div>
+            <div>
+              <label class="field-label" for="f-priporocila-usr">User template</label>
+              <textarea id="f-priporocila-usr" class="textarea code" rows="10" placeholder="Podjetje: {naziv}&#10;Respondentov: {st_respondentov}&#10;&#10;{respondenti}"></textarea>
+              <div class="field-help">
+                Spremenljivke: <code class="text-xs">{naziv}</code>, <code class="text-xs">{st_respondentov}</code>, <code class="text-xs">{respondenti}</code>.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer akcije -->
+        <div class="flex items-center justify-between">
+          <div id="napaka" class="text-sm text-red-700"></div>
+          <div class="flex gap-3">
+            <button class="btn-secondary" onclick="zapriUrejevalnik()">Prekliči</button>
+            <button id="btn-shrani" class="btn-primary" onclick="shrani()">Shrani</button>
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/admin/app.js"></script>
+  <script>
+    // ── Stanje ────────────────────────────────────────────────────────────
+    let trenutniId = null;     // ID urejanega vprašalnika (null = nov)
+    let trenutniSlug = null;   // slug obstoječega (za predogled link)
+    let vprasanja = [];        // delovni array vprašanj
+    const VELJAVNI_TIPI = ['text', 'textarea', 'email', 'number', 'select', 'radio', 'checkbox'];
+
+    // ── Seznam ────────────────────────────────────────────────────────────
+    async function nalozi() {
+      const r = await apiFetch('/api/questionnaires');
+      const el = document.getElementById('seznam');
+      if (!r) { el.innerHTML = '<div class="text-red-700 bg-red-50 p-4 rounded">Napaka pri nalaganju.</div>'; return; }
+      const list = r.questionnaires || [];
+      if (!list.length) {
+        el.innerHTML = '<div class="text-gray-500 text-center py-12">Ni vprašalnikov. Klikni <strong>+ Nov vprašalnik</strong>.</div>';
+        return;
+      }
+      el.innerHTML = list.map(q => `
+        <div class="flex items-center justify-between px-6 py-4 border-b border-[#ececf1] last:border-0 hover:bg-[#f8f9fb] rounded-lg transition cursor-pointer"
+             onclick="odpriUrejevalnik(${q.id})">
+          <div class="flex items-center gap-4 min-w-0">
+            <div class="w-10 h-10 rounded-xl bg-[#d4f4ec] text-[#006e5a] flex items-center justify-center font-bold">
+              ${esc((q.naziv_prikaz || '?')[0].toUpperCase())}
+            </div>
+            <div class="min-w-0">
+              <div class="font-semibold truncate">${esc(q.naziv_prikaz)}</div>
+              <div class="text-xs text-gray-500 truncate">/f/${esc(q.slug)} · ${q.st_vprasanj} ${q.st_vprasanj === 1 ? 'vprašanje' : 'vprašanj'} · ${q.st_odgovorov} ${q.st_odgovorov === 1 ? 'odgovor' : 'odgovorov'} · ${q.st_podjetij} ${q.st_podjetij === 1 ? 'podjetje' : 'podjetij'}</div>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            ${q.aktivna ? '<span class="badge-success">Aktivna</span>' : '<span class="badge-neutral">Ugasnjena</span>'}
+            <a href="/f/${esc(q.slug)}" target="_blank" rel="noopener" class="text-sm text-[#00b894] hover:underline" onclick="event.stopPropagation()">Predogled →</a>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // ── Urejevalnik ───────────────────────────────────────────────────────
+    async function odpriUrejevalnik(id) {
+      document.getElementById('view-list').style.display = 'none';
+      document.getElementById('view-editor').style.display = 'block';
+      document.getElementById('napaka').textContent = '';
+      window.scrollTo({ top: 0, behavior: 'instant' });
+
+      trenutniId = id;
+      trenutniSlug = null;
+
+      if (id === null) {
+        // Nov
+        document.getElementById('editor-naslov').textContent = 'Nov vprašalnik';
+        document.getElementById('editor-podnaslov').textContent = 'Izpolni polja in shrani';
+        document.getElementById('editor-akcije').innerHTML = '';
+        // Privzete vrednosti
+        document.getElementById('f-slug').value = '';
+        document.getElementById('f-naziv').value = '';
+        document.getElementById('f-opis').value = '';
+        document.getElementById('f-aktivna').checked = true;
+        document.getElementById('f-povzetek-sys').value = 'Si AI asistent agencije Acenta.si. Pripraviš kratke povzetke odgovorov udeležencev delavnice. Piši v slovenščini, jedrnato, brez fraz.';
+        document.getElementById('f-povzetek-usr').value = 'Naredi kratek povzetek (3-5 stavkov) naslednjih odgovorov udeleženca delavnice:\n\n{podatki}';
+        document.getElementById('f-priporocila-sys').value = 'Si strateški AI svetovalec agencije Acenta.si. Pripraviš premišljene, podjetju prilagojene priporočila na podlagi odgovorov udeležencev. Piši v slovenščini, profesionalno, konkretno. Format: Markdown.';
+        document.getElementById('f-priporocila-usr').value = 'Podjetje: {naziv}\nŠtevilo respondentov: {st_respondentov}\n\nOdgovori vseh respondentov:\n\n{respondenti}\n\nPripravi konkretna priporočila za to podjetje.';
+        vprasanja = [];
+        renderVprasanja();
+        return;
+      }
+
+      // Obstoječi — naloži
+      const r = await apiFetch(`/api/questionnaires/${id}`);
+      if (!r?.questionnaire) {
+        prikaziNapako('Napaka pri nalaganju vprašalnika.');
+        zapriUrejevalnik();
+        return;
+      }
+      const q = r.questionnaire;
+      trenutniSlug = q.slug;
+      document.getElementById('editor-naslov').textContent = q.naziv_prikaz;
+      document.getElementById('editor-podnaslov').textContent = `/f/${q.slug} · posodobljeno ${formatDatum(q.updated_at)}`;
+      document.getElementById('editor-akcije').innerHTML = `
+        <a href="/f/${esc(q.slug)}" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;">Predogled obrazca →</a>
+        ${q.aktivna ? `<button class="btn-danger" onclick="ugasniVprasalnik(${q.id})">Ugasni</button>` : ''}
+      `;
+      document.getElementById('f-slug').value = q.slug || '';
+      document.getElementById('f-naziv').value = q.naziv_prikaz || '';
+      document.getElementById('f-opis').value = q.opis || '';
+      document.getElementById('f-aktivna').checked = !!q.aktivna;
+      document.getElementById('f-povzetek-sys').value = q.povzetek_system_prompt || '';
+      document.getElementById('f-povzetek-usr').value = q.povzetek_user_template || '';
+      document.getElementById('f-priporocila-sys').value = q.priporocila_system_prompt || '';
+      document.getElementById('f-priporocila-usr').value = q.priporocila_user_template || '';
+      vprasanja = Array.isArray(q.questions) ? JSON.parse(JSON.stringify(q.questions)) : [];
+      renderVprasanja();
+    }
+
+    function zapriUrejevalnik() {
+      document.getElementById('view-editor').style.display = 'none';
+      document.getElementById('view-list').style.display = 'block';
+      nalozi();
+    }
+
+    // ── Vprašanja ─────────────────────────────────────────────────────────
+    function dodajVprasanje() {
+      const novId = 'q' + (vprasanja.length + 1);
+      vprasanja.push({ id: novId, label: '', tip: 'text', obvezno: false, options: [] });
+      renderVprasanja();
+      // Skoči na zadnje
+      setTimeout(() => {
+        const el = document.querySelector(`#q-row-${vprasanja.length - 1} input[data-field="label"]`);
+        if (el) el.focus();
+      }, 50);
+    }
+
+    function odstraniVprasanje(idx) {
+      if (!confirm('Odstrani to vprašanje?')) return;
+      vprasanja.splice(idx, 1);
+      renderVprasanja();
+    }
+
+    function premakniVprasanje(idx, smer) {
+      const novIdx = idx + smer;
+      if (novIdx < 0 || novIdx >= vprasanja.length) return;
+      const tmp = vprasanja[idx];
+      vprasanja[idx] = vprasanja[novIdx];
+      vprasanja[novIdx] = tmp;
+      renderVprasanja();
+    }
+
+    function posodobiPolje(idx, field, value) {
+      vprasanja[idx][field] = value;
+      // Ko tip postane select/radio/checkbox, poskrbi za options array
+      if (field === 'tip') {
+        const potrebujeOpcije = ['select', 'radio', 'checkbox'].includes(value);
+        if (potrebujeOpcije && !Array.isArray(vprasanja[idx].options)) vprasanja[idx].options = [];
+        renderVprasanja();
+      }
+    }
+
+    function posodobiOpcije(idx, raw) {
+      // En po vrsto na vrstico
+      vprasanja[idx].options = raw.split('\n').map(s => s.trim()).filter(Boolean);
+    }
+
+    function renderVprasanja() {
+      const list = document.getElementById('vprasanja-list');
+      const prazno = document.getElementById('vprasanja-prazno');
+      if (!vprasanja.length) {
+        list.innerHTML = '';
+        prazno.style.display = 'block';
+        return;
+      }
+      prazno.style.display = 'none';
+      list.innerHTML = vprasanja.map((q, idx) => {
+        const potrebujeOpcije = ['select', 'radio', 'checkbox'].includes(q.tip);
+        const opcijeHTML = potrebujeOpcije ? `
+          <div class="mt-3">
+            <label class="field-label">Opcije (vsaka v svojo vrstico)</label>
+            <textarea class="textarea" rows="3" placeholder="Možnost 1&#10;Možnost 2&#10;Možnost 3"
+                      onchange="posodobiOpcije(${idx}, this.value)">${esc((q.options || []).join('\n'))}</textarea>
+          </div>
+        ` : '';
+        return `
+          <div class="q-row" id="q-row-${idx}">
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2">
+                <span class="pill teal">#${idx + 1}</span>
+                <span class="pill">${esc(q.tip)}</span>
+              </div>
+              <div class="flex items-center gap-1">
+                <button class="text-gray-400 hover:text-[#00b894] px-2 py-1 text-sm" title="Premakni gor" onclick="premakniVprasanje(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:.3;cursor:not-allowed;"' : ''}>↑</button>
+                <button class="text-gray-400 hover:text-[#00b894] px-2 py-1 text-sm" title="Premakni dol" onclick="premakniVprasanje(${idx}, 1)" ${idx === vprasanja.length - 1 ? 'disabled style="opacity:.3;cursor:not-allowed;"' : ''}>↓</button>
+                <button class="text-gray-400 hover:text-red-600 px-2 py-1 text-sm" title="Odstrani" onclick="odstraniVprasanje(${idx})">✕</button>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+              <div class="md:col-span-3">
+                <label class="field-label">ID (interni ključ)</label>
+                <input class="input" data-field="id" value="${esc(q.id)}" placeholder="npr. q3_team"
+                       onchange="posodobiPolje(${idx}, 'id', this.value.trim())">
+              </div>
+              <div class="md:col-span-3">
+                <label class="field-label">Tip</label>
+                <select class="select" onchange="posodobiPolje(${idx}, 'tip', this.value)">
+                  ${VELJAVNI_TIPI.map(t => `<option value="${t}" ${q.tip === t ? 'selected' : ''}>${t}</option>`).join('')}
+                </select>
+              </div>
+              <div class="md:col-span-5">
+                <label class="field-label">Label (vidno besedilo)</label>
+                <input class="input" data-field="label" value="${esc(q.label)}" placeholder="Kakšno je glavno izziv...?"
+                       onchange="posodobiPolje(${idx}, 'label', this.value)">
+              </div>
+              <div class="md:col-span-1 flex items-end pb-1">
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" class="w-4 h-4 accent-[#00b894]" ${q.obvezno ? 'checked' : ''}
+                         onchange="posodobiPolje(${idx}, 'obvezno', this.checked)">
+                  <span>Obv.</span>
+                </label>
+              </div>
+            </div>
+            ${opcijeHTML}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Shrani ────────────────────────────────────────────────────────────
+    function prikaziNapako(msg) {
+      document.getElementById('napaka').textContent = msg;
+    }
+
+    function preberiBody() {
+      return {
+        slug: document.getElementById('f-slug').value.trim().toLowerCase(),
+        naziv_prikaz: document.getElementById('f-naziv').value.trim(),
+        opis: document.getElementById('f-opis').value.trim(),
+        aktivna: document.getElementById('f-aktivna').checked,
+        povzetek_system_prompt: document.getElementById('f-povzetek-sys').value,
+        povzetek_user_template: document.getElementById('f-povzetek-usr').value,
+        priporocila_system_prompt: document.getElementById('f-priporocila-sys').value,
+        priporocila_user_template: document.getElementById('f-priporocila-usr').value,
+        questions: vprasanja,
+      };
+    }
+
+    async function shrani() {
+      prikaziNapako('');
+      const body = preberiBody();
+      const btn = document.getElementById('btn-shrani');
+      btn.disabled = true; btn.textContent = 'Shranjujem...';
+
+      const url = trenutniId === null ? '/api/questionnaires' : `/api/questionnaires/${trenutniId}`;
+      const method = trenutniId === null ? 'POST' : 'PATCH';
+
+      let res;
+      try {
+        res = await fetch(url, {
+          method,
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } catch (err) {
+        prikaziNapako('Napaka pri pošiljanju: ' + err.message);
+        btn.disabled = false; btn.textContent = 'Shrani';
+        return;
+      }
+
+      btn.disabled = false; btn.textContent = 'Shrani';
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = data.detail ? ` (${data.detail})` : '';
+        prikaziNapako(`Napaka: ${data.error || res.status}${detail}`);
+        return;
+      }
+
+      // OK — pojdi nazaj na seznam
+      zapriUrejevalnik();
+    }
+
+    async function ugasniVprasalnik(id) {
+      if (!confirm('Ugasni vprašalnik? Obstoječi odgovori se ohranijo, samo obrazec se izklopi.')) return;
+      const res = await fetch(`/api/questionnaires/${id}`, { method: 'DELETE' });
+      if (!res.ok) { alert('Napaka.'); return; }
+      zapriUrejevalnik();
+    }
+
+    // ── Init ──────────────────────────────────────────────────────────────
+    nalozi();
+  </script>
+</body>
+</html>

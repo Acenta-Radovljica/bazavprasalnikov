@@ -122,6 +122,11 @@
           </div>
         </div>
 
+        <a href="/admin/questionnaires.html" class="sidebar-item">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+          <span>Vprašalniki</span>
+        </a>
+
         <a href="/admin/search.html" class="sidebar-item">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <span>Iskanje</span>
@@ -147,9 +152,18 @@
       <div class="flex items-end justify-between mb-8">
         <div>
           <h1 class="text-3xl font-bold">Pregled</h1>
-          <div class="text-sm text-gray-500 mt-1">Moj AI načrt — delavnica</div>
+          <div class="text-sm text-gray-500 mt-1" id="podnaslov">Vsi vprašalniki</div>
         </div>
-        <div class="text-sm text-gray-500" id="last-update">—</div>
+        <div class="flex items-center gap-4">
+          <!-- Filter po vprasalniku — vpliva na "Aktivnost podjetij" in sidebar -->
+          <div class="flex items-center gap-2">
+            <label for="filter-q" class="text-xs text-gray-500 font-medium">Vprašalnik:</label>
+            <select id="filter-q" class="text-sm border border-[#ececf1] rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#00b894]" onchange="spremeniFilter()">
+              <option value="">Vsi vprašalniki</option>
+            </select>
+          </div>
+          <div class="text-sm text-gray-500" id="last-update">—</div>
+        </div>
       </div>
 
       <!-- Stat cards top -->
@@ -390,34 +404,37 @@
       `;
     }
 
-    (async () => {
-      // Pridobi oba endpointa hkrati
-      const [stats, companies] = await Promise.all([
-        apiFetch('/api/stats'),
-        apiFetch('/api/companies'),
-      ]);
+    // ── Stanje filtra ─────────────────────────────────────────────────
+    // Filter velja samo za seznam podjetij (sidebar + Aktivnost).
+    // Stats in timeline ostaneta globalna — pokrivata vse vprasalnike.
+    let aktivniFilter = '';     // '' = vsi, sicer questionnaire_id kot string
+    let vprasalniki = [];       // [{id, slug, naziv_prikaz, aktivna}]
 
-      if (!stats || !companies) {
-        document.getElementById('aktivnost').innerHTML =
-          '<div class="text-red-700 bg-red-50 p-4 rounded">Napaka pri nalaganju.</div>';
-        return;
-      }
+    function spremeniFilter() {
+      aktivniFilter = document.getElementById('filter-q').value;
+      // Posodobi URL hash za deeplink (npr. #q=3)
+      if (aktivniFilter) window.location.hash = `q=${aktivniFilter}`;
+      else history.replaceState(null, '', window.location.pathname);
+      nalozipodjetja();
+    }
 
-      const t = stats.totals;
-      const podjetja = companies.companies ?? [];
+    // Nalozi samo podjetja (odvisno od aktivni filter)
+    async function nalozipodjetja() {
+      const url = aktivniFilter
+        ? `/api/companies?questionnaire_id=${encodeURIComponent(aktivniFilter)}`
+        : '/api/companies';
+      const r = await apiFetch(url);
+      const podjetja = r?.companies ?? [];
+      renderiraj_seznam(podjetja);
+    }
 
-      // Glavne stevilke
-      document.getElementById('stat-podjetja').textContent = t.podjetja_total;
-      document.getElementById('stat-odgovori').textContent = t.odgovori_total;
-      document.getElementById('stat-zastarela').textContent = stats.zastarela;
-      document.getElementById('stat-brez').textContent = t.brez_priporocil;
+    function renderiraj_seznam(podjetja) {
+      // Podnaslov
+      const izbran = vprasalniki.find(q => String(q.id) === aktivniFilter);
+      document.getElementById('podnaslov').textContent =
+        izbran ? `Filtrirano: ${izbran.naziv_prikaz}` : 'Vsi vprašalniki';
 
-      // Delte (vs prejšnji teden)
-      deltaBadge('delta-podjetja', t.podjetja_7d, t.podjetja_prej_7d);
-      deltaBadge('delta-odgovori', t.odgovori_7d, t.odgovori_prej_7d);
-
-      // Sidebar — seznam podjetij namesto filtrov.
-      // Razvrsceno po zadnji aktivnosti (najnovejsi prvi). Badge prikazuje status AI priporocil.
+      // Sidebar — seznam podjetij. Razvrsceno po zadnji aktivnosti (najnovejsi prvi).
       const sub = document.getElementById('sub');
       const razvrscena = [...podjetja].sort((a, b) => {
         const ta = a.zadnji_odgovor ? new Date(a.zadnji_odgovor).getTime() : 0;
@@ -425,8 +442,8 @@
         return tb - ta;
       });
       sub.innerHTML = razvrscena.map(p => {
-        const isZastarela = p.has_priporocila && p.ai_priporocila_updated_at && p.zadnji_odgovor
-          && new Date(p.zadnji_odgovor) > new Date(p.ai_priporocila_updated_at);
+        const isZastarela = p.has_priporocila && p.priporocila_updated_at && p.zadnji_odgovor
+          && new Date(p.zadnji_odgovor) > new Date(p.priporocila_updated_at);
         let badge;
         if (!p.has_priporocila)  badge = '<span class="badge-warning" title="Brez priporočil">—</span>';
         else if (isZastarela)    badge = '<span class="badge-warning" title="Zastarela priporočila">⚠</span>';
@@ -439,17 +456,7 @@
         `;
       }).join('') || '<div class="sidebar-sub text-gray-400">Brez podjetij</div>';
 
-      // Sparklines iz timeline — zadnjih 14 dni za odgovore
-      const last14 = stats.timeline.slice(-14).map(r => r.st);
-      renderSparkline('spark-odgovori', last14);
-      renderSparkline('spark-podjetja', last14); // ista oblika trenda
-
-      // Glavni chart
-      renderTimelineChart(stats.timeline);
-      const skupaj30 = stats.timeline.reduce((s, r) => s + r.st, 0);
-      document.getElementById('timeline-meta').textContent = `Skupaj ${skupaj30} odgovorov v zadnjih 30 dneh`;
-
-      // Last update
+      // Last update — iz aktualnega (filtriranega) seznama
       const najnovejsi = podjetja.map(p => p.zadnji_odgovor).filter(Boolean).sort((a, b) => new Date(b) - new Date(a))[0];
       document.getElementById('last-update').textContent =
         najnovejsi ? 'Zadnji odgovor ' + relativnoTime(najnovejsi) : 'Brez odgovorov';
@@ -467,8 +474,8 @@
       }
 
       el.innerHTML = aktivni.map(p => {
-        const isZastarela = p.has_priporocila && p.ai_priporocila_updated_at && p.zadnji_odgovor
-          && new Date(p.zadnji_odgovor) > new Date(p.ai_priporocila_updated_at);
+        const isZastarela = p.has_priporocila && p.priporocila_updated_at && p.zadnji_odgovor
+          && new Date(p.zadnji_odgovor) > new Date(p.priporocila_updated_at);
         let badge;
         if (!p.has_priporocila)  badge = '<span class="badge-neutral">AI —</span>';
         else if (isZastarela)    badge = '<span class="badge-warning">AI ⚠ zastarela</span>';
@@ -489,6 +496,59 @@
           </a>
         `;
       }).join('');
+    }
+
+    (async () => {
+      // Prebere filter iz URL hash (#q=3) za deeplink
+      const hash = window.location.hash.match(/q=(\d+)/);
+      if (hash) aktivniFilter = hash[1];
+
+      // Naloze vprasalnike, stats in podjetja paralelno
+      const [stats, qList, companies] = await Promise.all([
+        apiFetch('/api/stats'),
+        apiFetch('/api/questionnaires'),
+        apiFetch(aktivniFilter ? `/api/companies?questionnaire_id=${aktivniFilter}` : '/api/companies'),
+      ]);
+
+      if (!stats || !companies) {
+        document.getElementById('aktivnost').innerHTML =
+          '<div class="text-red-700 bg-red-50 p-4 rounded">Napaka pri nalaganju.</div>';
+        return;
+      }
+
+      // Vprasalniki dropdown
+      vprasalniki = qList?.questionnaires ?? [];
+      const sel = document.getElementById('filter-q');
+      sel.innerHTML = '<option value="">Vsi vprašalniki</option>' + vprasalniki
+        .filter(q => q.aktivna || String(q.id) === aktivniFilter)  // pokaži tudi ugasnjenega, ce je trenutno izbran
+        .map(q => `<option value="${q.id}" ${String(q.id) === aktivniFilter ? 'selected' : ''}>${esc(q.naziv_prikaz)}${q.aktivna ? '' : ' (ugasnjen)'}</option>`)
+        .join('');
+
+      const t = stats.totals;
+      const podjetja = companies.companies ?? [];
+
+      // Glavne stevilke — vedno globalno (cez vse vprasalnike)
+      document.getElementById('stat-podjetja').textContent = t.podjetja_total;
+      document.getElementById('stat-odgovori').textContent = t.odgovori_total;
+      document.getElementById('stat-zastarela').textContent = stats.zastarela;
+      document.getElementById('stat-brez').textContent = t.brez_priporocil;
+
+      // Delte (vs prejšnji teden)
+      deltaBadge('delta-podjetja', t.podjetja_7d, t.podjetja_prej_7d);
+      deltaBadge('delta-odgovori', t.odgovori_7d, t.odgovori_prej_7d);
+
+      // Sparklines iz timeline — zadnjih 14 dni za odgovore
+      const last14 = stats.timeline.slice(-14).map(r => r.st);
+      renderSparkline('spark-odgovori', last14);
+      renderSparkline('spark-podjetja', last14); // ista oblika trenda
+
+      // Glavni chart
+      renderTimelineChart(stats.timeline);
+      const skupaj30 = stats.timeline.reduce((s, r) => s + r.st, 0);
+      document.getElementById('timeline-meta').textContent = `Skupaj ${skupaj30} odgovorov v zadnjih 30 dneh`;
+
+      // Render seznama (sidebar + aktivnost) z aktualnim filtrom
+      renderiraj_seznam(podjetja);
     })();
   </script>
 </body>

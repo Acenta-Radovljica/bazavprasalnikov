@@ -3,22 +3,20 @@ import { dbQuery } from '../db.js';
 import { klicHaiku } from './claude.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
-const SYSTEM_PROMPT =
-  'Si asistent agencije Acenta.si. Tvoja naloga je iz vprašalnika delavnice "Moj AI načrt" izlušciti ' +
-  'kratek 5-tockovni povzetek v slovenščini. Bodi konkreten, ne dodajaj fraz tipa "ekipa je zelo predana".';
+// Prompti se ne hardkodirajo več — preberejo se iz tabele questionnaires
+// glede na responses.questionnaire_id. Tako lahko vsak vprašalnik ima svoj
+// povzetek prompt (drug ton, drugačne točke, drug fokus).
 
 // ── DEL 3: Helper funkcije ────────────────────────────────────────────────
 
 // Pretvori raw_data JSONB v lep čitljiv blok za Claude.
-// raw_data ima kljuce kot "1_ime", "2_podjetje", "3_email", "4_panoga" itd.
+// Sortira po stevilski predponi (1_, 2_, 3_...) ce obstaja, preskoci tehnicna polja.
 function formatirajPodatke(rawData) {
   if (!rawData || typeof rawData !== 'object') return '(prazno)';
 
-  // Sortiraj po stevilski predponi (1_, 2_, 3_...) ce obstaja
   const keys = Object.keys(rawData).sort();
   const lines = [];
   for (const k of keys) {
-    // Preskoci tehnicna polja Formspree
     if (k.startsWith('_') || k === 'gdpr_consent') continue;
     const v = rawData[k];
     if (v === null || v === undefined || v === '') continue;
@@ -27,42 +25,44 @@ function formatirajPodatke(rawData) {
   return lines.join('\n');
 }
 
+// Zamenja {placeholder} v templatu z vrednostmi iz vars.
+// Neznane {kljuce} pusti pri miru (varno, ne crashne ce admin pozabi placeholder).
+function uporabiTemplate(template, vars) {
+  return String(template ?? '').replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+}
+
 // ── DEL 4: Glavna exported funkcija ──────────────────────────────────────
 
 // Generira povzetek za en response. Idempotentno — ce je ze povzetek,
-// se prepise. Vrne string povzetek ali null.
+// se prepise. Prompt + template se naloži iz questionnaires (JOIN po
+// responses.questionnaire_id). Vrne string povzetek ali null.
 async function generirajPovzetek(responseId) {
   if (!responseId) return null;
 
-  // Naloži response iz baze
-  const r = await dbQuery(
-    'SELECT id, raw_data FROM responses WHERE id = $1',
-    [responseId]
-  );
+  // Naloži response + pripadajoč vprasalnik (system + user template)
+  const r = await dbQuery(`
+    SELECT r.id, r.raw_data, r.questionnaire_id,
+           q.povzetek_system_prompt, q.povzetek_user_template
+      FROM responses r
+      JOIN questionnaires q ON q.id = r.questionnaire_id
+     WHERE r.id = $1
+  `, [responseId]);
   if (!r?.rows?.length) {
-    console.warn(`[povzetek] response ${responseId} ne obstaja`);
+    console.warn(`[povzetek] response ${responseId} ne obstaja ali nima vprasalnika`);
     return null;
   }
 
-  const podatki = formatirajPodatke(r.rows[0].raw_data);
+  const { raw_data, povzetek_system_prompt: system, povzetek_user_template: tpl } = r.rows[0];
 
-  const user =
-    `Tu so odgovori na vprasalnik:\n\n${podatki}\n\n` +
-    `Napisi povzetek v TOCNO 5 tockah v slovenscini:\n` +
-    `1. KDO so (oseba + podjetje, panoga)\n` +
-    `2. KAJ pocnejo / kaksen je njihov posel\n` +
-    `3. KJE vidijo AI priloznosti\n` +
-    `4. KATERE OVIRE jih zaustavljajo (cas, znanje, denar, varnost)\n` +
-    `5. KAJ so njihove PRIORITETE (1-2 konkretni stvari)\n\n` +
-    `Brez uvoda, samo 5 tock. Vsaka tocka <30 besed.`;
+  const podatki = formatirajPodatke(raw_data);
+  const user = uporabiTemplate(tpl, { podatki });
 
-  const povzetek = await klicHaiku({ system: SYSTEM_PROMPT, user, maxTokens: 600 });
+  const povzetek = await klicHaiku({ system, user, maxTokens: 600 });
   if (!povzetek) {
     console.warn(`[povzetek] AI ni vrnil odgovora za response=${responseId}`);
     return null;
   }
 
-  // Shrani v bazo
   await dbQuery(
     'UPDATE responses SET ai_povzetek = $1, ai_processed_at = NOW() WHERE id = $2',
     [povzetek, responseId]

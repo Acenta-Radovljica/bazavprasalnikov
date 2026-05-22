@@ -38,15 +38,25 @@ router.post('/cleanup', async (req, res) => {
 
 // Bulk import endpoint za uvoz starih Formspree submission-ov.
 // Token-protected (acenta-test-clean). Sprejme original submitted_at.
-// Body: { payload: {...formspree fields...}, submitted_at: "ISO date", podjetje?: "name" }
+// Body: { payload, submitted_at, podjetje?, questionnaire_slug? (default: moj-ai-nacrt) }
 router.post('/import', async (req, res) => {
   if (req.query.token !== 'acenta-test-clean') return res.status(403).json({ error: 'forbidden' });
 
-  const { payload, submitted_at, podjetje: explicitPodjetje } = req.body || {};
+  const { payload, submitted_at, podjetje: explicitPodjetje, questionnaire_slug } = req.body || {};
   if (!payload || typeof payload !== 'object') {
     return res.status(400).json({ error: 'missing_payload' });
   }
   if (!submitted_at) return res.status(400).json({ error: 'missing_submitted_at' });
+
+  // Default slug: moj-ai-nacrt (legacy Formspree). Lahko overridenes z body.questionnaire_slug.
+  const slug = (typeof questionnaire_slug === 'string' && questionnaire_slug.trim())
+    ? questionnaire_slug.trim().toLowerCase()
+    : 'moj-ai-nacrt';
+  const qRow = await dbQuery('SELECT id FROM questionnaires WHERE slug = $1', [slug]);
+  if (!qRow?.rows?.length) {
+    return res.status(400).json({ error: 'questionnaire_not_found', slug });
+  }
+  const questionnaireId = qRow.rows[0].id;
 
   // Izvleci podjetje iz payloada (preveri obe varianti: 2_podjetje + podjetje)
   const podjetje = explicitPodjetje
@@ -70,10 +80,10 @@ router.post('/import', async (req, res) => {
 
   // INSERT z eksplicitnim submitted_at (override DB default)
   const inserted = await dbQuery(
-    `INSERT INTO responses (company_id, raw_data, ip_hash, consent_gdpr, submitted_at)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO responses (company_id, questionnaire_id, raw_data, ip_hash, consent_gdpr, submitted_at)
+     VALUES ($1, $2, $3, $4, $5, $6)
      RETURNING id`,
-    [companyId, JSON.stringify(payload), ipHash, consent, submitted_at]
+    [companyId, questionnaireId, JSON.stringify(payload), ipHash, consent, submitted_at]
   );
   const responseId = inserted?.rows?.[0]?.id;
 
@@ -92,10 +102,15 @@ router.post('/import', async (req, res) => {
 });
 
 // Sinhron klic priporocil — za debug. Ce je napaka, vrne stack trace.
+// Param: ?questionnaire_id=X (obvezno). Po default-u ni vec ene "priporocila" funkcije
+// brez vprasalnika — vsako podjetje ima locena priporocila per vprasalnik.
 router.post('/run-priporocila/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
+  const qid = parseInt(req.query.questionnaire_id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+  if (!Number.isInteger(qid)) return res.status(400).json({ error: 'missing_questionnaire_id' });
   try {
-    const r = await generirajPriporocila(id);
+    const r = await generirajPriporocila(id, qid);
     res.json({ ok: true, length: r?.length ?? 0, preview: r?.slice(0, 200) });
   } catch (err) {
     res.status(500).json({ ok: false, error: err.message, stack: err.stack });
@@ -114,21 +129,41 @@ router.post('/run-povzetek/:id', async (req, res) => {
 
 // Direkten zapis priporocil v bazo (brez klica AI). Za uvoz analize narejene
 // rocno v Claude Code (brez API stroska).
-// Body: { content: "markdown..." }
+// Body: { content: "markdown...", questionnaire_id?: number, questionnaire_slug?: string }
+// Vsaj eno od questionnaire_id / questionnaire_slug mora biti podano.
+// Default: ce ni podano nic, uporabi "moj-ai-nacrt" (backward compat).
 router.post('/set-priporocila/:id', async (req, res) => {
   if (req.query.token !== 'acenta-test-clean') return res.status(403).json({ error: 'forbidden' });
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
-  const content = req.body?.content;
+
+  const { content, questionnaire_id, questionnaire_slug } = req.body || {};
   if (!content || typeof content !== 'string') return res.status(400).json({ error: 'missing_content' });
 
-  const r = await dbQuery(
-    `UPDATE companies SET ai_priporocila = $1, ai_priporocila_updated_at = NOW()
-      WHERE id = $2 RETURNING id, naziv_prikaz`,
-    [content, id]
-  );
-  if (!r?.rows?.length) return res.status(404).json({ error: 'not_found' });
-  res.json({ ok: true, company: r.rows[0], length: content.length });
+  // Razresi questionnaire_id iz body (po id ali slug, default moj-ai-nacrt)
+  let qid = Number.isInteger(questionnaire_id) ? questionnaire_id : null;
+  if (!qid) {
+    const slug = (typeof questionnaire_slug === 'string' && questionnaire_slug.trim())
+      ? questionnaire_slug.trim().toLowerCase()
+      : 'moj-ai-nacrt';
+    const qRow = await dbQuery('SELECT id FROM questionnaires WHERE slug = $1', [slug]);
+    if (!qRow?.rows?.length) return res.status(400).json({ error: 'questionnaire_not_found', slug });
+    qid = qRow.rows[0].id;
+  }
+
+  // Preveri da podjetje obstaja
+  const c = await dbQuery('SELECT id, naziv_prikaz FROM companies WHERE id = $1', [id]);
+  if (!c?.rows?.length) return res.status(404).json({ error: 'company_not_found' });
+
+  // UPSERT v company_priporocila
+  await dbQuery(`
+    INSERT INTO company_priporocila (company_id, questionnaire_id, vsebina, updated_at)
+    VALUES ($1, $2, $3, NOW())
+    ON CONFLICT (company_id, questionnaire_id)
+    DO UPDATE SET vsebina = EXCLUDED.vsebina, updated_at = NOW()
+  `, [id, qid, content]);
+
+  res.json({ ok: true, company: c.rows[0], questionnaire_id: qid, length: content.length });
 });
 
 // Direkten zapis cross-client insights v bazo (brez klica AI).
