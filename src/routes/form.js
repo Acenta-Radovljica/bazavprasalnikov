@@ -172,10 +172,37 @@ function renderirajObrazec({ slug, naziv_prikaz, opis, questions }) {
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${esc(naziv_prikaz)} — Acenta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *,*::before,*::after{box-sizing:border-box;}
-  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:${BARVE.bg};color:${BARVE.dark};margin:0;padding:2rem 1rem;line-height:1.5;}
+  body{font-family:'Inter',-apple-system,Segoe UI,Roboto,sans-serif;background:${BARVE.bg};color:${BARVE.dark};margin:0;padding:2rem 1rem;line-height:1.5;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:680px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.06);overflow:hidden;}
+  /* Hvala stran — premium agency styling */
+  .thanks{padding:0;}
+  .thanks-hero{background:linear-gradient(135deg,#15151f 0%,#1a1a2e 100%);color:#fff;padding:3rem 2.5rem 2.5rem;text-align:center;position:relative;overflow:hidden;}
+  .thanks-hero::before{content:'';position:absolute;top:-100px;right:-100px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(0,184,148,.25) 0%,transparent 70%);}
+  .thanks-check{position:relative;width:64px;height:64px;margin:0 auto 1.25rem;background:#00b894;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 32px -8px rgba(0,184,148,.6);}
+  .thanks-check svg{width:32px;height:32px;color:#fff;}
+  .thanks-eyebrow{position:relative;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;opacity:.7;font-weight:500;}
+  .thanks-title{position:relative;font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:2.25rem;letter-spacing:-.025em;margin:.5rem 0 .25rem;font-variation-settings:'opsz' 144,'SOFT' 50;}
+  .thanks-sub{position:relative;opacity:.8;font-size:1rem;max-width:440px;margin:0 auto;}
+  .thanks-body{padding:2.5rem 2.5rem 1.5rem;}
+  .thanks-details{background:#fcfbf9;border:1px solid #ece9e1;border-radius:12px;padding:1.25rem 1.5rem;margin-bottom:1.75rem;}
+  .thanks-detail-row{display:flex;justify-content:space-between;align-items:center;font-size:.95rem;padding:.4rem 0;}
+  .thanks-detail-row + .thanks-detail-row{border-top:1px solid #ece9e1;}
+  .thanks-detail-row .lbl{color:#8a8a95;font-weight:500;font-size:.85rem;}
+  .thanks-detail-row .val{color:#15151f;font-weight:600;text-align:right;}
+  .thanks-next h2{font-family:'Fraunces',Georgia,serif;font-weight:500;font-size:1.25rem;letter-spacing:-.015em;color:#15151f;margin:0 0 1rem;}
+  .thanks-steps{list-style:none;padding:0;margin:0;}
+  .thanks-steps li{display:flex;gap:1rem;padding:.85rem 0;border-bottom:1px solid #ece9e1;}
+  .thanks-steps li:last-child{border-bottom:none;}
+  .thanks-steps .num{flex-shrink:0;width:28px;height:28px;border-radius:50%;background:#fcfbf9;border:1px solid #ece9e1;color:#006e5a;font-family:'Fraunces',serif;font-weight:500;display:flex;align-items:center;justify-content:center;font-size:.85rem;}
+  .thanks-steps .text{font-size:.95rem;color:#3a3a48;line-height:1.5;padding-top:.15rem;}
+  .thanks-contact{text-align:center;margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #ece9e1;font-size:.9rem;color:#8a8a95;}
+  .thanks-contact a{color:#006e5a;text-decoration:none;font-weight:600;}
+  .thanks-contact a:hover{color:#00b894;}
   .header{background:${BARVE.dark};color:#fff;padding:2rem;}
   .header h1{margin:0 0 .25rem;font-size:1.75rem;}
   .header .agency{font-size:.85rem;opacity:.7;letter-spacing:.05em;text-transform:uppercase;}
@@ -267,17 +294,49 @@ function renderirajObrazec({ slug, naziv_prikaz, opis, questions }) {
       if (!res.ok || !json.ok) {
         throw new Error(json.error || 'submit_failed');
       }
-      // Uspeh — zamenjaj vsebino s "hvala" sporocilom
+      // Uspeh — zamenjaj vsebino s personaliziranim "Hvala" zaslonom.
+      // Iz form podatkov izlusci ime + podjetje + email za prikaz potrditve.
+      const escHtml = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      const ime      = data['1_ime_priimek'] || data.ime_priimek || data.ime || '';
+      const podjetje = data['2_podjetje']    || data.podjetje    || '';
+      const email    = data['3_email']       || data.email       || '';
+      const prviIme  = (ime || '').trim().split(/\\s+/)[0] || '';
+
+      const detailRows = [];
+      if (podjetje) detailRows.push(\`<div class="thanks-detail-row"><span class="lbl">Podjetje</span><span class="val">\${escHtml(podjetje)}</span></div>\`);
+      if (ime)      detailRows.push(\`<div class="thanks-detail-row"><span class="lbl">Kontakt</span><span class="val">\${escHtml(ime)}</span></div>\`);
+      if (email)    detailRows.push(\`<div class="thanks-detail-row"><span class="lbl">Email</span><span class="val">\${escHtml(email)}</span></div>\`);
+
       document.querySelector('.wrap').innerHTML = \`
-        <div class="header">
-          <div class="agency">Acenta.si</div>
-          <h1>Hvala za vaš odgovor!</h1>
-        </div>
-        <div style="padding:2rem;">
-          <p>Vaš odgovor smo prejeli. Acenta ekipa ga bo pregledala in se vam oglasila pred delavnico.</p>
-          <p>Za vprašanja: <a href="mailto:info@acenta.si" style="color:${BARVE.teal};">info@acenta.si</a></p>
+        <div class="thanks">
+          <div class="thanks-hero">
+            <div class="thanks-check">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <div class="thanks-eyebrow">Acenta.si</div>
+            <h1 class="thanks-title">Hvala\${prviIme ? ', ' + escHtml(prviIme) : ''}!</h1>
+            <p class="thanks-sub">Vaše odgovore smo prejeli. Acenta ekipa jih bo skrbno pregledala in pripravila personalizirana priporočila pred delavnico.</p>
+          </div>
+          <div class="thanks-body">
+            \${detailRows.length ? \`<div class="thanks-details">\${detailRows.join('')}</div>\` : ''}
+            <div class="thanks-next">
+              <h2>Kaj sledi?</h2>
+              <ol class="thanks-steps">
+                <li><span class="num">1</span><span class="text">Naš AI sistem v naslednjih minutah pripravi povzetek vaših odgovorov.</span></li>
+                <li><span class="num">2</span><span class="text">Strokovnjak iz Acente pregleda vaše odgovore in pripravi konkretna priporočila za vaš posel.</span></li>
+                <li><span class="num">3</span><span class="text">V 2&ndash;3 delovnih dneh vas kontaktiramo z naslednjimi koraki in predlogom termina delavnice.</span></li>
+              </ol>
+            </div>
+            <div class="thanks-contact">
+              Vprašanja? Pišite na <a href="mailto:info@acenta.si">info@acenta.si</a>
+            </div>
+          </div>
         </div>
       \`;
+      // Scroll na vrh, da uporabnik vidi celotno potrditev
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       errBox.textContent = 'Napaka pri pošiljanju: ' + err.message + '. Poskusite znova ali kontaktirajte info@acenta.si.';
       errBox.style.display = 'block';
