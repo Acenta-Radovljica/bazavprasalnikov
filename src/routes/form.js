@@ -64,8 +64,10 @@ function renderirajInfoStran({ naslov, sporocilo, koda = 503 }) {
     -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none;
   }
-  .header{background:#15151f; color:#fff; padding:2rem 2.5rem;}
-  .agency{font-size:.75rem; opacity:.65; letter-spacing:.18em; text-transform:uppercase; font-weight:500;}
+  .logo-bar{background:#fff; padding:1.25rem 2.5rem; border-bottom:1px solid #ece9e1;}
+  .logo-bar img{height:32px; width:auto; display:block;}
+  .header{background:#15151f; color:#fff; padding:1.75rem 2.5rem 2rem;}
+  .agency{font-size:.7rem; opacity:.55; letter-spacing:.18em; text-transform:uppercase; font-weight:500;}
   .header h1{
     font-family:'Fraunces',serif; font-weight:500; margin:.5rem 0 0;
     font-size:2rem; letter-spacing:-.025em;
@@ -88,8 +90,10 @@ function renderirajInfoStran({ naslov, sporocilo, koda = 503 }) {
 </head>
 <body>
   <div class="wrap">
+    <div class="logo-bar">
+      <img src="/assets/acenta-logo.png" alt="Acenta — Učinkovite rešitve" />
+    </div>
     <div class="header">
-      <div class="agency">Acenta.si</div>
       <h1>${esc(naslov)}</h1>
     </div>
     <div class="body">
@@ -179,6 +183,9 @@ function renderirajObrazec({ slug, naziv_prikaz, opis, questions }) {
   *,*::before,*::after{box-sizing:border-box;}
   body{font-family:'Inter',-apple-system,Segoe UI,Roboto,sans-serif;background:${BARVE.bg};color:${BARVE.dark};margin:0;padding:2rem 1rem;line-height:1.5;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:680px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.06);overflow:hidden;}
+  /* Logo bar — visible above header on form, hvala in info strani */
+  .logo-bar{background:#fff;padding:1.25rem 2rem;border-bottom:1px solid #ece9e1;}
+  .logo-bar img{height:32px;width:auto;display:block;}
   /* Hvala stran — premium agency styling */
   .thanks{padding:0;}
   .thanks-hero{background:linear-gradient(135deg,#15151f 0%,#1a1a2e 100%);color:#fff;padding:3rem 2.5rem 2.5rem;text-align:center;position:relative;overflow:hidden;}
@@ -233,8 +240,10 @@ function renderirajObrazec({ slug, naziv_prikaz, opis, questions }) {
 </head>
 <body>
 <div class="wrap">
+  <div class="logo-bar">
+    <img src="/assets/acenta-logo.png" alt="Acenta — Učinkovite rešitve" />
+  </div>
   <div class="header">
-    <div class="agency">Acenta.si</div>
     <h1>${esc(naziv_prikaz)}</h1>
     ${opis ? `<div class="opis">${esc(opis)}</div>` : ''}
   </div>
@@ -309,13 +318,15 @@ function renderirajObrazec({ slug, naziv_prikaz, opis, questions }) {
 
       document.querySelector('.wrap').innerHTML = \`
         <div class="thanks">
+          <div class="logo-bar">
+            <img src="/assets/acenta-logo.png" alt="Acenta — Učinkovite rešitve" />
+          </div>
           <div class="thanks-hero">
             <div class="thanks-check">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
             </div>
-            <div class="thanks-eyebrow">Acenta.si</div>
             <h1 class="thanks-title">Hvala\${prviIme ? ', ' + escHtml(prviIme) : ''}!</h1>
             <p class="thanks-sub">Vaše odgovore smo prejeli. Acenta ekipa jih bo skrbno pregledala in pripravila personalizirana priporočila pred delavnico.</p>
           </div>

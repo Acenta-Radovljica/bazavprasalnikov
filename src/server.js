@@ -74,6 +74,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirnameSrv = dirname(__filename);
 app.use('/admin', basicAuth, express.static(join(__dirnameSrv, '..', 'public', 'admin')));
 
+// Javno dostopni branding assets (logo) za form, hvala stran, info strani.
+// Brez basic auth — namenoma, ker so klienti, ki vidijo obrazec, nepooblasceni.
+app.use('/assets', express.static(join(__dirnameSrv, '..', 'assets'), {
+  maxAge: '7d',  // logo se ne spreminja pogosto — cache za 7 dni
+}));
+
 // 404 fallback
 app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
 
