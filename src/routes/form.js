@@ -86,6 +86,13 @@ function renderirajInfoStran({ naslov, sporocilo, koda = 503 }) {
     font-size:.8rem; color:#8a8a95;
   }
   .footer a{color:#006e5a; text-decoration:none; font-weight:500;}
+  @media (max-width:600px){
+    body{padding:1rem .5rem;}
+    .header{padding:1.75rem 1.5rem;}
+    .header h1{font-size:1.5rem;}
+    .body{padding:1.5rem 1.5rem;}
+    .footer{padding:.85rem 1.5rem;}
+  }
 </style>
 </head>
 <body>
@@ -238,6 +245,26 @@ function renderirajObrazec({ slug, naziv_prikaz, opis, questions }) {
   .footer{padding:1rem 2rem;background:${BARVE.bg};text-align:center;font-size:.8rem;color:#6b7280;}
   .footer a{color:${BARVE.teal};text-decoration:none;}
   .err{background:#fee;color:#c00;padding:1rem;border-radius:6px;margin-bottom:1rem;display:none;}
+  /* Mobile prilagoditve — pod 600px tesni desktop padding-i postanejo neugodni.
+     Vse layout strukture ostanejo iste, samo padding/font-size se zmanjsajo
+     in touch target za radio/checkbox se zveca na minimalne 44px (Apple HIG). */
+  @media (max-width:600px){
+    body{padding:1rem .5rem;}
+    .header{padding:1.5rem 1.25rem;}
+    .header h1{font-size:1.5rem;}
+    .header-logo{margin-bottom:1.25rem;}
+    form{padding:1.5rem 1.25rem;}
+    .vprasanje{margin-bottom:1.25rem;}
+    .gdpr{padding:.85rem;font-size:.85rem;}
+    .opt{min-height:44px;padding:.25rem 0;}
+    .thanks-hero{padding:2rem 1.25rem 2.25rem;}
+    .thanks-body{padding:1.75rem 1.25rem 1.25rem;}
+    .thanks-title{font-size:1.75rem;}
+    .thanks-details{padding:1rem 1.25rem;}
+    .thanks-detail-row{flex-direction:column;align-items:flex-start;gap:.15rem;padding:.5rem 0;}
+    .thanks-detail-row .val{text-align:left;}
+    .footer{padding:.85rem 1.25rem;}
+  }
 </style>
 </head>
 <body>
