@@ -1,0 +1,273 @@
+{
+  "questions": [
+    {
+      "id": "1_ime_priimek",
+      "label": "Ime in priimek",
+      "tip": "text",
+      "obvezno": true
+    },
+    {
+      "id": "2_podjetje",
+      "label": "Podjetje",
+      "tip": "text",
+      "obvezno": true
+    },
+    {
+      "id": "3_oddelek",
+      "label": "Oddelek / področje dela",
+      "tip": "text",
+      "obvezno": true
+    },
+    {
+      "id": "4_funkcija",
+      "label": "Vaša funkcija",
+      "tip": "text",
+      "obvezno": true
+    },
+    {
+      "id": "5_leta_dela",
+      "label": "Koliko let že delate v podjetju?",
+      "tip": "radio",
+      "obvezno": true,
+      "options": [
+        "Manj kot 1 leto",
+        "1–3 leta",
+        "3–7 let",
+        "Več kot 7 let"
+      ]
+    },
+    {
+      "id": "6_opravila_ponavljajoca",
+      "label": "Katera opravila pri vašem delu se najpogosteje ponavljajo?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "7_naloge_najvec_casa",
+      "label": "Katere naloge vam tedensko vzamejo največ časa?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "8_naloge_avtomatizirati",
+      "label": "Katere naloge bi najraje avtomatizirali ali poenostavili?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "9_podvajanje",
+      "label": "Pri katerih opravilih največkrat podvajate delo ali ročno prepisujete podatke?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "10_neucinkoviti_procesi",
+      "label": "Kateri procesi v vašem oddelku so po vašem mnenju najbolj neučinkoviti?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "11_cas_email",
+      "label": "Koliko časa dnevno porabite za email komunikacijo?",
+      "tip": "radio",
+      "obvezno": false,
+      "options": [
+        "Manj kot 30 minut",
+        "30–60 minut",
+        "1–2 uri",
+        "Več kot 2 uri"
+      ]
+    },
+    {
+      "id": "12_emaili_ponavljajoci",
+      "label": "Katere vrste emailov ali odgovorov se pogosto ponavljajo?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "13_dokumenti",
+      "label": "Katere dokumente najpogosteje pripravljate?",
+      "tip": "checkbox",
+      "obvezno": false,
+      "options": [
+        "Poročila",
+        "Ponudbe",
+        "Predstavitve",
+        "Zapisnike sestankov",
+        "Analize",
+        "Povzetke",
+        "Pogodbe"
+      ]
+    },
+    {
+      "id": "13_dokumenti_drugo",
+      "label": "Drugo (dokumenti) — opišite",
+      "tip": "text",
+      "obvezno": false
+    },
+    {
+      "id": "14_rocni_dokumenti",
+      "label": "Katere dokumente ali procese trenutno pripravljate ročno, čeprav bi jih bilo mogoče avtomatizirati?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "15_admin_izguba",
+      "label": "Kje pri administrativnem delu izgubite največ časa?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "16_mkt_aktivnosti",
+      "label": "Katere marketinške ali prodajne aktivnosti vam vzamejo največ časa?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "17_vsebine",
+      "label": "Katere vrste vsebin redno pripravljate?",
+      "tip": "checkbox",
+      "obvezno": false,
+      "options": [
+        "Emaili",
+        "Oglasi",
+        "Objave za družbena omrežja",
+        "Članki",
+        "Ponudbe",
+        "Prezentacije",
+        "Poročila"
+      ]
+    },
+    {
+      "id": "17_vsebine_drugo",
+      "label": "Drugo (vsebine) — opišite",
+      "tip": "text",
+      "obvezno": false
+    },
+    {
+      "id": "18_vprasanja_strank",
+      "label": "Katere informacije ali vprašanja stranke najpogosteje ponavljajo?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "19_zamude_stranke",
+      "label": "Ali obstajajo procesi pri delu s strankami, kjer prihaja do zamud ali nepotrebnega čakanja?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "20_uporaba_ai",
+      "label": "Ali trenutno uporabljate kakšno AI orodje?",
+      "tip": "radio",
+      "obvezno": false,
+      "options": [
+        "Da",
+        "Ne"
+      ]
+    },
+    {
+      "id": "21_ai_orodja",
+      "label": "Katera AI orodja že uporabljate?",
+      "tip": "checkbox",
+      "obvezno": false,
+      "options": [
+        "ChatGPT",
+        "Microsoft Copilot",
+        "Gemini",
+        "Claude",
+        "Midjourney",
+        "Canva AI"
+      ]
+    },
+    {
+      "id": "21_ai_orodja_drugo",
+      "label": "Drugo (AI orodja) — opišite",
+      "tip": "text",
+      "obvezno": false
+    },
+    {
+      "id": "22_ai_naloge",
+      "label": "Za katere naloge trenutno uporabljate umetno inteligenco?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "23_ovire",
+      "label": "Kaj so po vašem mnenju glavne ovire za uvedbo AI v vašem podjetju?",
+      "tip": "checkbox",
+      "obvezno": false,
+      "options": [
+        "Pomanjkanje znanja",
+        "Pomanjkanje časa",
+        "Varnostni pomisleki",
+        "Nejasni procesi",
+        "Ne vemo, kje začeti",
+        "Pomanjkanje podpore vodstva"
+      ]
+    },
+    {
+      "id": "23_ovire_drugo",
+      "label": "Drugo (ovire) — opišite",
+      "tip": "text",
+      "obvezno": false
+    },
+    {
+      "id": "24_ai_ucinek",
+      "label": "Na katerih področjih bi po vašem mnenju umetna inteligenca lahko imela največji učinek?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "25_eno_opravilo",
+      "label": "Če bi lahko avtomatizirali samo eno opravilo v naslednjih 3 mesecih — kaj bi to bilo?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "26_izguba_casa",
+      "label": "Pri katerih dejavnostih najbolj izgubljate čas?",
+      "tip": "checkbox",
+      "obvezno": false,
+      "options": [
+        "Iskanja informacij",
+        "Ročnega dela",
+        "Usklajevanja med ekipami",
+        "Priprave dokumentov",
+        "Ponavljajoče komunikacije",
+        "Administracije",
+        "Poročanja"
+      ]
+    },
+    {
+      "id": "26_izguba_casa_drugo",
+      "label": "Drugo (izguba časa) — opišite",
+      "tip": "text",
+      "obvezno": false
+    },
+    {
+      "id": "27_najvecji_ucinek",
+      "label": "Kateri proces bi po vašem mnenju prinesel največji učinek, če bi ga optimizirali z AI?",
+      "tip": "textarea",
+      "obvezno": false
+    },
+    {
+      "id": "28_odprtost",
+      "label": "Kako odprti ste za uvedbo AI v vašem delu?",
+      "tip": "radio",
+      "obvezno": false,
+      "options": [
+        "Zelo odprto",
+        "Delno odprto",
+        "Previdno",
+        "Trenutno o tem ne razmišljamo"
+      ]
+    },
+    {
+      "id": "email",
+      "label": "E-mail (za prejem osebnega AI načrta)",
+      "tip": "email",
+      "obvezno": true
+    }
+  ]
+}
