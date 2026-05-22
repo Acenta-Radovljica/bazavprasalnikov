@@ -7,6 +7,7 @@ import { generirajPovzetek } from '../ai/generate_povzetek.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
 import { sproziPovzetek } from '../ai/queue.js';
 import { hashIp } from '../utils/normalize.js';
+import { posljiObvestiloOdgovor } from '../lib/mailer.js';
 
 const router = express.Router();
 
@@ -188,6 +189,40 @@ router.post('/set-insights', async (req, res) => {
     [JSON.stringify(vsebina)]
   );
   res.json({ ok: true, insight: r?.rows?.[0] ?? null, length: content.length });
+});
+
+// Debug: preveri stanje email konfiguracije in poskusi poslati test mail.
+// GET /debug/mail-status?token=acenta-test-clean
+router.get('/mail-status', async (req, res) => {
+  if (req.query.token !== 'acenta-test-clean') return res.status(403).json({ error: 'forbidden' });
+  const env = {
+    RESEND_API_KEY_present: !!process.env.RESEND_API_KEY,
+    RESEND_API_KEY_prefix: (process.env.RESEND_API_KEY || '').slice(0, 6),
+    RESEND_API_KEY_len: (process.env.RESEND_API_KEY || '').length,
+    NOTIFY_EMAIL: process.env.NOTIFY_EMAIL || '(default: ai@acenta.si)',
+    RESEND_FROM: process.env.RESEND_FROM || '(default: Acenta Baza <onboarding@resend.dev>)',
+    ADMIN_BASE_URL: process.env.ADMIN_BASE_URL || '(default)',
+  };
+  res.json({ ok: true, env });
+});
+
+// POST /debug/test-mail?token=acenta-test-clean
+// Poskusi poslati test mail in vrne rezultat sinhrono.
+router.post('/test-mail', async (req, res) => {
+  if (req.query.token !== 'acenta-test-clean') return res.status(403).json({ error: 'forbidden' });
+  const resendId = await posljiObvestiloOdgovor({
+    companyId: 999,
+    companyName: 'DEBUG TEST Acenta',
+    contactName: 'Debug Test',
+    contactEmail: 'debug@acenta.si',
+    position: 'Test',
+    povzetek: 'To je test povzetek za preverjanje, ali Resend API delue prek backenda.',
+  });
+  res.json({
+    ok: true,
+    resendId,
+    note: resendId ? 'Mail poslan — preveri inbox' : 'Mail NI bil poslan (poglej server logs ali mail-status)',
+  });
 });
 
 export { router };
