@@ -52,15 +52,16 @@ function qs(name) {
 // Navigacija header — vstavi v <header id="nav"></header>
 function renderNav(active = '') {
   const html = `
-    <div class="flex items-center justify-between px-6 py-3 bg-[#1a1a2e] text-white">
-      <a href="/admin/" class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full bg-[#00b894] flex items-center justify-center font-bold">A</div>
-        <span class="font-semibold">Acenta — Baza vprašalnikov</span>
+    <div class="flex items-center justify-between px-8 py-4 bg-[#15151f] text-white">
+      <a href="/admin/" class="flex items-center gap-3" style="text-decoration:none; color:inherit;">
+        <div style="width:36px; height:36px; border-radius:12px; background:linear-gradient(135deg,#00b894 0%,#019272 100%); display:flex; align-items:center; justify-content:center; font-family:'Fraunces',serif; font-weight:500; font-size:20px; color:#fff; box-shadow:0 6px 14px -4px rgba(0,184,148,0.5);">a</div>
+        <span style="font-family:'Fraunces',serif; font-size:18px; font-weight:500; letter-spacing:-0.015em;">Acenta — Baza vprašalnikov</span>
       </a>
-      <nav class="flex gap-4 text-sm">
-        <a href="/admin/" class="${active === 'home' ? 'text-[#00b894]' : 'hover:text-[#00b894]'}">Podjetja</a>
-        <a href="/admin/search.html" class="${active === 'search' ? 'text-[#00b894]' : 'hover:text-[#00b894]'}">Iskanje</a>
-        <a href="/admin/insights.html" class="${active === 'insights' ? 'text-[#00b894]' : 'hover:text-[#00b894]'}">Cross-client</a>
+      <nav class="flex gap-6 text-sm">
+        <a href="/admin/" class="${active === 'home' ? 'text-[#00b894]' : 'hover:text-[#00b894]'} font-medium transition-colors">Podjetja</a>
+        <a href="/admin/questionnaires.html" class="${active === 'questionnaires' ? 'text-[#00b894]' : 'hover:text-[#00b894]'} font-medium transition-colors">Vprašalniki</a>
+        <a href="/admin/search.html" class="${active === 'search' ? 'text-[#00b894]' : 'hover:text-[#00b894]'} font-medium transition-colors">Iskanje</a>
+        <a href="/admin/insights.html" class="${active === 'insights' ? 'text-[#00b894]' : 'hover:text-[#00b894]'} font-medium transition-colors">Cross-client</a>
       </nav>
     </div>
   `;

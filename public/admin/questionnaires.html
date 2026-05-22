@@ -5,69 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Acenta — Vprašalniki</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/admin.css">
   <style>
-    :root {
-      --acenta-teal: #00b894;
-      --acenta-teal-soft: #d4f4ec;
-      --acenta-teal-dark: #006e5a;
-      --acenta-navy: #1a1a2e;
-      --bg: #f6f7f9;
-      --card-border: #ececf1;
-      --muted: #8b8b95;
-    }
-    body {
-      background: var(--bg);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif;
-      color: var(--acenta-navy);
-    }
-    .card { background: #fff; border: 1px solid var(--card-border); border-radius: 20px; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04); }
-    .sidebar-item { display: flex; align-items: center; gap: 12px; padding: 11px 14px; border-radius: 12px; color: #4a4a55; font-size: 14px; font-weight: 500; cursor: pointer; text-decoration: none; transition: background 0.15s, color 0.15s; }
-    .sidebar-item:hover { background: #ececf1; }
-    .sidebar-item.active { background: #fff; color: var(--acenta-navy); box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06); border: 1px solid var(--card-border); }
-    .badge-warning { background: #ffeacc; color: #9a5a00; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-    .badge-success { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-    .badge-neutral { background: #ececf1; color: #6b6b75; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-
-    .btn-primary { background: var(--acenta-teal); color: #fff; padding: 10px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; transition: background 0.15s; }
-    .btn-primary:hover { background: var(--acenta-teal-dark); }
-    .btn-primary:disabled { background: #aaa; cursor: not-allowed; }
-    .btn-secondary { background: #fff; color: var(--acenta-navy); padding: 10px 18px; border-radius: 12px; font-weight: 600; font-size: 14px; border: 1px solid var(--card-border); cursor: pointer; }
-    .btn-secondary:hover { background: #f6f7f9; }
-    .btn-danger { background: #fff; color: #a02020; padding: 8px 14px; border-radius: 10px; font-weight: 600; font-size: 13px; border: 1px solid #fde2e2; cursor: pointer; }
-    .btn-danger:hover { background: #fde2e2; }
-
-    .field-label { display: block; font-size: 13px; font-weight: 600; color: var(--acenta-navy); margin-bottom: 6px; }
-    .field-help  { font-size: 12px; color: var(--muted); margin-top: 4px; }
-    .input, .select, .textarea {
-      width: 100%; background: #fff; border: 1px solid var(--card-border); border-radius: 10px;
-      padding: 9px 12px; font-size: 14px; color: var(--acenta-navy);
-      font-family: inherit;
-    }
-    .input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--acenta-teal); box-shadow: 0 0 0 3px var(--acenta-teal-soft); }
-    .textarea { resize: vertical; min-height: 80px; }
-    .textarea.code { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; font-size: 13px; }
-
-    .q-row { background: #fafbfc; border: 1px solid var(--card-border); border-radius: 14px; padding: 14px; }
+    /* Per-page: vprašanje row */
+    .q-row { background: var(--bg-sub); border: 1px solid var(--hairline); border-radius: 14px; padding: 16px; transition: border-color 0.15s; }
+    .q-row:hover { border-color: #d6d2c5; }
     .q-row + .q-row { margin-top: 10px; }
-
-    .pill {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600;
-      background: #ececf1; color: #6b6b75;
-    }
-    .pill.teal { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); }
   </style>
 </head>
 <body>
   <div class="flex min-h-screen">
 
     <!-- ── SIDEBAR ── -->
-    <aside class="w-64 bg-[#f6f7f9] border-r border-[#ececf1] p-5 flex flex-col">
+    <aside class="w-64 app-sidebar p-5 flex flex-col">
       <div class="flex items-center gap-3 mb-8 px-2">
-        <div class="w-10 h-10 rounded-xl bg-[#1a1a2e] flex items-center justify-center text-white font-bold">A</div>
+        <div class="brand-mark">a</div>
         <div>
-          <div class="font-semibold text-[#1a1a2e] leading-tight">Acenta</div>
-          <div class="text-xs text-gray-500">Baza vprašalnikov</div>
+          <div class="font-semibold leading-tight" style="font-family:'Fraunces',serif; font-size:18px; letter-spacing:-0.02em;">Acenta</div>
+          <div class="text-xs text-muted">Baza vprašalnikov</div>
         </div>
       </div>
 
@@ -111,27 +69,28 @@
     <main class="flex-1 p-10 max-w-[1280px]">
 
       <!-- ── SEZNAM ── -->
-      <section id="view-list">
-        <div class="flex items-end justify-between mb-8">
+      <section id="view-list" class="relative overflow-hidden">
+        <div class="hero-blob"></div>
+        <div class="hero-content flex items-end justify-between mb-10">
           <div>
-            <h1 class="text-3xl font-bold">Vprašalniki</h1>
-            <div class="text-sm text-gray-500 mt-1">Upravljaj obrazce in AI prompte za posamezne delavnice</div>
+            <h1 class="display">Vprašalniki</h1>
+            <div class="text-sm text-muted mt-2">Upravljaj obrazce in AI prompte za posamezne delavnice</div>
           </div>
           <button class="btn-primary" onclick="odpriUrejevalnik(null)">+ Nov vprašalnik</button>
         </div>
 
-        <div id="seznam" class="card p-2">
-          <div class="text-gray-500 text-center py-12">Nalagam...</div>
+        <div id="seznam" class="card p-3 hero-content">
+          <div class="text-muted text-center py-12">Nalagam...</div>
         </div>
       </section>
 
       <!-- ── UREJEVALNIK ── -->
       <section id="view-editor" style="display:none;">
-        <div class="flex items-end justify-between mb-8">
+        <div class="flex items-end justify-between mb-10">
           <div>
-            <button class="text-sm text-gray-500 hover:text-[#00b894] mb-2" onclick="zapriUrejevalnik()">← Nazaj na seznam</button>
-            <h1 class="text-3xl font-bold" id="editor-naslov">Nov vprašalnik</h1>
-            <div class="text-sm text-gray-500 mt-1" id="editor-podnaslov">—</div>
+            <button class="text-sm text-muted hover:text-[#006e5a] mb-2 font-medium" onclick="zapriUrejevalnik()">← Nazaj na seznam</button>
+            <h1 class="display" id="editor-naslov">Nov vprašalnik</h1>
+            <div class="text-sm text-muted mt-2" id="editor-podnaslov">—</div>
           </div>
           <div class="flex items-center gap-3" id="editor-akcije">
             <!-- Predogled / Soft delete -->
@@ -139,8 +98,8 @@
         </div>
 
         <!-- Osnove -->
-        <div class="card p-8 mb-6">
-          <div class="text-lg font-bold mb-6">Osnovni podatki</div>
+        <div class="card p-10 mb-6">
+          <div class="display-serif mb-6" style="font-size:22px;">Osnovni podatki</div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label class="field-label" for="f-slug">URL slug</label>
@@ -164,11 +123,11 @@
         </div>
 
         <!-- Vprašanja -->
-        <div class="card p-8 mb-6">
+        <div class="card p-10 mb-6">
           <div class="flex items-center justify-between mb-6">
             <div>
-              <div class="text-lg font-bold">Vprašanja</div>
-              <div class="text-sm text-gray-500 mt-1">Strukturni opis polj. ID je interni ključ (gre v JSON), Label je vidno besedilo.</div>
+              <div class="display-serif" style="font-size:22px;">Vprašanja</div>
+              <div class="text-sm text-muted mt-1">Strukturni opis polj. ID je interni ključ (gre v JSON), Label je vidno besedilo.</div>
             </div>
             <button class="btn-secondary" onclick="dodajVprasanje()">+ Vprašanje</button>
           </div>
@@ -179,9 +138,9 @@
         </div>
 
         <!-- Povzetek prompti -->
-        <div class="card p-8 mb-6">
-          <div class="text-lg font-bold mb-1">Povzetek — Haiku</div>
-          <div class="text-sm text-gray-500 mb-6">Generira se avtomatsko po vsakem submissionu. Hiter, poceni. Uporabi <code class="text-xs">{podatki}</code> za vse odgovore.</div>
+        <div class="card p-10 mb-6">
+          <div class="display-serif mb-1" style="font-size:22px;">Povzetek — Haiku</div>
+          <div class="text-sm text-muted mb-6">Generira se avtomatsko po vsakem submissionu. Hiter, poceni. Uporabi <code class="text-xs">{podatki}</code> za vse odgovore.</div>
           <div class="space-y-6">
             <div>
               <label class="field-label" for="f-povzetek-sys">System prompt</label>
@@ -196,9 +155,9 @@
         </div>
 
         <!-- Priporocila prompti -->
-        <div class="card p-8 mb-6">
-          <div class="text-lg font-bold mb-1">Priporočila — Opus</div>
-          <div class="text-sm text-gray-500 mb-6">Generira se ročno z gumbom "Regeneriraj" v podjetju. Premišljeno, drag(o). Uporabi <code class="text-xs">{naziv}</code>, <code class="text-xs">{st_respondentov}</code>, <code class="text-xs">{respondenti}</code>.</div>
+        <div class="card p-10 mb-6">
+          <div class="display-serif mb-1" style="font-size:22px;">Priporočila — Opus</div>
+          <div class="text-sm text-muted mb-6">Generira se ročno z gumbom "Regeneriraj" v podjetju. Premišljeno, drag(o). Uporabi <code class="text-xs">{naziv}</code>, <code class="text-xs">{st_respondentov}</code>, <code class="text-xs">{respondenti}</code>.</div>
           <div class="space-y-6">
             <div>
               <label class="field-label" for="f-priporocila-sys">System prompt</label>
@@ -248,23 +207,23 @@
       }
       el.innerHTML = list.map(q => {
         const odgLinka = q.st_odgovorov > 0
-          ? `<a href="/admin/#q=${q.id}" class="text-[#00b894] hover:underline" onclick="event.stopPropagation()">${q.st_odgovorov} ${q.st_odgovorov === 1 ? 'odgovor' : 'odgovorov'} →</a>`
+          ? `<a href="/admin/#q=${q.id}" class="text-[#006e5a] hover:text-[#00b894] font-medium" onclick="event.stopPropagation()">${q.st_odgovorov} ${q.st_odgovorov === 1 ? 'odgovor' : 'odgovorov'} →</a>`
           : `<span>0 odgovorov</span>`;
         return `
-        <div class="flex items-center justify-between px-6 py-4 border-b border-[#ececf1] last:border-0 hover:bg-[#f8f9fb] rounded-lg transition cursor-pointer"
+        <div class="row-lift flex items-center justify-between px-5 py-4 border border-transparent rounded-xl cursor-pointer"
              onclick="odpriUrejevalnik(${q.id})">
           <div class="flex items-center gap-4 min-w-0">
-            <div class="w-10 h-10 rounded-xl bg-[#d4f4ec] text-[#006e5a] flex items-center justify-center font-bold">
+            <div class="avatar" style="font-family:'Fraunces',serif; font-size:18px; font-weight:500;">
               ${esc((q.naziv_prikaz || '?')[0].toUpperCase())}
             </div>
             <div class="min-w-0">
               <div class="font-semibold truncate">${esc(q.naziv_prikaz)}</div>
-              <div class="text-xs text-gray-500 truncate">/f/${esc(q.slug)} · ${q.st_vprasanj} ${q.st_vprasanj === 1 ? 'vprašanje' : 'vprašanj'} · ${odgLinka} · ${q.st_podjetij} ${q.st_podjetij === 1 ? 'podjetje' : 'podjetij'}</div>
+              <div class="text-xs text-muted truncate mt-0.5">/f/${esc(q.slug)} · ${q.st_vprasanj} ${q.st_vprasanj === 1 ? 'vprašanje' : 'vprašanj'} · ${odgLinka} · ${q.st_podjetij} ${q.st_podjetij === 1 ? 'podjetje' : 'podjetij'}</div>
             </div>
           </div>
           <div class="flex items-center gap-3">
             ${q.aktivna ? '<span class="badge-success">Aktivna</span>' : '<span class="badge-neutral">Ugasnjena</span>'}
-            <a href="/f/${esc(q.slug)}" target="_blank" rel="noopener" class="text-sm text-[#00b894] hover:underline" onclick="event.stopPropagation()">Predogled →</a>
+            <a href="/f/${esc(q.slug)}" target="_blank" rel="noopener" class="text-sm font-medium text-[#006e5a] hover:text-[#00b894]" onclick="event.stopPropagation()">Predogled →</a>
           </div>
         </div>
       `;}).join('');

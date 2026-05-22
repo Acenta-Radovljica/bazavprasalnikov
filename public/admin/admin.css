@@ -1,0 +1,281 @@
+/* ──────────────────────────────────────────────────────────────────────
+   Acenta admin — Direction A (Premium Agency)
+   Single source of truth for shared design tokens & primitives.
+   Per-page CSS lives inline in each HTML file (page-specific only).
+   ────────────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Brand */
+  --acenta-teal:      #00b894;
+  --acenta-teal-soft: #d4f4ec;
+  --acenta-teal-dark: #006e5a;
+  --acenta-navy:      #1a1a2e;
+
+  /* Surface — warmer, editorial */
+  --bg:         #fcfbf9;   /* cream */
+  --bg-sub:     #f5f3ee;   /* sidebar / subtle blocks */
+  --card-bg:    #ffffff;
+  --card-border:#ece9e1;   /* warm gray */
+  --hairline:   #ece9e1;
+
+  /* Type — neutrals */
+  --ink:        #15151f;
+  --ink-2:      #3a3a48;
+  --muted:      #8a8a95;
+  --muted-2:    #b5b5bd;
+
+  /* Motion */
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --shadow-1: 0 1px 2px rgba(20, 18, 12, 0.04);
+  --shadow-2: 0 1px 2px rgba(20, 18, 12, 0.04), 0 8px 24px -12px rgba(20, 18, 12, 0.10);
+  --shadow-lift: 0 1px 2px rgba(20, 18, 12, 0.04), 0 18px 40px -18px rgba(20, 18, 12, 0.18);
+}
+
+/* ── Base ──────────────────────────────────────────────────────────── */
+html, body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Page fade-in (200ms) */
+body {
+  animation: pageFade 240ms var(--ease) both;
+}
+@keyframes pageFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Editorial display headings */
+h1.display, .display-serif {
+  font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+  font-weight: 500;
+  font-variation-settings: 'opsz' 96, 'SOFT' 30;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+/* Tailwind base sets letter-spacing on .text-3xl; we override only when display */
+h1.display {
+  font-size: 44px;
+  line-height: 1.05;
+}
+
+/* ── Card — gradient border + multi-layer shadow ────────────────── */
+.card {
+  position: relative;
+  background: var(--card-bg);
+  border-radius: 22px;
+  box-shadow: var(--shadow-2);
+}
+/* Gradient hairline border via mask */
+.card::before {
+  content: '';
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(160deg, rgba(0, 184, 148, 0.35) 0%, rgba(236, 233, 225, 1) 35%, rgba(236, 233, 225, 1) 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Quieter card variant (no gradient flourish) — for nested rows etc. */
+.card-flat {
+  background: var(--card-bg);
+  border: 1px solid var(--hairline);
+  border-radius: 16px;
+  box-shadow: var(--shadow-1);
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────── */
+.app-sidebar {
+  background: var(--bg-sub);
+  border-right: 1px solid var(--hairline);
+}
+.sidebar-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 14px; border-radius: 12px;
+  color: var(--ink-2); font-size: 14px; font-weight: 500;
+  cursor: pointer; text-decoration: none;
+  transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.18s var(--ease);
+}
+.sidebar-item:hover { background: rgba(255,255,255,0.7); color: var(--ink); }
+.sidebar-item.active {
+  background: #fff;
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+  border: 1px solid var(--hairline);
+}
+.sidebar-sub {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 7px 14px 7px 46px; border-radius: 10px;
+  color: var(--muted); font-size: 13px;
+  cursor: pointer; text-decoration: none;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.sidebar-sub:hover { background: rgba(255,255,255,0.7); color: var(--ink); }
+
+/* Brand mark in sidebar header */
+.brand-mark {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--acenta-navy) 0%, #2a2a48 100%);
+  color: #fff; font-family: 'Fraunces', serif; font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  letter-spacing: -0.02em; font-size: 22px;
+  box-shadow: 0 6px 14px -4px rgba(26, 26, 46, 0.4);
+}
+
+/* ── Badges / pills ────────────────────────────────────────────────── */
+.badge-warning { background: #fdecd0; color: #8a4d00; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.badge-success { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.badge-neutral { background: #ece9e1; color: #6b6b75; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #ece9e1; color: #6b6b75; }
+.pill.teal  { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); }
+.pill.warn  { background: #fdecd0; color: #8a4d00; }
+.pill.muted { background: #f2efe7; color: var(--muted); }
+
+/* ── Stat number — editorial serif ─────────────────────────────────── */
+.stat-number {
+  font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  font-variation-settings: 'opsz' 144, 'SOFT' 100;
+  font-size: 88px;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  color: var(--ink);
+}
+.stat-number.muted { color: var(--muted-2); }
+
+/* Compact variant for narrower cards */
+.stat-number-sm {
+  font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+  font-weight: 400;
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+}
+
+/* Count-up animation — increments handled in JS, this is for fade-in */
+.stat-number, .stat-number-sm {
+  opacity: 0;
+  animation: numIn 600ms var(--ease) 80ms forwards;
+}
+@keyframes numIn { to { opacity: 1; } }
+
+/* ── Delta chips ───────────────────────────────────────────────────── */
+.delta-up   { display: inline-flex; align-items: center; gap: 4px; background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+.delta-down { display: inline-flex; align-items: center; gap: 4px; background: #fde2e2; color: #a02020; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+.delta-flat { display: inline-flex; align-items: center; gap: 4px; background: #f2efe7; color: var(--muted); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+
+/* ── Icon backgrounds for stat cards ───────────────────────────────── */
+.icon-bg { width: 52px; height: 52px; border-radius: 14px; background: #f5f3ee; display: flex; align-items: center; justify-content: center; }
+.icon-bg.muted { background: #f8f6f1; }
+.icon-bg.warn  { background: #fbeed4; }
+.icon-bg svg { width: 24px; height: 24px; stroke: var(--ink); stroke-width: 1.6; fill: none; }
+.icon-bg.muted svg { stroke: var(--muted-2); }
+.icon-bg.warn  svg { stroke: #c07c00; }
+
+/* ── Skeleton loader ───────────────────────────────────────────────── */
+.skeleton { background: linear-gradient(90deg, #f2efe7 0%, #e9e5dc 50%, #f2efe7 100%); background-size: 200% 100%; animation: skel 1.4s infinite; border-radius: 10px; }
+@keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── Avatar ────────────────────────────────────────────────────────── */
+.avatar {
+  width: 40px; height: 40px; border-radius: 999px;
+  background: linear-gradient(135deg, var(--acenta-teal-soft) 0%, #ebf9f4 100%);
+  color: var(--acenta-teal-dark);
+  font-weight: 600; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── Hover-lift on clickable rows ──────────────────────────────────── */
+.row-lift {
+  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease);
+}
+.row-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+  background: #fff;
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────── */
+.btn-primary {
+  background: var(--acenta-teal); color: #fff;
+  padding: 10px 18px; border-radius: 12px;
+  font-weight: 600; font-size: 14px; border: none; cursor: pointer;
+  transition: background 0.15s var(--ease), transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
+  box-shadow: 0 6px 14px -4px rgba(0, 184, 148, 0.4);
+}
+.btn-primary:hover { background: var(--acenta-teal-dark); transform: translateY(-1px); box-shadow: 0 10px 20px -6px rgba(0, 184, 148, 0.45); }
+.btn-primary:disabled { background: #aaa; cursor: not-allowed; box-shadow: none; transform: none; }
+
+.btn-secondary {
+  background: #fff; color: var(--ink);
+  padding: 10px 18px; border-radius: 12px;
+  font-weight: 600; font-size: 14px; border: 1px solid var(--hairline); cursor: pointer;
+  transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
+}
+.btn-secondary:hover { background: var(--bg-sub); border-color: #d6d2c5; }
+
+.btn-danger {
+  background: #fff; color: #a02020;
+  padding: 8px 14px; border-radius: 10px;
+  font-weight: 600; font-size: 13px;
+  border: 1px solid #fde2e2; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-danger:hover { background: #fde2e2; }
+
+/* ── Form fields ───────────────────────────────────────────────────── */
+.field-label { display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.005em; }
+.field-help  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.input, .select, .textarea {
+  width: 100%; background: #fff;
+  border: 1px solid var(--hairline); border-radius: 10px;
+  padding: 10px 12px; font-size: 14px; color: var(--ink);
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input:focus, .select:focus, .textarea:focus {
+  outline: none; border-color: var(--acenta-teal);
+  box-shadow: 0 0 0 3px var(--acenta-teal-soft);
+}
+.textarea { resize: vertical; min-height: 80px; }
+.textarea.code { font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace; font-size: 13px; }
+
+/* ── Hero gradient blob (subtle, sits behind h1) ───────────────────── */
+.hero-blob {
+  position: absolute; pointer-events: none;
+  width: 480px; height: 480px;
+  background: radial-gradient(circle at center, rgba(0, 184, 148, 0.10) 0%, rgba(0, 184, 148, 0) 60%);
+  filter: blur(8px);
+  top: -160px; left: -120px;
+  z-index: 0;
+  animation: blobDrift 18s ease-in-out infinite alternate;
+}
+@keyframes blobDrift {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(60px, 30px) scale(1.1); }
+}
+
+/* Ensure content above blob */
+.hero-content { position: relative; z-index: 1; }
+
+/* ── Small utils ───────────────────────────────────────────────────── */
+.divider { border: 0; border-top: 1px solid var(--hairline); margin: 32px 0; }
+.text-muted { color: var(--muted); }
+
+/* Prose tweaks (markdown content in company.html) */
+.prose h2 { color: var(--ink); border-bottom: 2px solid var(--acenta-teal); padding-bottom: 0.3rem; font-family: 'Fraunces', serif; font-weight: 500; }
+.prose h3 { color: var(--ink); font-family: 'Fraunces', serif; font-weight: 500; }
+.prose strong { color: var(--ink); }
+.prose blockquote { border-left-color: var(--acenta-teal); }
+.prose table { font-size: 0.875rem; }
+.prose th { background: var(--bg-sub); }

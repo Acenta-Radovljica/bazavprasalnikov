@@ -5,102 +5,21 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Acenta — Pregled</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    :root {
-      --acenta-teal: #00b894;
-      --acenta-teal-soft: #d4f4ec;
-      --acenta-teal-dark: #006e5a;
-      --acenta-navy: #1a1a2e;
-      --bg: #f6f7f9;
-      --card-border: #ececf1;
-      --muted: #8b8b95;
-    }
-    body {
-      background: var(--bg);
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, system-ui, sans-serif;
-      color: var(--acenta-navy);
-    }
-    .card {
-      background: #fff;
-      border: 1px solid var(--card-border);
-      border-radius: 20px;
-      box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-    }
-    .sidebar-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 11px 14px;
-      border-radius: 12px;
-      color: #4a4a55;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.15s, color 0.15s;
-    }
-    .sidebar-item:hover { background: #ececf1; }
-    .sidebar-item.active {
-      background: #fff;
-      color: var(--acenta-navy);
-      box-shadow: 0 1px 3px rgba(16, 24, 40, 0.06);
-      border: 1px solid var(--card-border);
-    }
-    .sidebar-sub {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 14px 8px 46px;
-      border-radius: 10px;
-      color: var(--muted);
-      font-size: 13px;
-      cursor: pointer;
-      text-decoration: none;
-      transition: background 0.15s, color 0.15s;
-    }
-    .sidebar-sub:hover { background: #ececf1; color: var(--acenta-navy); }
-    .badge-warning { background: #ffeacc; color: #9a5a00; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-    .badge-success { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-    .badge-neutral { background: #ececf1; color: #6b6b75; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-    .stat-number {
-      font-size: 56px;
-      line-height: 1;
-      font-weight: 700;
-      letter-spacing: -0.025em;
-    }
-    .stat-number.muted { color: #c4c4cb; }
-    .delta-up { display: inline-flex; align-items: center; gap: 4px; background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
-    .delta-down { display: inline-flex; align-items: center; gap: 4px; background: #fde2e2; color: #a02020; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
-    .delta-flat { display: inline-flex; align-items: center; gap: 4px; background: #ececf1; color: #6b6b75; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
-    .icon-bg { width: 56px; height: 56px; border-radius: 16px; background: #f1f2f5; display: flex; align-items: center; justify-content: center; }
-    .icon-bg.muted { background: #f6f7f9; }
-    .icon-bg svg { width: 26px; height: 26px; stroke: var(--acenta-navy); stroke-width: 1.8; fill: none; }
-    .icon-bg.muted svg { stroke: #c4c4cb; }
-    .icon-bg.warn { background: #fff4e0; }
-    .icon-bg.warn svg { stroke: #d97706; }
-    .skeleton { background: linear-gradient(90deg, #f1f2f5 0%, #e8e9ee 50%, #f1f2f5 100%); background-size: 200% 100%; animation: skel 1.2s infinite; border-radius: 8px; }
-    @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
-    .avatar {
-      width: 40px; height: 40px;
-      border-radius: 999px;
-      background: var(--acenta-teal-soft);
-      color: var(--acenta-teal-dark);
-      font-weight: 600;
-      font-size: 14px;
-      display: flex; align-items: center; justify-content: center;
-    }
-  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/admin.css">
 </head>
 <body>
   <div class="flex min-h-screen">
 
     <!-- ── SIDEBAR ── -->
-    <aside class="w-64 bg-[#f6f7f9] border-r border-[#ececf1] p-5 flex flex-col">
+    <aside class="w-64 app-sidebar p-5 flex flex-col">
       <div class="flex items-center gap-3 mb-8 px-2">
-        <div class="w-10 h-10 rounded-xl bg-[#1a1a2e] flex items-center justify-center text-white font-bold">A</div>
+        <div class="brand-mark">a</div>
         <div>
-          <div class="font-semibold text-[#1a1a2e] leading-tight">Acenta</div>
-          <div class="text-xs text-gray-500">Moj AI načrt</div>
+          <div class="font-semibold leading-tight" style="font-family:'Fraunces',serif; font-size:18px; letter-spacing:-0.02em;">Acenta</div>
+          <div class="text-xs text-muted">Baza vprašalnikov</div>
         </div>
       </div>
 
@@ -148,47 +67,49 @@
     </aside>
 
     <!-- ── MAIN ── -->
-    <main class="flex-1 p-10 max-w-[1280px]">
-      <div class="flex items-end justify-between mb-8">
+    <main class="flex-1 p-10 max-w-[1280px] relative overflow-hidden">
+      <div class="hero-blob"></div>
+
+      <div class="hero-content flex items-end justify-between mb-10">
         <div>
-          <h1 class="text-3xl font-bold">Pregled</h1>
-          <div class="text-sm text-gray-500 mt-1" id="podnaslov">Vsi vprašalniki</div>
+          <h1 class="display">Pregled</h1>
+          <div class="text-sm text-muted mt-2" id="podnaslov">Vsi vprašalniki</div>
         </div>
         <div class="flex items-center gap-4">
           <!-- Filter po vprasalniku — vpliva na "Aktivnost podjetij" in sidebar -->
           <div class="flex items-center gap-2">
-            <label for="filter-q" class="text-xs text-gray-500 font-medium">Vprašalnik:</label>
-            <select id="filter-q" class="text-sm border border-[#ececf1] rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[#00b894]" onchange="spremeniFilter()">
+            <label for="filter-q" class="text-xs text-muted font-medium uppercase tracking-wider">Vprašalnik</label>
+            <select id="filter-q" class="select" style="width:auto; padding:8px 12px;" onchange="spremeniFilter()">
               <option value="">Vsi vprašalniki</option>
             </select>
           </div>
-          <div class="text-sm text-gray-500" id="last-update">—</div>
+          <div class="text-sm text-muted" id="last-update">—</div>
         </div>
       </div>
 
       <!-- Stat cards top -->
-      <div class="card p-8 mb-6">
-        <div class="text-sm font-medium text-gray-500 mb-6">Glavni podatki</div>
+      <div class="card p-10 mb-8 hero-content">
+        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-muted mb-8">Glavni podatki</div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
           <!-- Podjetja -->
           <div>
             <div class="icon-bg mb-6">
               <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/></svg>
             </div>
-            <div class="text-sm text-gray-500 mb-2 flex items-center gap-1.5">
+            <div class="text-xs uppercase tracking-wider text-muted mb-3 flex items-center gap-1.5 font-medium">
               Podjetja
-              <span class="text-gray-300 cursor-help text-base" title="Skupno število podjetij v bazi">ⓘ</span>
+              <span class="text-gray-300 cursor-help text-base normal-case tracking-normal" title="Skupno število podjetij v bazi">ⓘ</span>
             </div>
-            <div class="flex items-end gap-6 mb-3">
-              <div class="stat-number" id="stat-podjetja">—</div>
+            <div class="flex items-end gap-6 mb-4">
+              <div class="stat-number" id="stat-podjetja" data-target="0">—</div>
               <svg viewBox="0 0 120 40" class="w-32 h-12" id="spark-podjetja">
-                <path d="M 0 32 L 120 32" stroke="#ececf1" stroke-width="1"/>
+                <path d="M 0 32 L 120 32" stroke="#ece9e1" stroke-width="1"/>
               </svg>
             </div>
             <div class="flex items-center gap-3">
               <span id="delta-podjetja" class="delta-flat">—</span>
-              <span class="text-sm text-gray-500">vs prejšnji teden</span>
+              <span class="text-sm text-muted">vs prejšnji teden</span>
             </div>
           </div>
 
@@ -197,36 +118,36 @@
             <div class="icon-bg mb-6">
               <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
             </div>
-            <div class="text-sm text-gray-500 mb-2 flex items-center gap-1.5">
+            <div class="text-xs uppercase tracking-wider text-muted mb-3 flex items-center gap-1.5 font-medium">
               Odgovori
-              <span class="text-gray-300 cursor-help text-base" title="Skupno število Formspree submissionov">ⓘ</span>
+              <span class="text-gray-300 cursor-help text-base normal-case tracking-normal" title="Skupno število Formspree submissionov">ⓘ</span>
             </div>
-            <div class="flex items-end gap-6 mb-3">
-              <div class="stat-number" id="stat-odgovori">—</div>
+            <div class="flex items-end gap-6 mb-4">
+              <div class="stat-number" id="stat-odgovori" data-target="0">—</div>
               <svg viewBox="0 0 120 40" class="w-32 h-12" id="spark-odgovori">
-                <path d="M 0 32 L 120 32" stroke="#ececf1" stroke-width="1"/>
+                <path d="M 0 32 L 120 32" stroke="#ece9e1" stroke-width="1"/>
               </svg>
             </div>
             <div class="flex items-center gap-3">
               <span id="delta-odgovori" class="delta-flat">—</span>
-              <span class="text-sm text-gray-500">vs prejšnji teden</span>
+              <span class="text-sm text-muted">vs prejšnji teden</span>
             </div>
           </div>
         </div>
 
-        <hr class="my-8 border-[#ececf1]">
+        <hr class="divider">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
           <!-- Zastarela -->
           <div>
             <div class="icon-bg warn mb-6">
               <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
             </div>
-            <div class="text-sm text-gray-500 mb-2">Zastarela priporočila</div>
-            <div class="flex items-end gap-6 mb-3">
-              <div class="stat-number" id="stat-zastarela" style="color: #d97706;">—</div>
+            <div class="text-xs uppercase tracking-wider text-muted mb-3 font-medium">Zastarela priporočila</div>
+            <div class="flex items-end gap-6 mb-4">
+              <div class="stat-number-sm" id="stat-zastarela" data-target="0" style="color: #c07c00;">—</div>
             </div>
-            <div class="text-sm text-gray-500">Klikni "Regeneriraj" v podjetju.</div>
+            <div class="text-sm text-muted">Klikni "Regeneriraj" v podjetju.</div>
           </div>
 
           <!-- Brez priporocil -->
@@ -234,21 +155,21 @@
             <div class="icon-bg muted mb-6">
               <svg viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
             </div>
-            <div class="text-sm text-gray-500 mb-2">Brez priporočil</div>
-            <div class="flex items-end gap-6 mb-3">
-              <div class="stat-number muted" id="stat-brez">—</div>
+            <div class="text-xs uppercase tracking-wider text-muted mb-3 font-medium">Brez priporočil</div>
+            <div class="flex items-end gap-6 mb-4">
+              <div class="stat-number-sm muted" id="stat-brez" data-target="0">—</div>
             </div>
-            <div class="text-sm text-gray-500">Še nikoli generirana.</div>
+            <div class="text-sm text-muted">Še nikoli generirana.</div>
           </div>
         </div>
       </div>
 
       <!-- Timeline chart -->
-      <div class="card p-8 mb-6">
-        <div class="flex items-center justify-between mb-6">
+      <div class="card p-10 mb-8 hero-content">
+        <div class="flex items-center justify-between mb-8">
           <div>
-            <div class="text-lg font-bold">Odgovori v zadnjih 30 dneh</div>
-            <div class="text-sm text-gray-500 mt-1" id="timeline-meta">—</div>
+            <div class="display-serif" style="font-size:24px;">Odgovori v zadnjih 30 dneh</div>
+            <div class="text-sm text-muted mt-1" id="timeline-meta">—</div>
           </div>
         </div>
         <div id="timeline-chart" class="h-60">
@@ -257,10 +178,10 @@
       </div>
 
       <!-- Aktivnost -->
-      <div class="card p-8">
-        <div class="flex items-center justify-between mb-6">
-          <div class="text-lg font-bold">Aktivnost podjetij</div>
-          <a href="/admin/podjetja.html" class="text-sm text-[#00b894] hover:underline">Odpri seznam →</a>
+      <div class="card p-10 hero-content">
+        <div class="flex items-center justify-between mb-8">
+          <div class="display-serif" style="font-size:24px;">Aktivnost podjetij</div>
+          <a href="/admin/podjetja.html" class="text-sm font-semibold text-[#006e5a] hover:text-[#00b894]">Odpri seznam →</a>
         </div>
         <div id="aktivnost">
           <div class="space-y-3">
@@ -370,8 +291,8 @@
 
       const gridLines = yTicks.map(t => {
         const y = padT + innerH - (t / max) * innerH;
-        return `<line x1="${padL}" y1="${y}" x2="${padL + innerW}" y2="${y}" stroke="#ececf1" stroke-dasharray="3,3"/>
-                <text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#8b8b95">${t}</text>`;
+        return `<line x1="${padL}" y1="${y}" x2="${padL + innerW}" y2="${y}" stroke="#ece9e1" stroke-dasharray="3,3"/>
+                <text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#8a8a95">${t}</text>`;
       }).join('');
 
       // X axis labels — pokazi vsak 5. datum
@@ -379,7 +300,7 @@
         if (i % 5 !== 0 && i !== points.length - 1) return '';
         const date = new Date(p.dan);
         const lbl = `${date.getDate()}.${date.getMonth()+1}`;
-        return `<text x="${p.x}" y="${padT + innerH + 18}" text-anchor="middle" font-size="11" fill="#8b8b95">${lbl}</text>`;
+        return `<text x="${p.x}" y="${padT + innerH + 18}" text-anchor="middle" font-size="11" fill="#8a8a95">${lbl}</text>`;
       }).join('');
 
       const dots = points.map(p => p.v > 0
@@ -483,19 +404,39 @@
 
         return `
           <a href="/admin/company.html?id=${p.id}"
-             class="flex items-center justify-between py-4 border-b border-[#ececf1] last:border-0 hover:bg-[#f8f9fb] px-3 rounded-lg transition"
+             class="row-lift flex items-center justify-between py-4 px-4 border border-transparent rounded-xl"
              style="text-decoration: none; color: inherit;">
             <div class="flex items-center gap-4">
               <div class="avatar">${esc((p.naziv_prikaz || '?')[0].toUpperCase())}</div>
               <div>
                 <div class="font-semibold">${esc(p.naziv_prikaz)}</div>
-                <div class="text-xs text-gray-500">${p.st_odgovorov} odgovor${p.st_odgovorov === 1 ? '' : 'ov'} · ${relativnoTime(p.zadnji_odgovor)}</div>
+                <div class="text-xs text-muted mt-0.5">${p.st_odgovorov} odgovor${p.st_odgovorov === 1 ? '' : 'ov'} · ${relativnoTime(p.zadnji_odgovor)}</div>
               </div>
             </div>
             ${badge}
           </a>
         `;
       }).join('');
+    }
+
+    // ── Count-up animacija (Direction A quick win) ────────────────────
+    function countUp(elId, target) {
+      const el = document.getElementById(elId);
+      if (!el) return;
+      const targetNum = Number(target) || 0;
+      if (targetNum === 0) { el.textContent = '0'; return; }
+      const duration = 900;
+      const start = performance.now();
+      const startNum = 0;
+      function frame(now) {
+        const t = Math.min(1, (now - start) / duration);
+        // ease-out cubic
+        const eased = 1 - Math.pow(1 - t, 3);
+        const current = Math.round(startNum + (targetNum - startNum) * eased);
+        el.textContent = current.toLocaleString('sl-SI');
+        if (t < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
     }
 
     (async () => {
@@ -527,11 +468,11 @@
       const t = stats.totals;
       const podjetja = companies.companies ?? [];
 
-      // Glavne stevilke — vedno globalno (cez vse vprasalnike)
-      document.getElementById('stat-podjetja').textContent = t.podjetja_total;
-      document.getElementById('stat-odgovori').textContent = t.odgovori_total;
-      document.getElementById('stat-zastarela').textContent = stats.zastarela;
-      document.getElementById('stat-brez').textContent = t.brez_priporocil;
+      // Glavne stevilke — vedno globalno (cez vse vprasalnike) z count-up animacijo
+      countUp('stat-podjetja', t.podjetja_total);
+      countUp('stat-odgovori', t.odgovori_total);
+      countUp('stat-zastarela', stats.zastarela);
+      countUp('stat-brez', t.brez_priporocil);
 
       // Delte (vs prejšnji teden)
       deltaBadge('delta-podjetja', t.podjetja_7d, t.podjetja_prej_7d);
