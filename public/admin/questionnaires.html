@@ -195,6 +195,15 @@
     let vprasanja = [];        // delovni array vprašanj
     const VELJAVNI_TIPI = ['text', 'textarea', 'email', 'number', 'select', 'radio', 'checkbox'];
 
+    // Javna domena za form linke. Ce smo na admin subdomeni (nacrt-admin.*),
+    // zamenjamo z nacrt.* za clean URL ki ga delimo s klienti.
+    function publicFormUrl(slug) {
+      const h = window.location.hostname;
+      // nacrt-admin.deploy.acenta.si → nacrt.deploy.acenta.si
+      const publicHost = h.startsWith('nacrt-admin.') ? h.replace('nacrt-admin.', 'nacrt.') : h;
+      return `${window.location.protocol}//${publicHost}/f/${slug}`;
+    }
+
     // ── Seznam ────────────────────────────────────────────────────────────
     async function nalozi() {
       const r = await apiFetch('/api/questionnaires');
@@ -219,7 +228,7 @@
             <div class="min-w-0">
               <div class="font-semibold truncate">${esc(q.naziv_prikaz)}</div>
               <div class="text-xs text-muted truncate mt-0.5">
-                <a href="/f/${esc(q.slug)}" target="_blank" rel="noopener"
+                <a href="${publicFormUrl(esc(q.slug))}" target="_blank" rel="noopener"
                    class="text-[#006e5a] hover:text-[#00b894] font-medium"
                    onclick="event.stopPropagation()"
                    title="Odpri javni obrazec">/f/${esc(q.slug)} ↗</a>
@@ -231,7 +240,7 @@
           </div>
           <div class="flex items-center gap-3">
             ${q.aktivna ? '<span class="badge-success">Aktivna</span>' : '<span class="badge-neutral">Ugasnjena</span>'}
-            <a href="/f/${esc(q.slug)}" target="_blank" rel="noopener" class="text-sm font-medium text-[#006e5a] hover:text-[#00b894]" onclick="event.stopPropagation()">Predogled →</a>
+            <a href="${publicFormUrl(esc(q.slug))}" target="_blank" rel="noopener" class="text-sm font-medium text-[#006e5a] hover:text-[#00b894]" onclick="event.stopPropagation()">Predogled →</a>
           </div>
         </div>
       `;}).join('');
@@ -278,7 +287,7 @@
       document.getElementById('editor-naslov').textContent = q.naziv_prikaz;
       document.getElementById('editor-podnaslov').textContent = `/f/${q.slug} · posodobljeno ${formatDatum(q.updated_at)}`;
       document.getElementById('editor-akcije').innerHTML = `
-        <a href="/f/${esc(q.slug)}" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;">Predogled obrazca →</a>
+        <a href="${publicFormUrl(esc(q.slug))}" target="_blank" rel="noopener" class="btn-secondary" style="text-decoration:none;">Predogled obrazca →</a>
         ${q.aktivna ? `<button class="btn-danger" onclick="ugasniVprasalnik(${q.id})">Ugasni</button>` : ''}
       `;
       document.getElementById('f-slug').value = q.slug || '';

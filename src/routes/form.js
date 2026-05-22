@@ -32,6 +32,84 @@ function esc(s) {
     .replace(/'/g, '&#39;');
 }
 
+// Branded error/info page — uporabljen za 404, 410 (ugasnjen), 503 (brez vprasanj).
+// Razlog: plain text "Vprašalnik ne obstaja." izgleda kot 1990s, klient ne sme
+// videti necesar tako negolega. Acenta brand z navy/teal in povezavo nazaj.
+function renderirajInfoStran({ naslov, sporocilo, koda = 503 }) {
+  return `<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${esc(naslov)} — Acenta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *,*::before,*::after{box-sizing:border-box;}
+  body{
+    font-family:'Inter',-apple-system,Segoe UI,Roboto,sans-serif;
+    background:#fcfbf9; color:#15151f; margin:0; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; padding:2rem 1rem;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{
+    max-width:520px; width:100%; background:#fff; border-radius:22px;
+    box-shadow:0 1px 2px rgba(20,18,12,.04), 0 18px 40px -18px rgba(20,18,12,.18);
+    overflow:hidden; position:relative;
+  }
+  .wrap::before{
+    content:''; position:absolute; inset:0; border-radius:inherit; padding:1px;
+    background:linear-gradient(160deg, rgba(0,184,148,.35) 0%, rgba(236,233,225,1) 35%);
+    -webkit-mask:linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none;
+  }
+  .header{background:#15151f; color:#fff; padding:2rem 2.5rem;}
+  .agency{font-size:.75rem; opacity:.65; letter-spacing:.18em; text-transform:uppercase; font-weight:500;}
+  .header h1{
+    font-family:'Fraunces',serif; font-weight:500; margin:.5rem 0 0;
+    font-size:2rem; letter-spacing:-.025em;
+  }
+  .body{padding:2rem 2.5rem;}
+  .koda{font-size:.75rem; color:#8a8a95; letter-spacing:.1em; text-transform:uppercase; font-weight:500;}
+  .sporocilo{margin:1rem 0 1.5rem; color:#3a3a48; line-height:1.6;}
+  .back{
+    display:inline-block; padding:10px 18px; border-radius:12px;
+    background:#00b894; color:#fff; text-decoration:none; font-weight:600; font-size:14px;
+    box-shadow:0 6px 14px -4px rgba(0,184,148,.4); transition:transform .15s, box-shadow .15s;
+  }
+  .back:hover{transform:translateY(-1px); box-shadow:0 10px 20px -6px rgba(0,184,148,.45);}
+  .footer{
+    padding:1rem 2.5rem; background:#f5f3ee; text-align:center;
+    font-size:.8rem; color:#8a8a95;
+  }
+  .footer a{color:#006e5a; text-decoration:none; font-weight:500;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div class="agency">Acenta.si</div>
+      <h1>${esc(naslov)}</h1>
+    </div>
+    <div class="body">
+      <div class="koda">Status ${esc(String(koda))}</div>
+      <p class="sporocilo">${esc(sporocilo)}</p>
+      <a href="https://acenta.si" class="back">Obišči acenta.si</a>
+    </div>
+    <div class="footer">
+      Vprašanja? <a href="mailto:info@acenta.si">info@acenta.si</a>
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+function posljiInfo(res, koda, naslov, sporocilo) {
+  res.status(koda).setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderirajInfoStran({ naslov, sporocilo, koda }));
+}
+
 // Renderiraj eno vprasanje glede na tip. Vrne HTML string.
 function renderirajVprasanje(q) {
   const id = esc(q.id);
@@ -239,22 +317,27 @@ function izlusciPodjetje(payload, questions) {
 // GET /f/:slug — javni obrazec
 router.get('/:slug', async (req, res) => {
   const slug = String(req.params.slug || '').trim().toLowerCase();
-  if (!slug) return res.status(400).send('Manjka slug');
+  if (!slug) return posljiInfo(res, 400, 'Manjkajoč podatek', 'V URL-ju manjka slug vprašalnika.');
 
   const r = await dbQuery(
     'SELECT slug, naziv_prikaz, opis, questions, aktivna FROM questionnaires WHERE slug = $1',
     [slug]
   );
-  if (!r?.rows?.length) return res.status(404).send('Vprašalnik ne obstaja.');
+  if (!r?.rows?.length) {
+    return posljiInfo(res, 404, 'Vprašalnik ne obstaja',
+      'URL ne ustreza nobenemu obrazcu. Preverite povezavo, ki ste jo prejeli, ali se obrnite na info@acenta.si.');
+  }
 
   const q = r.rows[0];
   if (!q.aktivna) {
-    return res.status(410).send('Ta vprašalnik trenutno ni aktiven.');
+    return posljiInfo(res, 410, 'Vprašalnik je ugasnjen',
+      'Ta vprašalnik trenutno ne sprejema novih odgovorov. Če ste prejeli povezavo nedavno, kontaktirajte Acenta ekipo.');
   }
 
   const questions = Array.isArray(q.questions) ? q.questions : [];
   if (questions.length === 0) {
-    return res.status(503).send('Vprašalnik še nima definiranih vprašanj.');
+    return posljiInfo(res, 503, 'Vprašalnik še ni pripravljen',
+      'Vprašanja so v pripravi. Povezava bo aktivna kmalu — počakajte nekaj minut ali pišite na info@acenta.si.');
   }
 
   const html = renderirajObrazec({
