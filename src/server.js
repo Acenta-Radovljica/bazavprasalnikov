@@ -37,20 +37,16 @@ app.get('/health', async (_req, res) => {
   });
 });
 
-// Root — samo info string
+// Root — preusmeri na trenutni privzeti vprasalnik.
+// QR koda v PPT za delavnico (Art hotel Kristal, Acenta_AI_Delavnica.pptx)
+// kaze na http://nacrt.deploy.acenta.si — uporabnik mora pristati na obrazcu,
+// ne na JSON debug izhodu. Slug je nastavljiv prek ENV (ROOT_REDIRECT_SLUG),
+// fallback "moj-ai-nacrt" za backward compat z ze natisnjeno QR kodo.
+// 302 (temporary) — da lahko spremenimo target brez browser cache problemov.
+// API meta info je se vedno dostopen na /health (vsebuje servis info + db status).
 app.get('/', (_req, res) => {
-  res.json({
-    service: 'bazavprasalnikov-api',
-    agency: 'Acenta.si',
-    routes: [
-      '/health',
-      'POST /webhook/formspree (legacy)',
-      'POST /webhook/:slug',
-      'GET  /f/:slug (javni obrazec)',
-      'POST /f/:slug (submission)',
-      '/admin (basic auth)',
-    ],
-  });
+  const slug = (process.env.ROOT_REDIRECT_SLUG || 'moj-ai-nacrt').trim().toLowerCase();
+  res.redirect(302, `/f/${encodeURIComponent(slug)}`);
 });
 
 // Webhook ruta (javna, brez auth)
