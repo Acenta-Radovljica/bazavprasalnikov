@@ -65,11 +65,8 @@ function renderirajInfoStran({ naslov, sporocilo, koda = 503 }) {
     -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none;
   }
   .header{background:#15151f; color:#fff; padding:2.25rem 2.5rem;}
-  .header-logo{display:inline-block; background:#fff; padding:10px 18px;
-    border-radius:10px; margin-bottom:1.75rem;
-    box-shadow:0 6px 18px -4px rgba(0,0,0,.4);
-  }
-  .header-logo img{height:36px; width:auto; display:block;}
+  .header-logo{display:inline-block; margin-bottom:1.75rem;}
+  .header-logo img{height:40px; width:auto; display:block;}
   .agency{font-size:.7rem; opacity:.55; letter-spacing:.18em; text-transform:uppercase; font-weight:500;}
   .header h1{
     font-family:'Fraunces',serif; font-weight:500; margin:.5rem 0 0;
@@ -95,7 +92,7 @@ function renderirajInfoStran({ naslov, sporocilo, koda = 503 }) {
   <div class="wrap">
     <div class="header">
       <div class="header-logo">
-        <img src="/assets/acenta-logo.png" alt="Acenta — Učinkovite rešitve" />
+        <img src="/assets/acenta-logo-dark.png" alt="Acenta — Učinkovite rešitve" />
       </div>
       <h1>${esc(naslov)}</h1>
     </div>
@@ -186,16 +183,15 @@ function renderirajObrazec({ slug, naziv_prikaz, opis, questions }) {
   *,*::before,*::after{box-sizing:border-box;}
   body{font-family:'Inter',-apple-system,Segoe UI,Roboto,sans-serif;background:${BARVE.bg};color:${BARVE.dark};margin:0;padding:2rem 1rem;line-height:1.5;-webkit-font-smoothing:antialiased;}
   .wrap{max-width:680px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,.06);overflow:hidden;}
-  /* Logo badge v temnem hederju (bel pill z drop shadow, ohrani brand barve) */
-  .header-logo{display:inline-block;background:#fff;padding:10px 18px;border-radius:10px;margin-bottom:1.75rem;box-shadow:0 6px 18px -4px rgba(0,0,0,.4);}
-  .header-logo img{height:36px;width:auto;display:block;}
+  /* Logo v temnem hederju — transparent PNG, sliva se z ozadjem */
+  .header-logo{display:inline-block;margin-bottom:1.75rem;}
+  .header-logo img{height:40px;width:auto;display:block;}
   /* Hvala stran — premium agency styling */
   .thanks{padding:0;}
   .thanks-hero{background:linear-gradient(135deg,#15151f 0%,#1a1a2e 100%);color:#fff;padding:2.5rem 2.5rem 2.75rem;text-align:center;position:relative;overflow:hidden;}
   .thanks-hero::before{content:'';position:absolute;top:-100px;right:-100px;width:300px;height:300px;border-radius:50%;background:radial-gradient(circle,rgba(0,184,148,.25) 0%,transparent 70%);}
   .thanks-logo{position:relative;display:flex;justify-content:center;margin-bottom:2rem;}
-  .thanks-logo .badge{background:#fff;padding:10px 18px;border-radius:10px;box-shadow:0 6px 18px -4px rgba(0,0,0,.4);display:inline-block;}
-  .thanks-logo img{height:36px;width:auto;display:block;}
+  .thanks-logo img{height:40px;width:auto;display:block;}
   .thanks-check{position:relative;width:64px;height:64px;margin:0 auto 1.25rem;background:#00b894;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 12px 32px -8px rgba(0,184,148,.6);}
   .thanks-check svg{width:32px;height:32px;color:#fff;}
   .thanks-eyebrow{position:relative;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;opacity:.7;font-weight:500;}
@@ -248,7 +244,7 @@ function renderirajObrazec({ slug, naziv_prikaz, opis, questions }) {
 <div class="wrap">
   <div class="header">
     <div class="header-logo">
-      <img src="/assets/acenta-logo.png" alt="Acenta — Učinkovite rešitve" />
+      <img src="/assets/acenta-logo-dark.png" alt="Acenta — Učinkovite rešitve" />
     </div>
     <h1>${esc(naziv_prikaz)}</h1>
     ${opis ? `<div class="opis">${esc(opis)}</div>` : ''}
@@ -326,9 +322,7 @@ function renderirajObrazec({ slug, naziv_prikaz, opis, questions }) {
         <div class="thanks">
           <div class="thanks-hero">
             <div class="thanks-logo">
-              <div class="badge">
-                <img src="/assets/acenta-logo.png" alt="Acenta — Učinkovite rešitve" />
-              </div>
+              <img src="/assets/acenta-logo-dark.png" alt="Acenta — Učinkovite rešitve" />
             </div>
             <div class="thanks-check">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
