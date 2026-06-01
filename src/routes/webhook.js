@@ -3,7 +3,7 @@ import express from 'express';
 import { dbQuery } from '../db.js';
 import { hashIp } from '../utils/normalize.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
-import { sproziPovzetek } from '../ai/queue.js';
+import { sproziPovzetek, sproziKvalifikacija } from '../ai/queue.js';
 import { basicAuth } from '../middleware/auth.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
@@ -80,6 +80,11 @@ async function obdelajSubmission({ payload, ip, questionnaireId }) {
   // POVZETEK (Haiku ~$0.001/klic) tece avtomatsko ob vsakem responseu.
   // PRIPOROCILA (Opus ~$0.30/klic) NE tecejo avtomatsko — admin jih sprozi rocno.
   if (responseId) sproziPovzetek(responseId);
+
+  // KVALIFIKACIJA (Haiku, poceni) — samodejna ocena hot/warm/cold. Vrata
+  // (samo je_lead_vprasalnik=TRUE) in varovalka (ne prepise rocne ocene) sta
+  // znotraj modula, zato je klic tu vedno varen ne glede na vprasalnik.
+  sproziKvalifikacija(companyId, questionnaireId);
 
   return {
     status: 200,

@@ -2,6 +2,7 @@
 import { generirajPovzetek } from './generate_povzetek.js';
 import { generirajPriporocila } from './generate_priporocila.js';
 import { generirajInsights } from './generate_insights.js';
+import { generirajKvalifikacija } from './generate_kvalifikacija.js';
 import { posljiObvestiloOdgovor } from '../lib/mailer.js';
 import { dbQuery } from '../db.js';
 
@@ -103,5 +104,15 @@ function sproziInsights({ dni } = {}) {
   vOzadju('insights', () => generirajInsights(dni ? { dni } : {}));
 }
 
+// Sprozi AI kvalifikacijo (hot/warm/cold) v ozadju. Brez debounce — Haiku je
+// poceni, modul ob vsakem klicu prebere vse odgovore, zato zadnji zagon zmaga
+// s polno sliko. Vrata (samo lead-vprasalniki) + varovalka (ne prepise rocne
+// ocene) sta znotraj generirajKvalifikacija — klic je tu vedno varen.
+function sproziKvalifikacija(companyId, questionnaireId) {
+  if (!companyId || !questionnaireId) return;
+  vOzadju(`kvalifikacija(c=${companyId} q=${questionnaireId})`,
+    () => generirajKvalifikacija(companyId, questionnaireId));
+}
+
 // ── DEL 5: Named exports ─────────────────────────────────────────────────
-export { sproziPovzetek, sproziPriporocila, sproziInsights };
+export { sproziPovzetek, sproziPriporocila, sproziInsights, sproziKvalifikacija };
