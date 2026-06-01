@@ -25,11 +25,12 @@ function konstantnoCasovnaPrimerjava(a, b) {
 // Brskalnik prikaze nativni login popup. Po uspesnem loginu cache-a kredencije
 // dokler je zavihek odprt.
 function basicAuth(req, res, next) {
-  // Ce je admin password se placeholder, dovoli vse (samo za prvi deploy — dokler
-  // ne posodobimo env var). Logiramo glasno opozorilo.
-  if (ADMIN_PASS.includes('vstavi')) {
-    console.warn('[auth] OPOZORILO: ADMIN_PASS ni nastavljen — dostop je ODPRT');
-    return next();
+  // Ce admin geslo ni nastavljeno (se placeholder), ZAVRNI vse (fail-closed).
+  // Razlog: dashboard vsebuje osebne podatke strank (GDPR). Raje zaklenemo
+  // dostop kot da bi ob pozabljenem env var pustili vse odprto.
+  if (!ADMIN_PASS || ADMIN_PASS.includes('vstavi')) {
+    console.error('[auth] ADMIN_PASS ni nastavljen — dostop ZAVRNJEN. Nastavi ADMIN_PASS v env.');
+    return res.status(503).json({ error: 'auth_not_configured' });
   }
 
   const header = req.headers.authorization ?? '';

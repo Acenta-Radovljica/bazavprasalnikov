@@ -4,6 +4,7 @@ import { dbQuery } from '../db.js';
 import { hashIp } from '../utils/normalize.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
 import { sproziPovzetek } from '../ai/queue.js';
+import { basicAuth } from '../middleware/auth.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -145,10 +146,10 @@ router.post('/:slug', async (req, res) => {
   return res.status(status).json(body);
 });
 
-// ── DEL 4b: Debug endpointi (brez auth — odstrani v Fazi 4) ─────────────
+// ── DEL 4b: Debug endpointi (ZASCITENI z basic auth — razkrivajo osebne podatke) ─
 
 // Zadnjih 10 responses + companies za hitro preverjanje
-router.get('/debug/last', async (_req, res) => {
+router.get('/debug/last', basicAuth, async (_req, res) => {
   const responses = await dbQuery(
     `SELECT r.id, r.company_id, r.questionnaire_id,
             c.naziv_prikaz, c.naziv_normaliziran,
@@ -173,7 +174,7 @@ router.get('/debug/last', async (_req, res) => {
 });
 
 // Hitri AI status — koliko responses ima povzetek, koliko (podjetje x vprasalnik) ima priporocila
-router.get('/debug/ai-status', async (_req, res) => {
+router.get('/debug/ai-status', basicAuth, async (_req, res) => {
   const r = await dbQuery(`
     SELECT
       (SELECT count(*) FROM responses) AS responses_total,

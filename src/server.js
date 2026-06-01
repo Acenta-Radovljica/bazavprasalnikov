@@ -55,8 +55,9 @@ app.use('/webhook', webhookRouter);
 // Lasten obrazec — javni (brez auth). GET renderira HTML, POST sprejme submission.
 app.use('/f', formRouter);
 
-// Zacasna debug ruta za tuninje similarity pragov
-app.use('/debug', debugSimRouter);
+// Debug rute — ZASCITENE z basic auth. Razkrivajo osebne podatke in vsebujejo
+// nevarne operacije (/debug/cleanup zbrise vso bazo), zato nikoli brez auth.
+app.use('/debug', basicAuth, debugSimRouter);
 
 // Admin API — zascitena z basic auth.
 // Questionnaires CRUD je pred apiRouter-jem mountan na /api/questionnaires,
