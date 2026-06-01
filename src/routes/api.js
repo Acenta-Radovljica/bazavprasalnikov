@@ -239,9 +239,31 @@ router.get('/stats', async (_req, res) => {
     ORDER BY d ASC
   `);
 
+  // Stevilo podjetij po prodajnem statusu (lijak). Vse faze vrnemo z 0, tudi
+  // ce ni nobenega podjetja v njej — dashboard tako nikoli ne dobi undefined.
+  const statusRows = await dbQuery(
+    'SELECT status, count(*)::int AS n FROM companies GROUP BY status'
+  );
+  const poStatusu = { nov: 0, kvalificiran: 0, kontaktiran: 0, sestanek: 0, ponudba: 0, dobljen: 0, izgubljen: 0 };
+  for (const row of (statusRows?.rows ?? [])) {
+    if (row.status in poStatusu) poStatusu[row.status] = row.n;
+  }
+
+  // Stevilo podjetij po kvalifikaciji. NULL → 'neocenjeno' (se ni AI ocene).
+  const kvalRows = await dbQuery(
+    `SELECT COALESCE(kvalifikacija, 'neocenjeno') AS k, count(*)::int AS n
+       FROM companies GROUP BY COALESCE(kvalifikacija, 'neocenjeno')`
+  );
+  const poKvalifikaciji = { hot: 0, warm: 0, cold: 0, neocenjeno: 0 };
+  for (const row of (kvalRows?.rows ?? [])) {
+    if (row.k in poKvalifikaciji) poKvalifikaciji[row.k] = row.n;
+  }
+
   res.json({
     totals: totals?.rows?.[0] ?? {},
     zastarela: zastarela?.rows?.[0]?.n ?? 0,
+    po_statusu: poStatusu,
+    po_kvalifikaciji: poKvalifikaciji,
     timeline: timeline?.rows ?? [],
   });
 });
