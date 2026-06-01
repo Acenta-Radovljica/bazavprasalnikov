@@ -21,6 +21,7 @@ router.get('/companies', async (req, res) => {
     SELECT
       c.id, c.naziv_prikaz, c.naziv_normaliziran,
       c.created_at, c.last_response_at,
+      c.status, c.kvalifikacija, c.kvalifikacija_razlog,
       EXISTS (SELECT 1 FROM company_priporocila cp WHERE cp.company_id = c.id) AS has_priporocila,
       (SELECT MAX(updated_at) FROM company_priporocila cp WHERE cp.company_id = c.id) AS priporocila_updated_at,
       COUNT(r.id)::int AS st_odgovorov,
