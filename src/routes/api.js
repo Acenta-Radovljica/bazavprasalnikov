@@ -9,6 +9,11 @@ import { renderiraj as renderirajPdf } from '../pdf/render.js';
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
 
+// Dovoljene vrednosti — ista resnica kot CHECK omejitvi v sql/005_lead_status.sql.
+// Validacija v API-ju da prijazno 400 napako; CHECK v bazi je zadnja obramba.
+const STATUSI = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen', 'izgubljen'];
+const KVALIFIKACIJE = ['hot', 'warm', 'cold'];
+
 // ── DEL 4: Rute ───────────────────────────────────────────────────────────
 
 // GET /api/companies — seznam vseh podjetij z metriko.
@@ -70,6 +75,63 @@ router.get('/companies/:id', async (req, res) => {
     responses: responses?.rows ?? [],
     priporocila: priporocila?.rows ?? [],
   });
+});
+
+// PATCH /api/companies/:id — rocno posodobi prodajni status in/ali kvalifikacijo.
+// Body: { status?: <lijak>, kvalifikacija?: 'hot'|'warm'|'cold'|null }
+// Pravila:
+//  - status      → validira proti lijaku + postavi status_updated_at
+//  - kvalifikacija = vrednost → clovek POVOZI AI (kvalifikacija_rocna = TRUE);
+//    AI je odslej ne prepise
+//  - kvalifikacija = null (eksplicitno) → RESET: razlog NULL + rocna FALSE,
+//    da naslednji lead submission spet sprozi AI oceno
+// Razlikujemo "polje ni v body" (ne diramo) od "polje = null" (reset) prek `in`.
+router.patch('/companies/:id', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+
+  const body = req.body ?? {};
+  const setStatus = 'status' in body;
+  const setKval = 'kvalifikacija' in body;
+
+  if (!setStatus && !setKval) {
+    return res.status(400).json({ error: 'nothing_to_update' });
+  }
+  if (setStatus && !STATUSI.includes(body.status)) {
+    return res.status(400).json({ error: 'invalid_status', dovoljeno: STATUSI });
+  }
+  if (setKval && body.kvalifikacija !== null && !KVALIFIKACIJE.includes(body.kvalifikacija)) {
+    return res.status(400).json({ error: 'invalid_kvalifikacija', dovoljeno: [...KVALIFIKACIJE, null] });
+  }
+
+  // Sestavi SET dinamicno. Literali (NOW(), NULL, FALSE) ne porabijo $ indeksa.
+  const sets = [];
+  const params = [];
+  let i = 1;
+
+  if (setStatus) {
+    sets.push(`status = $${i++}`); params.push(body.status);
+    sets.push('status_updated_at = NOW()');
+  }
+  if (setKval) {
+    if (body.kvalifikacija === null) {
+      sets.push('kvalifikacija = NULL', 'kvalifikacija_razlog = NULL', 'kvalifikacija_rocna = FALSE', 'kvalifikacija_updated_at = NOW()');
+    } else {
+      sets.push(`kvalifikacija = $${i++}`); params.push(body.kvalifikacija);
+      sets.push('kvalifikacija_rocna = TRUE', 'kvalifikacija_updated_at = NOW()');
+    }
+  }
+
+  params.push(id);
+  const upd = await dbQuery(
+    `UPDATE companies SET ${sets.join(', ')} WHERE id = $${i}
+     RETURNING id, status, kvalifikacija, kvalifikacija_razlog, kvalifikacija_rocna,
+               status_updated_at, kvalifikacija_updated_at`,
+    params
+  );
+  if (!upd?.rows?.length) return res.status(404).json({ error: 'not_found' });
+
+  res.json({ ok: true, company: upd.rows[0] });
 });
 
 // GET /api/responses/:id — en odgovor + AI povzetek + company info

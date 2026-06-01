@@ -16,16 +16,26 @@
       <div class="text-sm text-gray-500" id="meta">—</div>
     </div>
 
-    <div class="mb-4">
+    <div class="mb-4 flex flex-col sm:flex-row gap-3">
       <input
         id="filter"
         type="text"
         placeholder="Filtriraj po nazivu..."
-        class="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-[#00b894]"
+        class="flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-[#00b894]"
       >
+      <select id="filterStatus" class="px-3 py-2 border border-gray-300 rounded bg-white text-sm focus:outline-none focus:border-[#00b894]">
+        <option value="">Vsi statusi</option>
+      </select>
+      <select id="filterKval" class="px-3 py-2 border border-gray-300 rounded bg-white text-sm focus:outline-none focus:border-[#00b894]">
+        <option value="">Vse kvalifikacije</option>
+        <option value="hot">HOT</option>
+        <option value="warm">WARM</option>
+        <option value="cold">COLD</option>
+        <option value="neocenjeno">Neocenjeno</option>
+      </select>
     </div>
 
-    <div id="content" class="bg-white rounded shadow"></div>
+    <div id="content" class="bg-white rounded shadow overflow-x-auto"></div>
   </main>
 
   <script src="/admin/app.js"></script>
@@ -33,6 +43,45 @@
     renderNav('home');
 
     let vsaPodjetja = [];
+
+    // Lijak — ista resnica kot STATUSI v src/routes/api.js in CHECK v migraciji 005.
+    const STATUSI = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen', 'izgubljen'];
+
+    // Barvna znacka za kvalifikacijo (HOT rdeca / WARM oranzna / COLD modra).
+    function kvalBadge(k) {
+      if (k === 'hot')  return '<span class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 font-semibold">HOT</span>';
+      if (k === 'warm') return '<span class="px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700 font-semibold">WARM</span>';
+      if (k === 'cold') return '<span class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-semibold">COLD</span>';
+      return '<span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-400" title="Še ni AI ocene">—</span>';
+    }
+
+    // Dropdown za status. stopPropagation prepreci, da klik odpre podjetje.
+    function statusSelect(p) {
+      const opts = STATUSI.map(s =>
+        `<option value="${s}" ${s === p.status ? 'selected' : ''}>${s}</option>`
+      ).join('');
+      return `<select onclick="event.stopPropagation()"
+                onchange="spremeniStatus(${p.id}, this.value, this)"
+                class="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:border-[#00b894]">${opts}</select>`;
+    }
+
+    // PATCH status na backend. Ob napaki vrne select na staro vrednost.
+    async function spremeniStatus(id, status, el) {
+      const p = vsaPodjetja.find(x => x.id === id);
+      const prej = p ? p.status : null;
+      el.disabled = true;
+      const res = await apiFetch(`/api/companies/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      });
+      el.disabled = false;
+      if (!res || !res.ok) {
+        alert('Napaka pri shranjevanju statusa.');
+        if (prej) el.value = prej;
+        return;
+      }
+      if (p) p.status = status;  // posodobi lokalni cache, da filter ostane skladen
+    }
 
     function renderSeznam(podjetja) {
       const el = document.getElementById('content');
@@ -58,6 +107,8 @@
         return `
           <tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.href='/admin/company.html?id=${p.id}'">
             <td class="px-4 py-3 font-medium text-[#1a1a2e]">${esc(p.naziv_prikaz)}</td>
+            <td class="px-4 py-3">${kvalBadge(p.kvalifikacija)}</td>
+            <td class="px-4 py-3">${statusSelect(p)}</td>
             <td class="px-4 py-3 text-sm text-gray-600">${p.st_odgovorov}</td>
             <td class="px-4 py-3 text-sm text-gray-600">${formatDatum(p.zadnji_odgovor)}</td>
             <td class="px-4 py-3">${aiBadge}</td>
@@ -70,6 +121,8 @@
           <thead class="bg-gray-50 border-b">
             <tr>
               <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Naziv</th>
+              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Kvalifikacija</th>
+              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Status</th>
               <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Odgovori</th>
               <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Zadnji odgovor</th>
               <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">AI status</th>
@@ -80,15 +133,41 @@
       `;
     }
 
-    document.getElementById('filter').addEventListener('input', (e) => {
-      const q = e.target.value.toLowerCase().trim();
-      const filtrirana = q
-        ? vsaPodjetja.filter(p => (p.naziv_prikaz || '').toLowerCase().includes(q))
-        : vsaPodjetja;
+    // Kombiniran filter: besedilo (naziv) + status + kvalifikacija.
+    // Kvalifikacija 'neocenjeno' ujame podjetja brez ocene (NULL).
+    function applyFilters() {
+      const q = document.getElementById('filter').value.toLowerCase().trim();
+      const fStatus = document.getElementById('filterStatus').value;
+      const fKval = document.getElementById('filterKval').value;
+
+      const filtrirana = vsaPodjetja.filter(p => {
+        if (q && !(p.naziv_prikaz || '').toLowerCase().includes(q)) return false;
+        if (fStatus && p.status !== fStatus) return false;
+        if (fKval) {
+          if (fKval === 'neocenjeno') { if (p.kvalifikacija) return false; }
+          else if (p.kvalifikacija !== fKval) return false;
+        }
+        return true;
+      });
+
+      document.getElementById('meta').textContent =
+        `${filtrirana.length} / ${vsaPodjetja.length} podjetij`;
       renderSeznam(filtrirana);
-    });
+    }
+
+    document.getElementById('filter').addEventListener('input', applyFilters);
+    document.getElementById('filterStatus').addEventListener('change', applyFilters);
+    document.getElementById('filterKval').addEventListener('change', applyFilters);
 
     (async () => {
+      // Napolni status filter z moznostmi lijaka
+      const selS = document.getElementById('filterStatus');
+      for (const s of STATUSI) {
+        const o = document.createElement('option');
+        o.value = s; o.textContent = s;
+        selS.appendChild(o);
+      }
+
       showLoading('content');
       const data = await apiFetch('/api/companies');
       if (!data) {
