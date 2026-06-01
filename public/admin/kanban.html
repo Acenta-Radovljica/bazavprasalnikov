@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acenta — Kanban</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header id="nav"></header>
+
+  <main class="max-w-[1400px] mx-auto px-6 py-8">
+    <a href="/admin/" class="text-sm text-[#00b894] hover:underline">← Nazaj na Pregled</a>
+    <div class="flex items-center justify-between mt-4 mb-6">
+      <h1 class="text-2xl font-bold text-[#1a1a2e]">Kanban</h1>
+      <div class="flex items-center gap-4">
+        <a href="/admin/podjetja.html" class="text-sm text-[#00b894] hover:underline">Seznam pogled →</a>
+        <div class="text-sm text-gray-500" id="meta">—</div>
+      </div>
+    </div>
+
+    <p class="text-sm text-gray-500 mb-4">Povleci kartico v drug stolpec za spremembo statusa. Klik na kartico odpre podjetje.</p>
+
+    <div id="board" class="flex gap-4 overflow-x-auto pb-4"></div>
+  </main>
+
+  <script src="/admin/app.js"></script>
+  <script>
+    renderNav('home');
+
+    let vsaPodjetja = [];
+
+    // Lijak — ista resnica kot STATUSI v src/routes/api.js in CHECK v migraciji 005.
+    const STATUSI = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen', 'izgubljen'];
+
+    // Barvni rob stolpca po fazi (vizualna orientacija po lijaku).
+    const STOLPEC_BARVA = {
+      nov:          'border-gray-400',
+      kvalificiran: 'border-indigo-400',
+      kontaktiran:  'border-blue-400',
+      sestanek:     'border-purple-400',
+      ponudba:      'border-amber-400',
+      dobljen:      'border-green-500',
+      izgubljen:    'border-red-400',
+    };
+
+    // Barvna znacka za kvalifikacijo (HOT rdeca / WARM oranzna / COLD modra).
+    function kvalBadge(k) {
+      if (k === 'hot')  return '<span class="px-1.5 py-0.5 text-xs rounded bg-red-100 text-red-700 font-semibold">HOT</span>';
+      if (k === 'warm') return '<span class="px-1.5 py-0.5 text-xs rounded bg-orange-100 text-orange-700 font-semibold">WARM</span>';
+      if (k === 'cold') return '<span class="px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-semibold">COLD</span>';
+      return '';
+    }
+
+    // Sestavi eno kartico. draggable + data-id za drag-and-drop.
+    function kartica(p) {
+      const badge = kvalBadge(p.kvalifikacija);
+      return `
+        <div draggable="true"
+             data-id="${p.id}"
+             ondragstart="zacniVlecenje(event, ${p.id})"
+             onclick="if(!jeVleklo) window.location.href='/admin/company.html?id=${p.id}'"
+             class="kartica bg-white rounded shadow-sm border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow">
+          <div class="font-medium text-sm text-[#1a1a2e] mb-1">${esc(p.naziv_prikaz)}</div>
+          <div class="flex items-center justify-between">
+            ${badge || '<span></span>'}
+            <span class="text-xs text-gray-400">${p.st_odgovorov} odg.</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderBoard() {
+      const board = document.getElementById('board');
+      // Grupiraj podjetja po statusu (status je lahko NULL pri starih vrsticah → 'nov').
+      const skupine = {};
+      for (const s of STATUSI) skupine[s] = [];
+      for (const p of vsaPodjetja) {
+        const s = STATUSI.includes(p.status) ? p.status : 'nov';
+        skupine[s].push(p);
+      }
+
+      board.innerHTML = STATUSI.map(s => {
+        const kartice = skupine[s].map(kartica).join('') ||
+          '<div class="text-center text-gray-300 text-xs py-6">—</div>';
+        return `
+          <div class="flex-shrink-0 w-64">
+            <div class="flex items-center justify-between mb-2 px-1">
+              <span class="text-sm font-semibold text-[#1a1a2e] capitalize">${s}</span>
+              <span class="text-xs text-gray-400">${skupine[s].length}</span>
+            </div>
+            <div class="stolpec border-t-4 ${STOLPEC_BARVA[s]} bg-gray-100 rounded-b min-h-[60vh] p-2 space-y-2"
+                 data-status="${s}"
+                 ondragover="event.preventDefault()"
+                 ondrop="spustiKartico(event, '${s}')">
+              ${kartice}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      document.getElementById('meta').textContent = `${vsaPodjetja.length} podjetij`;
+    }
+
+    // ── Drag-and-drop ─────────────────────────────────────────────────
+    // jeVleklo prepreci, da drag sprozi tudi onclick (odpre podjetje).
+    let jeVleklo = false;
+    let vlecenId = null;
+
+    function zacniVlecenje(e, id) {
+      vlecenId = id;
+      jeVleklo = true;
+      e.dataTransfer.effectAllowed = 'move';
+      // Po koncu vlecenja sprosti zastavico (z malo zamika, da onclick ne sprozi navigacije).
+      e.target.addEventListener('dragend', () => {
+        setTimeout(() => { jeVleklo = false; }, 50);
+      }, { once: true });
+    }
+
+    async function spustiKartico(e, novStatus) {
+      e.preventDefault();
+      const id = vlecenId;
+      vlecenId = null;
+      if (!id) return;
+
+      const p = vsaPodjetja.find(x => x.id === id);
+      if (!p || p.status === novStatus) return;  // ni spremembe
+
+      const prej = p.status;
+      // PATCH na backend (Faza C endpoint). Optimisticno NE premikamo dokler ni OK.
+      const res = await apiFetch(`/api/companies/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: novStatus }),
+      });
+      if (!res || !res.ok) {
+        alert('Napaka pri shranjevanju statusa.');
+        return;
+      }
+      p.status = novStatus;  // posodobi lokalni cache
+      renderBoard();          // ponovno izrisi (premakne kartico + posodobi stevce)
+    }
+
+    (async () => {
+      const data = await apiFetch('/api/companies');
+      if (!data) {
+        document.getElementById('board').innerHTML =
+          '<div class="bg-red-50 text-red-700 p-4 rounded">Napaka pri nalaganju podjetij.</div>';
+        return;
+      }
+      vsaPodjetja = data.companies ?? [];
+      renderBoard();
+    })();
+  </script>
+</body>
+</html>
