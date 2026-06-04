@@ -87,6 +87,71 @@
       return `<table class="w-full bg-white rounded-lg shadow-sm overflow-hidden">${vrstice}</table>`;
     }
 
+    // Pretvori eno vrednost v navadno besedilo za CSV (arrays → "a; b", objekti → JSON).
+    function valToText(v) {
+      if (v == null) return '';
+      if (Array.isArray(v)) return v.join('; ');
+      if (typeof v === 'object') return JSON.stringify(v);
+      return String(v);
+    }
+
+    // CSV celica — ovij v narekovaje in podvoji notranje narekovaje (RFC 4180).
+    function csvCell(v) {
+      return '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    }
+
+    // Zgradi vrstice (vprašanje, odgovor) v istem vrstnem redu kot prikaz na zaslonu.
+    // Prazna NEOBVEZNA polja preskočimo, ostala polja (gdpr_consent ...) dodamo na konec.
+    function zberiVrstice(raw, questions) {
+      const qList = Array.isArray(questions) ? questions : [];
+      const handled = new Set();
+      const vrstice = [];
+      for (const q of qList) {
+        const v = raw?.[q.id];
+        const prazno = v == null || v === '' || (Array.isArray(v) && v.length === 0);
+        if (prazno && !q.obvezno) { handled.add(q.id); continue; }
+        vrstice.push([q.label || q.id, valToText(v)]);
+        handled.add(q.id);
+      }
+      const meta = { gdpr_consent: 'GDPR consent' };
+      for (const [k, v] of Object.entries(raw || {})) {
+        if (handled.has(k)) continue;
+        if (v == null || v === '') continue;
+        vrstice.push([meta[k] || k, valToText(v)]);
+      }
+      return vrstice;
+    }
+
+    // Slug iz naziva podjetja za ime datoteke (ascii, brez presledkov).
+    function vSlug(s) {
+      return String(s || 'podjetje').toLowerCase()
+        .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'podjetje';
+    }
+
+    // Sestavi CSV in sproži prenos. Doda UTF-8 BOM, da Excel pravilno pokaže šumnike.
+    function prenesiCsv(r) {
+      const vrstice = zberiVrstice(r.raw_data, r.q_questions);
+      const lines = [
+        ['Podjetje', r.naziv_prikaz || ''],
+        ['Vprašalnik', r.q_naziv || ''],
+        ['Datum', formatDatum(r.submitted_at)],
+        ['GDPR', r.consent_gdpr ? 'da' : 'ne'],
+        ['', ''],
+        ['Vprašanje', 'Odgovor'],
+        ...vrstice,
+      ];
+      const csv = lines.map(row => row.map(csvCell).join(',')).join('\r\n');
+      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `odgovor-${vSlug(r.naziv_prikaz)}-${r.id}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
     (async () => {
       showLoading('content');
       const data = await apiFetch(`/api/responses/${id}`);
@@ -104,12 +169,15 @@
       const gdpr = r.consent_gdpr ? 'DA ✓' : 'NE';
 
       document.getElementById('content').innerHTML = `
-        <div class="mb-6">
-          <h1 class="text-2xl font-bold text-[#1a1a2e]">Odgovor #${r.id}</h1>
-          <div class="text-sm text-gray-500 mt-1">
-            <a class="text-[#00b894] hover:underline" href="/admin/company.html?id=${r.company_id}">${esc(r.naziv_prikaz)}</a>
-            · ${formatDatum(r.submitted_at)} · GDPR: ${gdpr}
+        <div class="mb-6 flex items-start justify-between gap-4">
+          <div>
+            <h1 class="text-2xl font-bold text-[#1a1a2e]">Odgovor #${r.id}</h1>
+            <div class="text-sm text-gray-500 mt-1">
+              <a class="text-[#00b894] hover:underline" href="/admin/company.html?id=${r.company_id}">${esc(r.naziv_prikaz)}</a>
+              · ${formatDatum(r.submitted_at)} · GDPR: ${gdpr}
+            </div>
           </div>
+          <button id="btn-csv" class="shrink-0 px-4 py-2 rounded-lg bg-[#00b894] text-white text-sm font-semibold hover:opacity-90 transition">Prenesi odgovore (CSV)</button>
         </div>
 
         <div class="mb-6">
@@ -122,6 +190,8 @@
           ${renderRawData(r.raw_data, r.q_questions)}
         </div>
       `;
+
+      document.getElementById('btn-csv')?.addEventListener('click', () => prenesiCsv(r));
     })();
   </script>
 </body>
