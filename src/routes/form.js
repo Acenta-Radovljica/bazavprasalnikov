@@ -419,7 +419,7 @@ router.get('/:slug', async (req, res) => {
   if (!slug) return posljiInfo(res, 400, 'Manjkajoč podatek', 'V URL-ju manjka slug vprašalnika.');
 
   const r = await dbQuery(
-    'SELECT slug, naziv_prikaz, opis, questions, aktivna FROM questionnaires WHERE slug = $1',
+    'SELECT slug, naziv_prikaz, opis, questions, aktivna, custom_html FROM questionnaires WHERE slug = $1',
     [slug]
   );
   if (!r?.rows?.length) {
@@ -431,6 +431,12 @@ router.get('/:slug', async (req, res) => {
   if (!q.aktivna) {
     return posljiInfo(res, 410, 'Vprašalnik je ugasnjen',
       'Ta vprašalnik trenutno ne sprejema novih odgovorov. Če ste prejeli povezavo nedavno, kontaktirajte Acenta ekipo.');
+  }
+
+  // Custom HTML obrazec: ce je nastavljen, ga postrezi dobesedno (preskoci avto-generiranje).
+  if (typeof q.custom_html === 'string' && q.custom_html.trim() !== '') {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.send(q.custom_html);
   }
 
   const questions = Array.isArray(q.questions) ? q.questions : [];

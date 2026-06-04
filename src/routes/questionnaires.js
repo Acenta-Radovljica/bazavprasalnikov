@@ -74,6 +74,7 @@ function pripraviPolja(body) {
     priporocila_user_template: typeof body.priporocila_user_template === 'string' ? body.priporocila_user_template : null,
     aktivna: typeof body.aktivna === 'boolean' ? body.aktivna : true,
     namen: typeof body.namen === 'string' ? body.namen.trim().toLowerCase() : 'lead',
+    custom_html: typeof body.custom_html === 'string' ? body.custom_html : null,
   };
 }
 
@@ -137,14 +138,14 @@ router.post('/', async (req, res) => {
         slug, naziv_prikaz, opis, questions,
         povzetek_system_prompt, povzetek_user_template,
         priporocila_system_prompt, priporocila_user_template,
-        aktivna, namen
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        aktivna, namen, custom_html
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING id, slug, naziv_prikaz, aktivna, namen, created_at
     `, [
       f.slug, f.naziv_prikaz, f.opis, JSON.stringify(f.questions),
       f.povzetek_system_prompt ?? '', f.povzetek_user_template ?? '',
       f.priporocila_system_prompt ?? '', f.priporocila_user_template ?? '',
-      f.aktivna, f.namen,
+      f.aktivna, f.namen, f.custom_html,
     ]);
     res.status(201).json({ ok: true, questionnaire: r?.rows?.[0] ?? null });
   } catch (err) {
@@ -201,6 +202,10 @@ router.patch('/:id', async (req, res) => {
     const namen = body.namen.trim().toLowerCase();
     if (!VELJAVNI_NAMENI.has(namen)) return res.status(400).json({ error: 'invalid_namen' });
     maybeAdd('namen', namen);
+  }
+  // custom_html: prazen niz pomeni "izbrisi custom HTML" (shranimo NULL → vrnemo se na avto-obrazec).
+  if (typeof body.custom_html === 'string') {
+    maybeAdd('custom_html', body.custom_html.trim() === '' ? null : body.custom_html);
   }
 
   if (updates.length === 0) return res.status(400).json({ error: 'no_fields_to_update' });

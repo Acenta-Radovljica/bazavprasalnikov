@@ -145,6 +145,16 @@
           </div>
         </div>
 
+        <!-- Custom HTML obrazec -->
+        <div class="card p-10 mb-6" id="card-custom-html">
+          <div class="display-serif mb-1" style="font-size:22px;">Custom HTML obrazec (neobvezno)</div>
+          <div class="text-sm text-muted mb-6">Če prilepiš cel HTML obrazec sem, ga bo <code class="text-xs">/f/{slug}</code> postregel <strong>dobesedno</strong> namesto avto-generiranega obrazca iz vprašanj zgoraj. Pusti prazno za navaden obrazec. Obrazec mora POST-ati na <code class="text-xs">/f/{slug}</code> (z honeypot poljem <code class="text-xs">company_url</code>).</div>
+          <div>
+            <label class="field-label" for="f-custom-html">HTML koda</label>
+            <textarea id="f-custom-html" class="textarea code" rows="12" placeholder="&lt;!DOCTYPE html&gt; ... cel obrazec ..."></textarea>
+          </div>
+        </div>
+
         <!-- Povzetek prompti -->
         <div class="card p-10 mb-6" id="card-povzetek">
           <div class="display-serif mb-1" style="font-size:22px;">Povzetek — Haiku</div>
@@ -281,6 +291,7 @@
         document.getElementById('f-povzetek-usr').value = 'Naredi kratek povzetek (3-5 stavkov) naslednjih odgovorov udeleženca delavnice:\n\n{podatki}';
         document.getElementById('f-priporocila-sys').value = 'Si strateški AI svetovalec agencije Acenta.si. Pripraviš premišljene, podjetju prilagojene priporočila na podlagi odgovorov udeležencev. Piši v slovenščini, profesionalno, konkretno. Format: Markdown.';
         document.getElementById('f-priporocila-usr').value = 'Podjetje: {naziv}\nŠtevilo respondentov: {st_respondentov}\n\nOdgovori vseh respondentov:\n\n{respondenti}\n\nPripravi konkretna priporočila za to podjetje.';
+        document.getElementById('f-custom-html').value = '';
         vprasanja = [];
         renderVprasanja();
         return;
@@ -311,6 +322,7 @@
       document.getElementById('f-povzetek-usr').value = q.povzetek_user_template || '';
       document.getElementById('f-priporocila-sys').value = q.priporocila_system_prompt || '';
       document.getElementById('f-priporocila-usr').value = q.priporocila_user_template || '';
+      document.getElementById('f-custom-html').value = q.custom_html || '';
       vprasanja = Array.isArray(q.questions) ? JSON.parse(JSON.stringify(q.questions)) : [];
       renderVprasanja();
     }
@@ -448,6 +460,7 @@
         povzetek_user_template: document.getElementById('f-povzetek-usr').value,
         priporocila_system_prompt: document.getElementById('f-priporocila-sys').value,
         priporocila_user_template: document.getElementById('f-priporocila-usr').value,
+        custom_html: document.getElementById('f-custom-html').value,
         questions: vprasanja,
       };
     }
