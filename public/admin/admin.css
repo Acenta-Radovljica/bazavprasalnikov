@@ -134,6 +134,7 @@ h1.display {
 .badge-warning { background: #fdecd0; color: #8a4d00; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
 .badge-success { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
 .badge-neutral { background: #ece9e1; color: #6b6b75; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.badge-info { background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
 
 .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #ece9e1; color: #6b6b75; }
 .pill.teal  { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); }
