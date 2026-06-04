@@ -12,6 +12,9 @@ const VELJAVNI_TIPI = new Set(['text', 'textarea', 'email', 'number', 'select', 
 // Slug mora biti URL-friendly: samo male crke, stevilke in vezaji. Min 2 znakov.
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/;
 
+// Namen vprasalnika: 'lead' = poln AI tok, 'shramba' = samo shrani obrazec.
+const VELJAVNI_NAMENI = new Set(['lead', 'shramba']);
+
 // ── DEL 3: Helper funkcije ────────────────────────────────────────────────
 
 // Validira polje "questions" — mora biti array, vsak element objekt s polji:
@@ -70,6 +73,7 @@ function pripraviPolja(body) {
     priporocila_system_prompt: typeof body.priporocila_system_prompt === 'string' ? body.priporocila_system_prompt : null,
     priporocila_user_template: typeof body.priporocila_user_template === 'string' ? body.priporocila_user_template : null,
     aktivna: typeof body.aktivna === 'boolean' ? body.aktivna : true,
+    namen: typeof body.namen === 'string' ? body.namen.trim().toLowerCase() : 'lead',
   };
 }
 
@@ -78,7 +82,7 @@ function pripraviPolja(body) {
 // GET /api/questionnaires — seznam vseh (z metrikami)
 router.get('/', async (_req, res) => {
   const r = await dbQuery(`
-    SELECT q.id, q.slug, q.naziv_prikaz, q.opis, q.aktivna,
+    SELECT q.id, q.slug, q.naziv_prikaz, q.opis, q.aktivna, q.namen,
            q.created_at, q.updated_at,
            jsonb_array_length(q.questions) AS st_vprasanj,
            (SELECT count(*) FROM responses r WHERE r.questionnaire_id = q.id)::int AS st_odgovorov,
@@ -108,11 +112,20 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: 'invalid_slug', detail: 'samo male crke/stevilke/vezaji, 2-50 znakov' });
   }
   if (!f.naziv_prikaz) return res.status(400).json({ error: 'missing_naziv_prikaz' });
-  if (!f.povzetek_system_prompt || !f.povzetek_user_template) {
-    return res.status(400).json({ error: 'missing_povzetek_prompt' });
+  if (!VELJAVNI_NAMENI.has(f.namen)) {
+    return res.status(400).json({ error: 'invalid_namen', detail: "namen mora biti 'lead' ali 'shramba'" });
   }
-  if (!f.priporocila_system_prompt || !f.priporocila_user_template) {
-    return res.status(400).json({ error: 'missing_priporocila_prompt' });
+
+  // Prompti so obvezni SAMO za 'lead' vprasalnike (tam tece AI). Pri 'shramba'
+  // se obrazec samo shrani — prompte privzeto nastavimo na prazen niz (NOT NULL).
+  const jeShramba = f.namen === 'shramba';
+  if (!jeShramba) {
+    if (!f.povzetek_system_prompt || !f.povzetek_user_template) {
+      return res.status(400).json({ error: 'missing_povzetek_prompt' });
+    }
+    if (!f.priporocila_system_prompt || !f.priporocila_user_template) {
+      return res.status(400).json({ error: 'missing_priporocila_prompt' });
+    }
   }
 
   const v = validirajQuestions(f.questions);
@@ -124,14 +137,14 @@ router.post('/', async (req, res) => {
         slug, naziv_prikaz, opis, questions,
         povzetek_system_prompt, povzetek_user_template,
         priporocila_system_prompt, priporocila_user_template,
-        aktivna
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING id, slug, naziv_prikaz, aktivna, created_at
+        aktivna, namen
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      RETURNING id, slug, naziv_prikaz, aktivna, namen, created_at
     `, [
       f.slug, f.naziv_prikaz, f.opis, JSON.stringify(f.questions),
-      f.povzetek_system_prompt, f.povzetek_user_template,
-      f.priporocila_system_prompt, f.priporocila_user_template,
-      f.aktivna,
+      f.povzetek_system_prompt ?? '', f.povzetek_user_template ?? '',
+      f.priporocila_system_prompt ?? '', f.priporocila_user_template ?? '',
+      f.aktivna, f.namen,
     ]);
     res.status(201).json({ ok: true, questionnaire: r?.rows?.[0] ?? null });
   } catch (err) {
@@ -184,6 +197,11 @@ router.patch('/:id', async (req, res) => {
   if (typeof body.priporocila_system_prompt === 'string') maybeAdd('priporocila_system_prompt', body.priporocila_system_prompt);
   if (typeof body.priporocila_user_template === 'string') maybeAdd('priporocila_user_template', body.priporocila_user_template);
   if (typeof body.aktivna === 'boolean') maybeAdd('aktivna', body.aktivna);
+  if (typeof body.namen === 'string') {
+    const namen = body.namen.trim().toLowerCase();
+    if (!VELJAVNI_NAMENI.has(namen)) return res.status(400).json({ error: 'invalid_namen' });
+    maybeAdd('namen', namen);
+  }
 
   if (updates.length === 0) return res.status(400).json({ error: 'no_fields_to_update' });
 

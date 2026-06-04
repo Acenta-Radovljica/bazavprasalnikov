@@ -115,6 +115,14 @@
               <label class="field-label" for="f-opis">Kratek opis (opcijsko)</label>
               <textarea id="f-opis" class="textarea" placeholder="Delavnica Acenta.si — kratek vodič po stanju AI v podjetju..." rows="2"></textarea>
             </div>
+            <div class="md:col-span-2">
+              <label class="field-label" for="f-namen">Namen vprašalnika</label>
+              <select id="f-namen" class="select" onchange="osveziNamen()">
+                <option value="lead">Lead — generiraj AI povzetek in priporočila</option>
+                <option value="shramba">Shramba — samo shrani obrazec (brez AI)</option>
+              </select>
+              <div class="field-help">Pri <strong>shrambi</strong> AI prompti niso potrebni — obrazec se le shrani in je dostopen v pregledu.</div>
+            </div>
             <div class="md:col-span-2 flex items-center gap-2">
               <input id="f-aktivna" type="checkbox" class="w-4 h-4 accent-[#00b894]">
               <label for="f-aktivna" class="text-sm font-medium">Aktivna — obrazec sprejema submissione</label>
@@ -138,7 +146,7 @@
         </div>
 
         <!-- Povzetek prompti -->
-        <div class="card p-10 mb-6">
+        <div class="card p-10 mb-6" id="card-povzetek">
           <div class="display-serif mb-1" style="font-size:22px;">Povzetek — Haiku</div>
           <div class="text-sm text-muted mb-6">Generira se avtomatsko po vsakem submissionu. Hiter, poceni. Uporabi <code class="text-xs">{podatki}</code> za vse odgovore.</div>
           <div class="space-y-6">
@@ -155,7 +163,7 @@
         </div>
 
         <!-- Priporocila prompti -->
-        <div class="card p-10 mb-6">
+        <div class="card p-10 mb-6" id="card-priporocila">
           <div class="display-serif mb-1" style="font-size:22px;">Priporočila — Opus</div>
           <div class="text-sm text-muted mb-6">Generira se ročno z gumbom "Regeneriraj" v podjetju. Premišljeno, drag(o). Uporabi <code class="text-xs">{naziv}</code>, <code class="text-xs">{st_respondentov}</code>, <code class="text-xs">{respondenti}</code>.</div>
           <div class="space-y-6">
@@ -239,6 +247,7 @@
             </div>
           </div>
           <div class="flex items-center gap-3">
+            ${q.namen === 'shramba' ? '<span class="badge-neutral">Shramba</span>' : '<span class="badge-neutral">Lead</span>'}
             ${q.aktivna ? '<span class="badge-success">Aktivna</span>' : '<span class="badge-neutral">Ugasnjena</span>'}
             <a href="${publicFormUrl(esc(q.slug))}" target="_blank" rel="noopener" class="text-sm font-medium text-[#006e5a] hover:text-[#00b894]" onclick="event.stopPropagation()">Predogled →</a>
           </div>
@@ -266,6 +275,8 @@
         document.getElementById('f-naziv').value = '';
         document.getElementById('f-opis').value = '';
         document.getElementById('f-aktivna').checked = true;
+        document.getElementById('f-namen').value = 'lead';
+        osveziNamen();
         document.getElementById('f-povzetek-sys').value = 'Si AI asistent agencije Acenta.si. Pripraviš kratke povzetke odgovorov udeležencev delavnice. Piši v slovenščini, jedrnato, brez fraz.';
         document.getElementById('f-povzetek-usr').value = 'Naredi kratek povzetek (3-5 stavkov) naslednjih odgovorov udeleženca delavnice:\n\n{podatki}';
         document.getElementById('f-priporocila-sys').value = 'Si strateški AI svetovalec agencije Acenta.si. Pripraviš premišljene, podjetju prilagojene priporočila na podlagi odgovorov udeležencev. Piši v slovenščini, profesionalno, konkretno. Format: Markdown.';
@@ -294,6 +305,8 @@
       document.getElementById('f-naziv').value = q.naziv_prikaz || '';
       document.getElementById('f-opis').value = q.opis || '';
       document.getElementById('f-aktivna').checked = !!q.aktivna;
+      document.getElementById('f-namen').value = q.namen === 'shramba' ? 'shramba' : 'lead';
+      osveziNamen();
       document.getElementById('f-povzetek-sys').value = q.povzetek_system_prompt || '';
       document.getElementById('f-povzetek-usr').value = q.povzetek_user_template || '';
       document.getElementById('f-priporocila-sys').value = q.priporocila_system_prompt || '';
@@ -306,6 +319,13 @@
       document.getElementById('view-editor').style.display = 'none';
       document.getElementById('view-list').style.display = 'block';
       nalozi();
+    }
+
+    // Pri namen='shramba' skrijemo AI prompt kartice — niso potrebne.
+    function osveziNamen() {
+      const shramba = document.getElementById('f-namen').value === 'shramba';
+      document.getElementById('card-povzetek').style.display = shramba ? 'none' : '';
+      document.getElementById('card-priporocila').style.display = shramba ? 'none' : '';
     }
 
     // ── Vprašanja ─────────────────────────────────────────────────────────
@@ -423,6 +443,7 @@
         naziv_prikaz: document.getElementById('f-naziv').value.trim(),
         opis: document.getElementById('f-opis').value.trim(),
         aktivna: document.getElementById('f-aktivna').checked,
+        namen: document.getElementById('f-namen').value,
         povzetek_system_prompt: document.getElementById('f-povzetek-sys').value,
         povzetek_user_template: document.getElementById('f-povzetek-usr').value,
         priporocila_system_prompt: document.getElementById('f-priporocila-sys').value,

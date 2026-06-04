@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vprašalnik — Sistem za odgovarjanje na komentarje · Acenta.si</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap">
+  <style>
+    :root {
+      --bg: #F2F6F7; --surface: #FFFFFF; --border: #DDE7E8;
+      --text: #16302E; --muted: #6B807E; --accent: #00afaa; --accent-soft: #E1F5F4;
+      --radius: 12px;
+      --font-sans: 'Geist', system-ui, sans-serif;
+      --font-display: 'Fraunces', Georgia, serif;
+    }
+    * { box-sizing: border-box; }
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--font-sans); margin: 0; line-height: 1.6;
+    }
+    .doc { max-width: 680px; margin: 0 auto; padding: 48px 24px 72px; }
+
+    .eyebrow {
+      font-size: .72rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: var(--accent); margin-bottom: 10px;
+    }
+    h1 {
+      font-family: var(--font-display); font-weight: 600;
+      font-size: 1.9rem; margin: 0 0 10px; line-height: 1.2;
+    }
+    .lead { color: var(--muted); font-size: .95rem; margin-bottom: 36px; }
+
+    .section {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px 26px; margin-bottom: 18px;
+    }
+    .section h2 {
+      font-family: var(--font-display); font-weight: 600; font-size: 1.15rem;
+      margin: 0 0 4px;
+    }
+    .section .hint { color: var(--muted); font-size: .85rem; margin: 0 0 18px; }
+
+    .q { margin-bottom: 18px; }
+    .q:last-child { margin-bottom: 0; }
+    label.qlabel { display: block; font-weight: 500; margin-bottom: 8px; font-size: .95rem; }
+
+    input[type="text"], input[type="email"], input[type="url"], textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-family: inherit; font-size: .92rem;
+      color: var(--text); background: #FBFDFD;
+    }
+    input:focus, textarea:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+    textarea { resize: vertical; min-height: 70px; }
+
+    .checks { display: flex; flex-direction: column; gap: 9px; }
+    .check, .radio-row { display: flex; align-items: center; gap: 10px; font-size: .92rem; }
+    .check input, .radio-row input { width: 17px; height: 17px; accent-color: var(--accent); flex-shrink: 0; }
+
+    .platform-grid { display: flex; flex-direction: column; gap: 14px; }
+    .platform-row {
+      border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; background: #FBFDFD;
+    }
+    .platform-row .pname { font-weight: 600; margin-bottom: 8px; }
+    .opts { display: flex; gap: 18px; flex-wrap: wrap; }
+
+    .inline { display: flex; gap: 18px; flex-wrap: wrap; }
+    .inline .q { flex: 1; min-width: 200px; }
+
+    .access-help { margin: 10px 0 0; font-size: .8rem; color: var(--muted); }
+    .access-help a { color: var(--accent); font-weight: 500; }
+
+    .add-portal-btn {
+      margin-top: 12px; padding: 9px 16px; font-family: inherit; font-size: .85rem;
+      font-weight: 600; color: var(--accent); background: var(--accent-soft);
+      border: 1px solid var(--accent); border-radius: 8px; cursor: pointer;
+    }
+    .add-portal-btn:hover { background: var(--accent); color: #fff; }
+    .custom-portal { margin-bottom: 14px; }
+    .custom-portal:last-child { margin-bottom: 0; }
+
+    /* GDPR + submit */
+    .gdpr-row { display: flex; align-items: flex-start; gap: 10px; font-size: .88rem; color: var(--text); }
+    .gdpr-row input { width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; margin-top: 2px; }
+    .submit {
+      width: 100%; margin-top: 6px; padding: 14px 20px; font-family: inherit;
+      font-size: 1rem; font-weight: 600; color: #fff; background: var(--accent);
+      border: none; border-radius: 10px; cursor: pointer; transition: opacity .15s;
+    }
+    .submit:hover { opacity: .9; }
+    .submit:disabled { opacity: .55; cursor: not-allowed; }
+    .err {
+      display: none; margin-top: 14px; padding: 12px 14px; border-radius: 8px;
+      background: #FDECEC; border: 1px solid #F5C2C2; color: #9B2C2C; font-size: .88rem;
+    }
+
+    /* Honeypot — skrito pred ljudmi, vidno botom */
+    .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+    /* Hvala zaslon */
+    .thanks { text-align: center; padding: 12px 0; }
+    .thanks-check {
+      width: 64px; height: 64px; margin: 0 auto 20px; border-radius: 50%;
+      background: var(--accent-soft); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .thanks-check svg { width: 32px; height: 32px; }
+    .thanks h1 { margin-bottom: 12px; }
+    .thanks p { color: var(--muted); font-size: .95rem; max-width: 480px; margin: 0 auto 10px; }
+    .thanks a { color: var(--accent); font-weight: 500; }
+
+    footer {
+      margin-top: 32px; color: var(--muted); font-size: .82rem;
+      text-align: center; line-height: 1.7;
+    }
+    footer strong { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="doc" id="doc">
+    <div class="eyebrow">Acenta.si · Sistem za komentarje</div>
+    <h1>Vprašalnik za pripravo sistema</h1>
+    <p class="lead">
+      Da sistem za odgovarjanje na komentarje pripravimo točno po vaših željah,
+      vas prosimo, da izpolnite spodnja polja. Vzelo vam bo nekaj minut. Hvala!
+    </p>
+
+    <form id="vprasalnik" method="POST" action="/f/review-agent-intake" novalidate>
+
+      <!-- Honeypot — pustite prazno -->
+      <div class="hp" aria-hidden="true">
+        <label>Ne izpolnjujte tega polja
+          <input type="text" name="company_url" tabindex="-1" autocomplete="off">
+        </label>
+      </div>
+
+      <!-- 1 -->
+      <div class="section">
+        <h2>1. Osnovni podatki</h2>
+        <p class="hint">Komu pošljemo osnutke odgovorov v pregled.</p>
+        <div class="q">
+          <label class="qlabel" for="podjetje">Ime objekta (hotel / nastanitev)</label>
+          <input type="text" id="podjetje" name="podjetje" placeholder="npr. Hotel Primer" required>
+        </div>
+        <div class="inline">
+          <div class="q">
+            <label class="qlabel" for="kontakt">Kontaktna oseba</label>
+            <input type="text" id="kontakt" name="kontakt" placeholder="Ime in priimek">
+          </div>
+          <div class="q">
+            <label class="qlabel" for="email">Email za osnutke</label>
+            <input type="email" id="email" name="email" placeholder="ime@vasadomena.com" required>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 -->
+      <div class="section">
+        <h2>2. Kje dobivate komentarje?</h2>
+        <p class="hint">Označite portale, ki jih spremljamo, in prilepite povezavo do <strong>vaše strani</strong> na vsakem portalu. Prosimo, prilepite točno tisto povezavo, ki jo vidite v brskalniku, ko ste na svoji strani.</p>
+        <div class="platform-grid">
+          <div class="platform-row">
+            <div class="pname"><label class="check"><input type="checkbox" name="portal_google" value="da"> Google</label></div>
+            <div class="q" style="margin:8px 0 0;">
+              <label class="qlabel" for="url_google">Povezava do vašega profila na Google Zemljevidih</label>
+              <input type="url" id="url_google" name="url_google" placeholder="https://maps.google.com/... ali https://g.page/...">
+            </div>
+          </div>
+          <div class="platform-row">
+            <div class="pname"><label class="check"><input type="checkbox" name="portal_booking" value="da"> Booking.com</label></div>
+            <div class="q" style="margin:8px 0 0;">
+              <label class="qlabel" for="url_booking">Povezava do vaše strani na Booking.com</label>
+              <input type="url" id="url_booking" name="url_booking" placeholder="https://www.booking.com/hotel/...">
+            </div>
+          </div>
+          <div class="platform-row">
+            <div class="pname"><label class="check"><input type="checkbox" name="portal_tripadvisor" value="da"> TripAdvisor</label></div>
+            <div class="q" style="margin:8px 0 0;">
+              <label class="qlabel" for="url_tripadvisor">Povezava do vaše strani na TripAdvisor</label>
+              <input type="url" id="url_tripadvisor" name="url_tripadvisor" placeholder="https://www.tripadvisor.com/Hotel_Review-...">
+            </div>
+          </div>
+        </div>
+        <div id="custom-portals" style="margin-top:14px;">
+          <div class="platform-row custom-portal">
+            <div class="pname">Drug portal</div>
+            <div class="inline" style="margin-top:4px;">
+              <div class="q" style="margin:0;">
+                <label class="qlabel">Ime portala</label>
+                <input type="text" name="custom_portal_ime" placeholder="npr. Leading Courses, HolidayCheck …">
+              </div>
+              <div class="q" style="margin:0;">
+                <label class="qlabel">Povezava</label>
+                <input type="url" name="custom_portal_url" placeholder="https://…">
+              </div>
+            </div>
+          </div>
+        </div>
+        <button type="button" id="add-portal" class="add-portal-btn">+ Dodaj še en portal</button>
+      </div>
+
+      <!-- 3 -->
+      <div class="section">
+        <h2>3. Kako naj zvenijo odgovori?</h2>
+        <p class="hint">Sistem pripravi osnutek odgovora, vi ga le pregledate in objavite. Da bo zvenel kot vi, nam zaupajte nekaj usmeritev.</p>
+        <div class="q">
+          <label class="qlabel">V katerem jeziku odgovarjamo?</label>
+          <div class="opts">
+            <label class="radio-row"><input type="radio" name="jezik" value="Glede na jezik gosta"> Glede na jezik gosta <span style="color:var(--accent);font-weight:600;">(močno priporočamo)</span></label>
+            <label class="radio-row"><input type="radio" name="jezik" value="Slovensko"> Slovensko</label>
+            <label class="radio-row"><input type="radio" name="jezik" value="Angleško"> Angleško</label>
+          </div>
+        </div>
+        <div class="q">
+          <label class="qlabel">Kakšen ton želite?</label>
+          <div class="opts">
+            <label class="radio-row"><input type="radio" name="ton" value="Topel in prijazen"> Topel in prijazen</label>
+            <label class="radio-row"><input type="radio" name="ton" value="Uraden"> Uraden</label>
+            <label class="radio-row"><input type="radio" name="ton" value="Kratek in jedrnat"> Kratek in jedrnat</label>
+            <label class="radio-row"><input type="radio" name="ton" value="Prestižen"> Prestižen</label>
+          </div>
+        </div>
+        <div class="q">
+          <label class="qlabel" for="opis">Na kratko opišite vaš objekt</label>
+          <textarea id="opis" name="opis" placeholder="Kdo ste, kaj vas dela posebne, kako nagovarjate goste, posebne zaveze (npr. družinam prijazni, eko, wellness) … Te informacije pomagajo, da odgovori zvenijo pristno."></textarea>
+        </div>
+        <div class="q">
+          <label class="qlabel" for="izogibanje">Je kaj, česar se v odgovorih raje izogibamo?</label>
+          <textarea id="izogibanje" name="izogibanje" placeholder="npr. ne obljubljamo popustov, ne komentiramo cen, ne omenjamo konkurence …"></textarea>
+        </div>
+      </div>
+
+      <!-- 4 -->
+      <div class="section">
+        <h2>4. Dostop za objavo odgovorov</h2>
+        <p class="hint">Sistem pripravi osnutek, vi ga objavite — za to potrebujete dostop do portala. Za vsakega označite, ali dostop imate. Ne skrbite, če ne veste — pomagamo vam urediti.</p>
+        <div class="platform-grid">
+          <div class="platform-row">
+            <div class="pname">Google Business Profile</div>
+            <div class="opts">
+              <label class="radio-row"><input type="radio" name="dostop_google" value="Imamo dostop"> Imamo dostop</label>
+              <label class="radio-row"><input type="radio" name="dostop_google" value="Nimamo / ne vemo"> Nimamo / ne vemo</label>
+            </div>
+            <p class="access-help">Preverite na <a href="https://business.google.com" target="_blank" rel="noopener">business.google.com</a></p>
+          </div>
+          <div class="platform-row">
+            <div class="pname">Booking Extranet</div>
+            <div class="opts">
+              <label class="radio-row"><input type="radio" name="dostop_booking" value="Imamo dostop"> Imamo dostop</label>
+              <label class="radio-row"><input type="radio" name="dostop_booking" value="Nimamo / ne vemo"> Nimamo / ne vemo</label>
+            </div>
+            <p class="access-help">Preverite na <a href="https://admin.booking.com" target="_blank" rel="noopener">admin.booking.com</a></p>
+          </div>
+          <div class="platform-row">
+            <div class="pname">TripAdvisor Management Center</div>
+            <div class="opts">
+              <label class="radio-row"><input type="radio" name="dostop_tripadvisor" value="Imamo dostop"> Imamo dostop</label>
+              <label class="radio-row"><input type="radio" name="dostop_tripadvisor" value="Nimamo / ne vemo"> Nimamo / ne vemo</label>
+            </div>
+            <p class="access-help">Preverite na <a href="https://www.tripadvisor.com/Owners" target="_blank" rel="noopener">tripadvisor.com/Owners</a></p>
+          </div>
+        </div>
+        <p class="hint" style="margin:16px 0 0;">Če dostopa nimate, vam ga z veseljem pomagamo urediti — brez njega odgovorov na portalu ni mogoče objaviti.</p>
+      </div>
+
+      <!-- GDPR + oddaja -->
+      <div class="section">
+        <div class="q" style="margin-bottom:18px;">
+          <label class="gdpr-row">
+            <input type="checkbox" name="gdpr_consent" value="on" required>
+            <span>Strinjam se, da Acenta.si shrani in obdela te podatke za pripravo sistema za odgovarjanje na komentarje. Podatke lahko kadar koli umaknem na <a href="mailto:ai@acenta.si">ai@acenta.si</a>.</span>
+          </label>
+        </div>
+        <button type="submit" class="submit">Pošlji vprašalnik</button>
+        <div class="err" id="err"></div>
+      </div>
+
+    </form>
+
+    <footer>
+      Vprašanja? Pišite na <strong>ai@acenta.si</strong>.<br>
+      Ko prejmemo odgovore, sistem pripravimo in vam ga pošljemo v ogled.
+    </footer>
+  </div>
+
+  <script>
+    // Ob kliku na gumb podvojimo prvo "Drug portal" vrstico in izpraznimo polja.
+    document.getElementById('add-portal').addEventListener('click', function () {
+      const container = document.getElementById('custom-portals');
+      const template = container.querySelector('.custom-portal');
+      const copy = template.cloneNode(true);
+      copy.querySelectorAll('input').forEach(input => { input.value = ''; });
+      container.appendChild(copy);
+    });
+
+    // Oddaja: FormData → JSON → fetch POST na isti origin (/f/review-agent-intake).
+    const form = document.getElementById('vprasalnik');
+    const errBox = document.getElementById('err');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errBox.style.display = 'none';
+      const btn = form.querySelector('.submit');
+      btn.disabled = true;
+      btn.textContent = 'Pošiljam...';
+
+      // FormData → objekt. Polja z istim imenom (npr. več custom portalov) → array.
+      const fd = new FormData(form);
+      const data = {};
+      for (const key of fd.keys()) {
+        const vals = fd.getAll(key);
+        data[key] = vals.length > 1 ? vals : vals[0];
+      }
+
+      try {
+        const res = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+        const json = await res.json().catch(() => ({}));
+        if (!res.ok || !json.ok) {
+          throw new Error(json.error || 'submit_failed');
+        }
+
+        // Uspeh — zamenjaj vsebino s "Hvala" zaslonom.
+        const escHtml = (s) => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        const ime = (data.kontakt || '').trim().split(/\s+/)[0] || '';
+        const email = data.email || '';
+        document.getElementById('doc').innerHTML = `
+          <div class="eyebrow">Acenta.si · Sistem za komentarje</div>
+          <div class="thanks">
+            <div class="thanks-check">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            </div>
+            <h1>Hvala${ime ? ', ' + escHtml(ime) : ''}!</h1>
+            <p>Vaše odgovore smo prejeli. Sistem za odgovarjanje na komentarje pripravimo po vaših željah${email ? ' in vam ga pošljemo v ogled na <strong>' + escHtml(email) + '</strong>' : ''}.</p>
+            <p>Vprašanja? Pišite na <a href="mailto:ai@acenta.si">ai@acenta.si</a>.</p>
+          </div>
+        `;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        let msg = 'Napaka pri pošiljanju: ' + err.message + '.';
+        if (err.message === 'gdpr_consent_required') {
+          msg = 'Prosimo, potrdite soglasje za obdelavo podatkov.';
+        }
+        errBox.textContent = msg + ' Poskusite znova ali pišite na ai@acenta.si.';
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Pošlji vprašalnik';
+      }
+    });
+  </script>
+</body>
+</html>

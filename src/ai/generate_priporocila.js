@@ -43,7 +43,7 @@ async function generirajPriporocila(companyId, questionnaireId) {
 
   // Naloži podjetje + vprasalnik (prompt + template)
   const meta = await dbQuery(`
-    SELECT c.naziv_prikaz,
+    SELECT c.naziv_prikaz, q.namen,
            q.priporocila_system_prompt, q.priporocila_user_template
       FROM companies c, questionnaires q
      WHERE c.id = $1 AND q.id = $2
@@ -52,6 +52,13 @@ async function generirajPriporocila(companyId, questionnaireId) {
     console.warn(`[priporocila] company=${companyId} ali questionnaire=${questionnaireId} ne obstaja`);
     return null;
   }
+
+  // Varovalka: vprasalniki z namen='shramba' nimajo AI priporocil (prompti so
+  // prazni). Gate tu pokrije tudi rocni admin "regenerate-ai" klik.
+  if (meta.rows[0].namen === 'shramba') {
+    return null;
+  }
+
   const { naziv_prikaz: naziv, priporocila_system_prompt: system, priporocila_user_template: tpl } = meta.rows[0];
 
   // Naloži responses + povzetke samo za ta vprasalnik (ne mesaj odgovorov iz drugih vprasalnikov)

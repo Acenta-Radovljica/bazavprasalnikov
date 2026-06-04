@@ -41,7 +41,7 @@ async function generirajPovzetek(responseId) {
 
   // Naloži response + pripadajoč vprasalnik (system + user template)
   const r = await dbQuery(`
-    SELECT r.id, r.raw_data, r.questionnaire_id,
+    SELECT r.id, r.raw_data, r.questionnaire_id, q.namen,
            q.povzetek_system_prompt, q.povzetek_user_template
       FROM responses r
       JOIN questionnaires q ON q.id = r.questionnaire_id
@@ -49,6 +49,12 @@ async function generirajPovzetek(responseId) {
   `, [responseId]);
   if (!r?.rows?.length) {
     console.warn(`[povzetek] response ${responseId} ne obstaja ali nima vprasalnika`);
+    return null;
+  }
+
+  // Varovalka: vprasalniki z namen='shramba' se SAMO shranijo, brez AI povzetka.
+  // Gate je tu (ne v ruti), da pokrije oba vnosa — webhook in hosted form.
+  if (r.rows[0].namen === 'shramba') {
     return null;
   }
 

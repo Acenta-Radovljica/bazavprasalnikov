@@ -77,6 +77,13 @@ app.use('/assets', express.static(join(__dirnameSrv, '..', 'assets'), {
   maxAge: '7d',  // logo se ne spreminja pogosto — cache za 7 dni
 }));
 
+// Lastni hostani obrazci (npr. review-agent intake) — JAVNI, brez auth.
+// extensions:['html'] omogoci /intake/review-agent brez .html koncnice.
+// Submitajo na /f/:slug (formRouter) — isti origin, brez CORS.
+app.use('/intake', express.static(join(__dirnameSrv, '..', 'public', 'intake'), {
+  extensions: ['html'],
+}));
+
 // 404 fallback
 app.use((_req, res) => res.status(404).json({ error: 'not_found' }));
 
