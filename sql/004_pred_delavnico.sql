@@ -18,6 +18,12 @@ INSERT INTO questionnaires (
   'Anketa pred AI delavnico. Zbira nivo znanja, izkušnje, potrebe in pričakovanja udeležencev, da delavnico vsebinsko in praktično prilagodimo njihovemu delu. Anonimna, ~5 minut.',
   $q$[
     {
+      "id": "podjetje",
+      "label": "Naziv podjetja",
+      "tip": "text",
+      "obvezno": true
+    },
+    {
       "id": "q1_pogostost",
       "label": "Kako pogosto trenutno uporabljate orodja AI?",
       "tip": "radio",

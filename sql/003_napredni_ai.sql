@@ -17,6 +17,12 @@ INSERT INTO questionnaires (
   'Anketa za napredne uporabnike AI. Pomaga razumeti njihove procese, izzive in cilje, da Acenta lahko ponudi prilagojene resitve. Anonimna, ~5 minut.',
   $q$[
     {
+      "id": "podjetje",
+      "label": "Naziv podjetja",
+      "tip": "text",
+      "obvezno": true
+    },
+    {
       "id": "q1_zrelost",
       "label": "Kako bi opisali zrelost uporabe AI v vašem podjetju?",
       "tip": "radio",
