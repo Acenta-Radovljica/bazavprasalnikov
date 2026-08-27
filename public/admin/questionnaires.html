@@ -20,50 +20,8 @@
   <div class="flex min-h-screen">
 
     <!-- ── SIDEBAR ── -->
-    <aside class="w-64 app-sidebar p-5 flex flex-col">
-      <div class="flex items-center gap-3 mb-8 px-2">
-        <div class="brand-mark">a</div>
-        <div>
-          <div class="font-semibold leading-tight" style="font-family:'Fraunces',serif; font-size:18px; letter-spacing:-0.02em;">Acenta</div>
-          <div class="text-xs text-muted">Baza vprašalnikov</div>
-        </div>
-      </div>
-
-      <nav class="space-y-1 flex-1">
-        <a href="/admin/" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          <span>Pregled</span>
-        </a>
-
-        <a href="/admin/podjetja.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
-          <span>Podjetja</span>
-        </a>
-
-        <a href="/admin/questionnaires.html" class="sidebar-item active">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-          <span>Vprašalniki</span>
-        </a>
-
-        <a href="/admin/search.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <span>Iskanje</span>
-        </a>
-
-        <a href="/admin/insights.html" class="sidebar-item">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-          <span>Insights</span>
-        </a>
-      </nav>
-
-      <div class="card p-3 flex items-center gap-3">
-        <div class="w-9 h-9 rounded-full bg-[#00b894] text-white flex items-center justify-center font-semibold text-sm">AI</div>
-        <div class="min-w-0">
-          <div class="text-sm font-semibold text-[#1a1a2e] truncate">ai@acenta.si</div>
-          <div class="text-xs text-gray-500">Admin</div>
-        </div>
-      </div>
-    </aside>
+    <!-- Stransko vrstico izrise renderSidebar() v /admin/app.js -->
+    <aside id="sidebar" class="w-64 app-sidebar p-5 flex flex-col shrink-0"></aside>
 
     <!-- ── MAIN ── -->
     <main class="flex-1 p-10 max-w-[1280px]">
@@ -207,6 +165,8 @@
 
   <script src="/admin/app.js"></script>
   <script>
+    renderSidebar('questionnaires');
+
     // ── Stanje ────────────────────────────────────────────────────────────
     let trenutniId = null;     // ID urejanega vprašalnika (null = nov)
     let trenutniSlug = null;   // slug obstoječega (za predogled link)

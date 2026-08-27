@@ -53,9 +53,12 @@ async function generirajPriporocila(companyId, questionnaireId) {
     return null;
   }
 
-  // Varovalka: vprasalniki z namen='shramba' nimajo AI priporocil (prompti so
-  // prazni). Gate tu pokrije tudi rocni admin "regenerate-ai" klik.
-  if (meta.rows[0].namen === 'shramba') {
+  // Varovalka: AI priporocila tecejo SAMO za namen='lead' (ostali nameni
+  // imajo prazne prompte). Gate tu pokrije tudi rocni admin "regenerate-ai".
+  //
+  // Obrnjeno v dovoljenje ob migraciji 009 — glej isto opombo v
+  // generate_povzetek.js.
+  if (meta.rows[0].namen !== 'lead') {
     return null;
   }
 

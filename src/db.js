@@ -5,6 +5,17 @@ import pg from 'pg';
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const { Pool } = pg;
 
+// DATE (OID 1082) beri kot NIZ, ne kot Date.
+//
+// ZAKAJ: pg privzeto pretvori DATE v JS Date ob LOKALNI polnoci. Express ga
+// nato serializira prek toISOString(), torej v UTC — pri slovenskem +02:00
+// se "2026-08-24" v odzivu pojavi kot "2026-08-23T22:00:00.000Z". Datum
+// sestanka je zato v vmesniku kazal dan prej kot vpisani.
+// Ker DATE nikoli nima casa in ne pripada nobenemu casovnemu pasu, je edini
+// pravilen prenos gol niz "YYYY-MM-DD", tako kot je v bazi.
+// (Casovni zigi TIMESTAMPTZ te tezave nimajo in jih ne diramo.)
+pg.types.setTypeParser(1082, (v) => v);
+
 // Connection pool: max 10 hkratnih povezav (Acenta konvencija).
 // Pool sam upravlja povezave — mi samo klicemo query() in on poskrbi.
 const pool = new Pool({

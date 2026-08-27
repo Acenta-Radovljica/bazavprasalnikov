@@ -272,6 +272,8 @@ h1.display {
 /* ── Small utils ───────────────────────────────────────────────────── */
 .divider { border: 0; border-top: 1px solid var(--hairline); margin: 32px 0; }
 .text-muted { color: var(--muted); }
+/* Se svetlejsa raven za prazne vrednosti v tabelah (pomisljaj namesto podatka). */
+.text-muted-2 { color: var(--muted-2); }
 
 /* Prose tweaks (markdown content in company.html) */
 .prose h2 { color: var(--ink); border-bottom: 2px solid var(--acenta-teal); padding-bottom: 0.3rem; font-family: 'Fraunces', serif; font-weight: 500; }

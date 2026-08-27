@@ -230,5 +230,43 @@ async function renderiraj({ nazivPrikaz, prirocila }) {
   }
 }
 
+// Generican HTML -> PDF. Uporablja ISTO puppeteer konfiguracijo in nogo kot
+// renderiraj(), le da HTML dobi od klicatelja namesto da bi ga sestavljal iz
+// markdowna. Dodano za procesne vprasalnike (src/procesi/mail.js), kjer je
+// HTML ze zgrajen v src/procesi/render.js.
+//
+// Vrne Buffer ali null — nikoli ne vrze, ker se klice iz posiljanja emaila
+// in manjkajoc PDF ne sme podreti celotne akcije.
+async function renderirajHtml(html, { noga = true } = {}) {
+  if (typeof html !== 'string' || !html.trim()) return null;
+
+  let browser = null;
+  try {
+    browser = await puppeteer.launch({
+      executablePath: CHROMIUM_PATH,
+      headless: 'new',
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    await page.emulateMediaType('print');
+
+    return await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      displayHeaderFooter: noga,
+      headerTemplate: '<div></div>',
+      footerTemplate: noga ? FOOTER : '<div></div>',
+      margin: { top: '18mm', right: '14mm', bottom: '20mm', left: '14mm' },
+    });
+  } catch (err) {
+    console.error('[pdf] renderirajHtml napaka:', err.message);
+    return null;
+  } finally {
+    if (browser) await browser.close().catch(() => {});
+  }
+}
+
 // ── DEL 5: Named export ──────────────────────────────────────────────────
-export { renderiraj };
+export { renderiraj, renderirajHtml };

@@ -1,6 +1,7 @@
 // ── DEL 1: Imports ────────────────────────────────────────────────────────
 import express from 'express';
 import { dbQuery } from '../db.js';
+import { validirajVprasanja as validirajProcesnaVprasanja } from '../procesi/schema.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -12,8 +13,13 @@ const VELJAVNI_TIPI = new Set(['text', 'textarea', 'email', 'number', 'select', 
 // Slug mora biti URL-friendly: samo male crke, stevilke in vezaji. Min 2 znakov.
 const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/;
 
-// Namen vprasalnika: 'lead' = poln AI tok, 'shramba' = samo shrani obrazec.
-const VELJAVNI_NAMENI = new Set(['lead', 'shramba']);
+// Namen vprasalnika:
+//   'lead'    = poln AI tok (povzetek + priporocila + kvalifikacija)
+//   'shramba' = obrazec se samo shrani, brez AI
+//   'proces'  = procesni vprasalnik (FAZA 1 Acenta Hotel AI Framework);
+//               se ne servira na /f/:slug in ne pise v responses — izpolnjuje
+//               se prek /admin/procesi (glej src/routes/procesi.js)
+const VELJAVNI_NAMENI = new Set(['lead', 'shramba', 'proces']);
 
 // ── DEL 3: Helper funkcije ────────────────────────────────────────────────
 
@@ -21,7 +27,14 @@ const VELJAVNI_NAMENI = new Set(['lead', 'shramba']);
 // id (string), label (string), tip (eden od VELJAVNI_TIPI), obvezno (boolean),
 // options (samo za select/radio/checkbox — array stringov).
 // Vrne { ok: true } ali { ok: false, error: '...' }.
-function validirajQuestions(questions) {
+//
+// namen='proces' preusmeri na sirsi nabor tipov iz src/procesi/schema.js
+// (sekcije, vecizbira z "drugo", tabela). Javni obrazci (lead/shramba)
+// tega nabora NAMENOMA ne dobijo: src/routes/form.js jih ne zna
+// renderirati, zato bi neveljaven tip pomenil pokvarjen obrazec za klienta.
+function validirajQuestions(questions, namen = 'lead') {
+  if (namen === 'proces') return validirajProcesnaVprasanja(questions);
+
   if (!Array.isArray(questions)) return { ok: false, error: 'questions_not_array' };
 
   const idi = new Set();
@@ -87,7 +100,11 @@ router.get('/', async (_req, res) => {
            q.created_at, q.updated_at,
            jsonb_array_length(q.questions) AS st_vprasanj,
            (SELECT count(*) FROM responses r WHERE r.questionnaire_id = q.id)::int AS st_odgovorov,
-           (SELECT count(DISTINCT company_id) FROM responses r WHERE r.questionnaire_id = q.id)::int AS st_podjetij
+           (SELECT count(DISTINCT company_id) FROM responses r WHERE r.questionnaire_id = q.id)::int AS st_podjetij,
+           -- Procesni vprasalniki v responses ne pisejo, njihova uporaba se
+           -- steje v sejah. Brez tega bi na seznamu vedno kazali "0 odgovorov"
+           -- in izgledali neuporabljeni, tudi ko so v vsakodnevni rabi.
+           (SELECT count(*) FROM process_sessions s WHERE s.questionnaire_id = q.id)::int AS st_sej
       FROM questionnaires q
      ORDER BY q.aktivna DESC, q.created_at DESC
   `);
@@ -129,7 +146,7 @@ router.post('/', async (req, res) => {
     }
   }
 
-  const v = validirajQuestions(f.questions);
+  const v = validirajQuestions(f.questions, f.namen);
   if (!v.ok) return res.status(400).json({ error: 'invalid_questions', detail: v.error });
 
   try {
@@ -163,8 +180,11 @@ router.patch('/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
 
-  const obstaja = await dbQuery('SELECT id FROM questionnaires WHERE id = $1', [id]);
+  // Preberemo tudi namen: doloca, po katerem naboru tipov se validirajo
+  // vprasanja, kadar body namena ne poslje (delni PATCH).
+  const obstaja = await dbQuery('SELECT id, namen FROM questionnaires WHERE id = $1', [id]);
   if (!obstaja?.rows?.length) return res.status(404).json({ error: 'not_found' });
+  const trenutniNamen = obstaja.rows[0].namen;
 
   // Dinamicni UPDATE — samo polja, ki so podana v body.
   const body = req.body || {};
@@ -189,7 +209,12 @@ router.patch('/:id', async (req, res) => {
   }
   if (typeof body.opis === 'string') maybeAdd('opis', body.opis.trim());
   if (Array.isArray(body.questions)) {
-    const v = validirajQuestions(body.questions);
+    // Vprasanja se validirajo po namenu, ki bo VELJAL PO tem PATCH-u —
+    // ce klic hkrati spremeni namen in vprasanja, morata biti usklajena.
+    const ciljniNamen = typeof body.namen === 'string'
+      ? body.namen.trim().toLowerCase()
+      : trenutniNamen;
+    const v = validirajQuestions(body.questions, ciljniNamen);
     if (!v.ok) return res.status(400).json({ error: 'invalid_questions', detail: v.error });
     maybeAdd('questions', JSON.stringify(body.questions));
   }

@@ -9,6 +9,7 @@ import { router as webhookRouter } from './routes/webhook.js';
 import { router as debugSimRouter } from './routes/debug-sim.js';
 import { router as apiRouter } from './routes/api.js';
 import { router as questionnairesRouter } from './routes/questionnaires.js';
+import { router as procesiRouter } from './routes/procesi.js';
 import { router as formRouter } from './routes/form.js';
 import { basicAuth } from './middleware/auth.js';
 
@@ -63,6 +64,12 @@ app.use('/debug', basicAuth, debugSimRouter);
 // Questionnaires CRUD je pred apiRouter-jem mountan na /api/questionnaires,
 // da ne kolidiraj z /api/companies/:id (kjer :id lahko biti "questionnaires").
 app.use('/api/questionnaires', basicAuth, questionnairesRouter);
+
+// Procesni vprasalniki (FAZA 1). Mountan PRED apiRouter-jem iz istega razloga
+// kot questionnaires: /api/companies/:id bi drugace pozrl "procesi" kot :id.
+// Zascitena z basic auth — to je interno orodje svetovalca, nikoli javno.
+app.use('/api/procesi', basicAuth, procesiRouter);
+
 app.use('/api', basicAuth, apiRouter);
 
 // Admin UI — staticne HTML strani, prav tako za basic auth.

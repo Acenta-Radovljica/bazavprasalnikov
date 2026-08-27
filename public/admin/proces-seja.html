@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acenta — Izpolnjevanje vprašalnika</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/admin/admin.css">
+  <style>
+    /* Poudarjeno vprasanje (poudarek:true v shemi) — Maja je izrecno oznacila
+       dolocitev rezultata procesa kot enega pomembnejsih delov vprasalnika. */
+    .poudarek { border-left: 3px solid var(--acenta-teal); padding-left: 14px; }
+    .polje textarea { min-height: 76px; resize: vertical; }
+    /* Prilepljeno orodje ostane vidno tudi med dolgim drsenjem po obrazcu. */
+    .lepljivo { position: sticky; top: 0; z-index: 30; }
+    .sklop-nav a.aktiven { color: var(--acenta-teal); font-weight: 600; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <header id="nav"></header>
+
+  <!-- Orodna vrstica -->
+  <div class="lepljivo bg-white border-b border-gray-200 shadow-sm">
+    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center gap-4 flex-wrap">
+      <a href="/admin/procesi.html" class="text-sm text-[#00b894] hover:underline shrink-0">← Procesi</a>
+
+      <!-- Na ozkem zaslonu naslov dobi svojo vrstico (basis-full). Prej ga je
+           stiskanje odrezalo na "Hote..." in ni bilo videti, cigav sestanek je
+           odprt — kar je pri delu s stranko najpomembnejsi podatek na ekranu. -->
+      <div class="min-w-0 basis-full order-last sm:order-none sm:basis-auto sm:flex-1">
+        <div id="glavaNaslov" class="font-semibold text-[#1a1a2e] truncate">Nalagam...</div>
+        <div id="glavaPod" class="text-xs text-gray-500 truncate"></div>
+      </div>
+
+      <div id="glavaNapredek" class="text-xs text-gray-500 tabular-nums shrink-0"></div>
+      <div id="shranjeno" class="text-xs text-gray-400 shrink-0 min-w-[92px] text-right"></div>
+
+      <div class="flex items-center gap-2 shrink-0">
+        <button id="btnUredi" class="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors">
+          Uredi vprašanja
+        </button>
+        <button id="btnZakljuci" class="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#2a2a44] transition-colors">
+          Zaključi
+        </button>
+        <button id="btnPoslji" class="px-3 py-1.5 text-sm bg-[#00b894] text-white rounded hover:bg-[#019272] transition-colors">
+          Pošlji stranki
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <main class="max-w-6xl mx-auto px-6 py-6">
+    <div id="opozorilo" class="hidden mb-4 px-4 py-3 rounded text-sm"></div>
+
+    <div class="flex gap-8 items-start">
+      <!-- Navigacija po sklopih -->
+      <nav class="sklop-nav hidden lg:block w-52 shrink-0 sticky top-24 text-sm">
+        <div class="text-xs uppercase tracking-wide text-gray-400 mb-2">Sklopi</div>
+        <div id="sklopNav" class="space-y-1.5"></div>
+
+        <div class="mt-6 pt-4 border-t border-gray-200 space-y-1.5">
+          <a href="#kartaTranskript" class="block text-gray-600 hover:text-[#00b894]">Transkript</a>
+          <a href="#kartaPosiljanje" class="block text-gray-600 hover:text-[#00b894]">Pošiljanje stranki</a>
+        </div>
+      </nav>
+
+      <div class="flex-1 min-w-0">
+        <!-- Kartica sestanka: poganja seznam in filtre, ni del dokumenta za stranko -->
+        <section class="bg-white rounded shadow p-5 mb-6">
+          <h2 class="text-sm font-semibold text-[#1a1a2e] mb-1">Kartica sestanka</h2>
+          <p class="text-xs text-gray-500 mb-4">
+            Za razvrščanje in iskanje po seznamu. Vsebina dokumenta za stranko pride iz „Osnovni podatki“ spodaj.
+          </p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <label class="block">
+              <span class="text-xs text-gray-500 block mb-1">Stranka</span>
+              <input id="mStranka" data-meta="stranka_naziv" type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+            </label>
+            <label class="block">
+              <span class="text-xs text-gray-500 block mb-1">Proces</span>
+              <input id="mProces" data-meta="proces" type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+            </label>
+            <label class="block">
+              <span class="text-xs text-gray-500 block mb-1">Oddelek</span>
+              <input id="mOddelek" data-meta="oddelek" type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+            </label>
+            <label class="block">
+              <span class="text-xs text-gray-500 block mb-1">Svetovalec</span>
+              <input id="mSvetovalec" data-meta="svetovalec" type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+            </label>
+            <label class="block">
+              <span class="text-xs text-gray-500 block mb-1">Datum sestanka</span>
+              <input id="mDatum" data-meta="datum_sestanka" type="date"
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+            </label>
+          </div>
+        </section>
+
+        <!-- Obrazec -->
+        <form id="obrazec" onsubmit="return false;"></form>
+
+        <!-- Transkript -->
+        <section id="kartaTranskript" class="bg-white rounded shadow p-5 mt-8">
+          <h2 class="font-semibold text-[#1a1a2e] mb-1">Transkript sestanka</h2>
+          <p class="text-sm text-gray-500 mb-4">
+            Besedilo se shrani <strong>v našo bazo</strong>, ne le kot povezava — Soniox povezava lahko poteče.
+          </p>
+
+          <div class="flex flex-col sm:flex-row gap-3 mb-3">
+            <input id="tUrl" type="url" placeholder="Soniox povezava (https://...)"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+            <button id="tPrenesi"
+              class="px-4 py-2 bg-[#1a1a2e] text-white rounded text-sm font-medium hover:bg-[#2a2a44] transition-colors shrink-0">
+              Prenesi in shrani
+            </button>
+          </div>
+
+          <details id="tRocnoOvoj" class="mb-3">
+            <summary class="text-sm text-[#00b894] cursor-pointer hover:underline">
+              Prilepi transkript ročno
+            </summary>
+            <textarea id="tBesedilo" rows="8" placeholder="Prilepi celoten surov transkript..."
+              class="w-full mt-3 px-3 py-2 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:border-[#00b894]"></textarea>
+            <button id="tShraniRocno"
+              class="mt-2 px-4 py-2 bg-[#00b894] text-white rounded text-sm font-medium hover:bg-[#019272] transition-colors">
+              Shrani prilepljeni transkript
+            </button>
+          </details>
+
+          <div id="tStatus" class="text-sm mb-3"></div>
+          <div id="tSeznam"></div>
+        </section>
+
+        <!-- Posiljanje -->
+        <section id="kartaPosiljanje" class="bg-white rounded shadow p-5 mt-6 mb-10">
+          <h2 class="font-semibold text-[#1a1a2e] mb-1">Pošiljanje stranki</h2>
+          <p class="text-sm text-gray-500 mb-4">
+            Stranka prejme izpolnjen zapis v telesu e-pošte in kot PDF prilogo.
+            Transkript <strong>ne</strong> gre stranki. Odgovori gredo na ai@acenta.si.
+          </p>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <label class="block">
+              <span class="text-xs text-gray-500 block mb-1">E-naslov prejemnika <span class="text-red-500">*</span></span>
+              <input id="pEmail" type="email" placeholder="ime@hotel.si"
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+            </label>
+            <label class="block">
+              <span class="text-xs text-gray-500 block mb-1">Zadeva</span>
+              <input id="pZadeva" type="text"
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+            </label>
+          </div>
+
+          <label class="block mb-4">
+            <span class="text-xs text-gray-500 block mb-1">Spremno besedilo</span>
+            <textarea id="pSporocilo" rows="9"
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]"></textarea>
+          </label>
+
+          <label class="flex items-center gap-2 text-sm text-gray-600 mb-4">
+            <input id="pPdf" type="checkbox" checked class="rounded"> Priloži PDF
+          </label>
+
+          <div class="flex items-center gap-3 flex-wrap">
+            <a id="pPredogled" href="#" target="_blank"
+              class="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+              Predogled za stranko →
+            </a>
+            <a id="pPredogledInterno" href="#" target="_blank"
+              class="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+              Interni predogled (s transkriptom) →
+            </a>
+            <a id="pPdfLink" href="#" target="_blank"
+              class="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
+              PDF →
+            </a>
+            <button id="pPoslji"
+              class="px-4 py-2 bg-[#00b894] text-white rounded text-sm font-medium hover:bg-[#019272] transition-colors">
+              Pošlji stranki
+            </button>
+          </div>
+
+          <div id="pStatus" class="text-sm mt-3"></div>
+          <div id="pZgodovina" class="mt-4"></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <script src="/admin/app.js"></script>
+  <script>
+    renderNav('procesi');
+
+    // ── Stanje strani ───────────────────────────────────────────────────
+    const SEJA_ID = parseInt(qs('id'), 10);
+    let seja = null;          // cela vrstica iz baze
+    let vprasanja = [];       // questions_snapshot
+    let odgovori = {};        // answers
+    let urejanjeVprasanj = false;
+    let cakaSave = null;      // debounce timer
+    let nespravljeno = false;
+
+    // ── Pomozne ─────────────────────────────────────────────────────────
+    function el(id) { return document.getElementById(id); }
+
+    function pokaziOpozorilo(besedilo, vrsta = 'info') {
+      const razredi = {
+        info:  'bg-blue-50 text-blue-800',
+        opozorilo: 'bg-amber-50 text-amber-900',
+        napaka: 'bg-red-50 text-red-700',
+        uspeh: 'bg-green-50 text-green-800',
+      };
+      const o = el('opozorilo');
+      o.className = `mb-4 px-4 py-3 rounded text-sm ${razredi[vrsta] || razredi.info}`;
+      o.innerHTML = besedilo;
+      o.classList.remove('hidden');
+    }
+    function skrijOpozorilo() { el('opozorilo').classList.add('hidden'); }
+
+    function nastaviShranjeno(besedilo, barva = 'text-gray-400') {
+      el('shranjeno').className = `text-xs shrink-0 min-w-[92px] text-right ${barva}`;
+      el('shranjeno').textContent = besedilo;
+    }
+
+    // ── Izris posameznega vprasanja ─────────────────────────────────────
+
+    function izrisiPolje(q, indeks) {
+      const v = odgovori[q.id];
+      const zvezdica = q.obvezno ? ' <span class="text-red-500">*</span>' : '';
+      const namig = q.namig
+        ? `<div class="text-xs text-gray-500 italic mb-2">${esc(q.namig)}</div>` : '';
+
+      let polje = '';
+
+      if (q.tip === 'textarea') {
+        polje = `<textarea data-qid="${esc(q.id)}" data-tip="textarea"
+                    class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]"
+                  >${esc(v ?? '')}</textarea>`;
+
+      } else if (q.tip === 'radio' || q.tip === 'select') {
+        // Radio tudi za 'select': na sestanku je en klik hitrejsi od
+        // spustnega seznama, moznosti pa je malo (da/delno/ne).
+        polje = `<div class="flex flex-wrap gap-x-5 gap-y-2">` +
+          (q.options || []).map((o, i) => `
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="radio" name="q_${esc(q.id)}" data-qid="${esc(q.id)}" data-tip="radio"
+                value="${esc(o)}" ${v === o ? 'checked' : ''}>
+              <span>${esc(o)}</span>
+            </label>`).join('') +
+          (v ? `<button type="button" data-pocisti="${esc(q.id)}"
+                  class="text-xs text-gray-400 hover:text-red-600 underline">počisti</button>` : '') +
+          `</div>`;
+
+      } else if (q.tip === 'checkbox_multi') {
+        const izbrano = Array.isArray(v?.izbrano) ? v.izbrano : [];
+        const drugo = v?.drugo ?? '';
+        polje = `<div class="flex flex-wrap gap-x-5 gap-y-2">` +
+          (q.options || []).map(o => `
+            <label class="flex items-center gap-2 text-sm cursor-pointer">
+              <input type="checkbox" data-qid="${esc(q.id)}" data-tip="checkbox_multi"
+                value="${esc(o)}" ${izbrano.includes(o) ? 'checked' : ''}>
+              <span>${esc(o)}</span>
+            </label>`).join('') + `</div>` +
+          (q.drugo ? `
+            <input type="text" data-qid="${esc(q.id)}" data-tip="checkbox_drugo"
+              placeholder="drugo: ..." value="${esc(drugo)}"
+              class="mt-2 w-full sm:w-2/3 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">`
+            : '');
+
+      } else if (q.tip === 'table') {
+        const stolpci = q.columns || [];
+        const stVrstic = Number.isInteger(q.vrstice) ? q.vrstice : 3;
+        const mreza = Array.isArray(v) ? v : [];
+        let vrstice = '';
+        for (let r = 0; r < stVrstic; r++) {
+          vrstice += '<tr>' + stolpci.map((_, c) => `
+            <td class="border border-gray-200 p-0">
+              <input type="text" data-qid="${esc(q.id)}" data-tip="table" data-r="${r}" data-c="${c}"
+                value="${esc(mreza[r]?.[c] ?? '')}"
+                class="w-full px-2 py-1.5 text-sm border-0 focus:outline-none focus:bg-[#f0fdf9]">
+            </td>`).join('') + '</tr>';
+        }
+        polje = `
+          <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-sm min-w-[520px]">
+              <thead>
+                <tr>${stolpci.map(c => `
+                  <th class="border border-gray-200 bg-gray-50 px-2 py-1.5 text-left text-xs text-gray-500 font-semibold">${esc(c)}</th>`).join('')}</tr>
+              </thead>
+              <tbody>${vrstice}</tbody>
+            </table>
+          </div>`;
+
+      } else {
+        const htmlTip = q.tip === 'date' ? 'date' : q.tip === 'email' ? 'email' : 'text';
+        polje = `<input type="${htmlTip}" data-qid="${esc(q.id)}" data-tip="${esc(q.tip)}"
+                    value="${esc(v ?? '')}"
+                    class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">`;
+      }
+
+      const urejanje = urejanjeVprasanj ? `
+        <div class="flex items-center gap-3 mt-2 pt-2 border-t border-dashed border-gray-200">
+          <input type="text" data-labelza="${esc(q.id)}" value="${esc(q.label)}"
+            class="flex-1 px-2 py-1 border border-gray-300 rounded text-xs"
+            placeholder="Besedilo vprašanja">
+          <label class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
+            <input type="checkbox" data-obveznoza="${esc(q.id)}" ${q.obvezno ? 'checked' : ''}> obvezno
+          </label>
+          <button type="button" data-odstrani="${esc(q.id)}"
+            class="text-xs text-red-600 hover:underline whitespace-nowrap">odstrani</button>
+        </div>` : '';
+
+      return `
+        <div class="polje mb-5 pb-5 border-b border-gray-100 ${q.poudarek ? 'poudarek' : ''}" data-polje="${esc(q.id)}">
+          <label class="block text-sm font-medium text-[#3a3a48] mb-1.5">${esc(q.label)}${zvezdica}</label>
+          ${namig}
+          ${polje}
+          ${urejanje}
+        </div>`;
+    }
+
+    // ── Izris celega obrazca ────────────────────────────────────────────
+    function izrisiObrazec() {
+      const kosi = [];
+      const navKosi = [];
+      let odprtaSekcija = false;
+      let stevecSekcij = 0;
+
+      // Vprasanja pred prvo sekcijo so glava obrazca (Hotel, Datum,
+      // Sodelujoci predstavniki ...). Dobijo svojo prvo kartico.
+      //
+      // Prej sem jih preskocil, ker sem mislil, da jih pokriva meta kartica
+      // zgoraj — a ta hrani podatke SEJE (stranka_naziv, proces ...), ne teh
+      // vprasanj. Posledica: pet polj, med njimi "Sodelujoci predstavniki
+      // hotela", ni bilo mogoce izpolniti nikjer. Zato jih izrisemo tu.
+      const idxPrveSekcije = vprasanja.findIndex(q => q.tip === 'section');
+      const zacetek = idxPrveSekcije === -1 ? 0 : idxPrveSekcije;
+
+      if (zacetek > 0) {
+        stevecSekcij++;
+        const sid = `sklop-${stevecSekcij}`;
+        navKosi.push(`<a href="#${sid}" class="block text-gray-600 hover:text-[#00b894]" data-navza="${sid}">Osnovni podatki</a>`);
+        kosi.push(`
+          <section id="${sid}" class="bg-white rounded shadow p-5 mb-6 scroll-mt-24">
+            <h2 class="text-base font-semibold text-[#1a1a2e] pb-2 mb-1 border-b-2 border-[#00b894]">Osnovni podatki</h2>
+            <div class="text-xs text-gray-500 italic mb-4">Glava vprašalnika — to gre v dokument za stranko. Prednapolnjeno iz kartice sestanka zgoraj.</div>`);
+        for (let i = 0; i < zacetek; i++) {
+          const q = vprasanja[i];
+          if (q && q.tip !== 'section') kosi.push(izrisiPolje(q, i));
+        }
+        kosi.push(dodajGumb(stevecSekcij), '</section>');
+      }
+
+      for (let i = zacetek; i < vprasanja.length; i++) {
+        const q = vprasanja[i];
+        if (!q) continue;
+
+        if (q.tip === 'section') {
+          if (odprtaSekcija) kosi.push(dodajGumb(stevecSekcij), '</section>');
+          stevecSekcij++;
+          const sid = `sklop-${stevecSekcij}`;
+          navKosi.push(`<a href="#${sid}" class="block text-gray-600 hover:text-[#00b894]" data-navza="${sid}">${esc(q.label)}</a>`);
+          kosi.push(`
+            <section id="${sid}" class="bg-white rounded shadow p-5 mb-6 scroll-mt-24">
+              <h2 class="text-base font-semibold text-[#1a1a2e] pb-2 mb-1 border-b-2 border-[#00b894]">${esc(q.label)}</h2>
+              ${q.namig ? `<div class="text-xs text-gray-500 italic mb-4">${esc(q.namig)}</div>` : '<div class="mb-4"></div>'}`);
+          odprtaSekcija = true;
+          continue;
+        }
+
+        if (!odprtaSekcija) {
+          // Obrazec brez sekcij — odpremo eno privzeto, da polja niso brez okvira.
+          stevecSekcij++;
+          kosi.push(`<section id="sklop-${stevecSekcij}" class="bg-white rounded shadow p-5 mb-6 scroll-mt-24">`);
+          odprtaSekcija = true;
+        }
+        kosi.push(izrisiPolje(q, i));
+      }
+
+      if (odprtaSekcija) kosi.push(dodajGumb(stevecSekcij), '</section>');
+
+      el('obrazec').innerHTML = kosi.join('');
+      el('sklopNav').innerHTML = navKosi.join('');
+      priklopiPoslusalce();
+      osveziNapredek();
+    }
+
+    // Gumb "dodaj vprasanje" se izrise samo v nacinu urejanja — brez tega
+    // bi bil to mrtev gumb med obicajnim izpolnjevanjem.
+    function dodajGumb(stSekcije) {
+      if (!urejanjeVprasanj) return '';
+      return `<button type="button" data-dodajvsekcijo="${stSekcije}"
+        class="mt-2 text-sm text-[#00b894] hover:underline">+ dodaj vprašanje v ta sklop</button>`;
+    }
+
+    // ── Branje odgovorov iz DOM v objekt ───────────────────────────────
+    function preberiPolje(qid) {
+      const q = vprasanja.find(x => x.id === qid);
+      if (!q) return;
+
+      if (q.tip === 'checkbox_multi') {
+        const izbrano = [...document.querySelectorAll(`[data-qid="${CSS.escape(qid)}"][data-tip="checkbox_multi"]:checked`)]
+          .map(i => i.value);
+        const drugoEl = document.querySelector(`[data-qid="${CSS.escape(qid)}"][data-tip="checkbox_drugo"]`);
+        odgovori[qid] = { izbrano, drugo: drugoEl ? drugoEl.value : '' };
+        return;
+      }
+
+      if (q.tip === 'table') {
+        const stolpci = (q.columns || []).length;
+        const stVrstic = Number.isInteger(q.vrstice) ? q.vrstice : 3;
+        const mreza = Array.from({ length: stVrstic }, () => Array(stolpci).fill(''));
+        document.querySelectorAll(`[data-qid="${CSS.escape(qid)}"][data-tip="table"]`).forEach(i => {
+          const r = +i.dataset.r, c = +i.dataset.c;
+          if (mreza[r] && c < stolpci) mreza[r][c] = i.value;
+        });
+        odgovori[qid] = mreza;
+        return;
+      }
+
+      if (q.tip === 'radio' || q.tip === 'select') {
+        const izbran = document.querySelector(`[data-qid="${CSS.escape(qid)}"][data-tip="radio"]:checked`);
+        odgovori[qid] = izbran ? izbran.value : '';
+        return;
+      }
+
+      const polje = document.querySelector(`[data-qid="${CSS.escape(qid)}"]`);
+      odgovori[qid] = polje ? polje.value : '';
+    }
+
+    // ── Poslusalci ──────────────────────────────────────────────────────
+    function priklopiPoslusalce() {
+      // Vnos v polja -> preberi + debounce shrani
+      el('obrazec').oninput = (e) => {
+        const t = e.target;
+        if (t.dataset.qid) {
+          preberiPolje(t.dataset.qid);
+          osveziNapredek();
+          zahtevajShranjevanje();
+        }
+        if (t.dataset.labelza || t.dataset.obveznoza) shraniUrejanjeVprasanj();
+      };
+      el('obrazec').onchange = (e) => {
+        const t = e.target;
+        if (t.dataset.qid) {
+          preberiPolje(t.dataset.qid);
+          osveziNapredek();
+          zahtevajShranjevanje();
+          // Radio: po izbiri ponovno izrisemo, da se pokaze gumb "pocisti".
+          if (t.dataset.tip === 'radio') izrisiObrazec();
+        }
+        if (t.dataset.obveznoza) shraniUrejanjeVprasanj();
+      };
+
+      // Klikni gumbi znotraj obrazca
+      el('obrazec').onclick = (e) => {
+        const t = e.target.closest('[data-pocisti],[data-odstrani],[data-dodajvsekcijo]');
+        if (!t) return;
+
+        if (t.dataset.pocisti) {
+          odgovori[t.dataset.pocisti] = '';
+          izrisiObrazec();
+          zahtevajShranjevanje();
+          return;
+        }
+        if (t.dataset.odstrani) {
+          const q = vprasanja.find(x => x.id === t.dataset.odstrani);
+          if (!confirm(`Odstranim vprašanje „${q?.label ?? t.dataset.odstrani}“ iz TEGA sestanka?\n\nPredloga za druge sestanke ostane nespremenjena.`)) return;
+          vprasanja = vprasanja.filter(x => x.id !== t.dataset.odstrani);
+          delete odgovori[t.dataset.odstrani];
+          izrisiObrazec();
+          shraniUrejanjeVprasanj();
+          return;
+        }
+        if (t.dataset.dodajvsekcijo) {
+          dodajVprasanje(parseInt(t.dataset.dodajvsekcijo, 10));
+        }
+      };
+    }
+
+    // Doda novo vprasanje na konec izbranega sklopa.
+    function dodajVprasanje(stSekcije) {
+      const label = prompt('Besedilo novega vprašanja:');
+      if (!label || !label.trim()) return;
+
+      const tip = prompt('Tip (text, textarea, date, radio):', 'textarea');
+      const veljavni = ['text', 'textarea', 'date', 'radio'];
+      if (!veljavni.includes(tip)) {
+        alert(`Neveljaven tip. Dovoljeni: ${veljavni.join(', ')}`);
+        return;
+      }
+
+      let options;
+      if (tip === 'radio') {
+        const vnos = prompt('Možnosti, ločene z vejico:', 'da, delno, ne');
+        options = (vnos || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (!options.length) { alert('Radio potrebuje vsaj eno možnost.'); return; }
+      }
+
+      // Unikaten id: brez tega bi PATCH padel na duplicate_id.
+      const osnova = 'dodano_' + label.toLowerCase()
+        .replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z')
+        .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30);
+      let id = osnova || 'dodano';
+      let n = 2;
+      while (vprasanja.some(q => q.id === id)) id = `${osnova}_${n++}`;
+
+      const novo = { id, label: label.trim(), tip };
+      if (options) novo.options = options;
+
+      // Vstavimo pred naslednjo sekcijo (torej na konec te sekcije).
+      let sekcij = 0, vstaviNa = vprasanja.length;
+      for (let i = 0; i < vprasanja.length; i++) {
+        if (vprasanja[i].tip === 'section') {
+          sekcij++;
+          if (sekcij === stSekcije + 1) { vstaviNa = i; break; }
+        }
+      }
+      vprasanja.splice(vstaviNa, 0, novo);
+      izrisiObrazec();
+      shraniUrejanjeVprasanj();
+    }
+
+    // ── Napredek ────────────────────────────────────────────────────────
+    // Isto pravilo kot izracunajNapredek() v src/procesi/schema.js.
+    function jeIzpolnjeno(q, v) {
+      if (q.tip === 'checkbox_multi') {
+        return (Array.isArray(v?.izbrano) && v.izbrano.length > 0) || !!String(v?.drugo ?? '').trim();
+      }
+      if (q.tip === 'table') {
+        return Array.isArray(v) && v.some(r => Array.isArray(r) && r.some(c => String(c ?? '').trim()));
+      }
+      return !!String(v ?? '').trim();
+    }
+
+    function osveziNapredek() {
+      const polja = vprasanja.filter(q => q.tip !== 'section');
+      const izpolnjenih = polja.filter(q => jeIzpolnjeno(q, odgovori[q.id])).length;
+      const manjkaObveznih = polja.filter(q => q.obvezno && !jeIzpolnjeno(q, odgovori[q.id])).length;
+      el('glavaNapredek').innerHTML =
+        `${izpolnjenih}/${polja.length} izpolnjenih` +
+        (manjkaObveznih ? ` <span class="text-amber-600 font-semibold">· ${manjkaObveznih} obveznih manjka</span>` : '');
+    }
+
+    // ── Shranjevanje ────────────────────────────────────────────────────
+    function zahtevajShranjevanje() {
+      nespravljeno = true;
+      nastaviShranjeno('Spremembe...', 'text-amber-600');
+      clearTimeout(cakaSave);
+      cakaSave = setTimeout(shraniOdgovore, 900);
+    }
+
+    async function shraniOdgovore() {
+      clearTimeout(cakaSave);
+      nastaviShranjeno('Shranjujem...', 'text-gray-400');
+      const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ answers: odgovori }),
+      });
+      if (!d?.ok) {
+        nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
+        pokaziOpozorilo('Odgovorov ni bilo mogoče shraniti. Ne zapiraj zavihka — preveri povezavo in nadaljuj z vnosom, poskusili bomo znova.', 'napaka');
+        return;
+      }
+      nespravljeno = false;
+      skrijOpozorilo();
+      const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
+      nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
+    }
+
+    async function shraniUrejanjeVprasanj() {
+      // Preberi morebitne spremenjene labele in obveznost iz DOM.
+      document.querySelectorAll('[data-labelza]').forEach(i => {
+        const q = vprasanja.find(x => x.id === i.dataset.labelza);
+        if (q && i.value.trim()) q.label = i.value.trim();
+      });
+      document.querySelectorAll('[data-obveznoza]').forEach(i => {
+        const q = vprasanja.find(x => x.id === i.dataset.obveznoza);
+        if (q) { if (i.checked) q.obvezno = true; else delete q.obvezno; }
+      });
+
+      nastaviShranjeno('Shranjujem...', 'text-gray-400');
+      const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ questions_snapshot: vprasanja, answers: odgovori }),
+      });
+      if (!d?.ok) {
+        nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
+        pokaziOpozorilo('Sprememb vprašanj ni bilo mogoče shraniti.', 'napaka');
+        return;
+      }
+      const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
+      nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
+    }
+
+    // Meta polja (stranka, proces, ...) — isti debounce.
+    let metaCaka = null;
+    document.querySelectorAll('[data-meta]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        nastaviShranjeno('Spremembe...', 'text-amber-600');
+        clearTimeout(metaCaka);
+        metaCaka = setTimeout(async () => {
+          const telo = {};
+          document.querySelectorAll('[data-meta]').forEach(i => {
+            telo[i.dataset.meta] = i.value.trim() || null;
+          });
+          if (!telo.stranka_naziv) {
+            nastaviShranjeno('Stranka je obvezna', 'text-red-600');
+            return;
+          }
+          const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}`, {
+            method: 'PATCH', body: JSON.stringify(telo),
+          });
+          if (!d?.ok) return nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
+          osveziGlavo();
+          const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
+          nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
+        }, 900);
+      });
+    });
+
+    // Opozorilo pred zapiranjem, ce je kaj neshranjenega.
+    window.addEventListener('beforeunload', (e) => {
+      if (nespravljeno) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    // ── Glava ───────────────────────────────────────────────────────────
+    const STATUS_OZNAKA = {
+      osnutek:   ['Osnutek', 'bg-amber-100 text-amber-800'],
+      zakljucen: ['Zaključen', 'bg-blue-100 text-blue-800'],
+      poslan:    ['Poslan stranki', 'bg-green-100 text-green-800'],
+      arhiv:     ['Arhiv', 'bg-gray-100 text-gray-500'],
+    };
+
+    function osveziGlavo() {
+      const [besedilo, razred] = STATUS_OZNAKA[seja.status] || [seja.status, 'bg-gray-100'];
+      el('glavaNaslov').innerHTML =
+        `${esc(seja.stranka_naziv)} <span class="px-2 py-0.5 text-xs rounded font-semibold ${razred} ml-1">${esc(besedilo)}</span>`;
+      el('glavaPod').textContent =
+        [seja.naziv_prikaz, seja.proces, seja.oddelek].filter(Boolean).join(' · ');
+    }
+
+    // ── Transkripti ─────────────────────────────────────────────────────
+    function izrisiTranskripte(seznam) {
+      if (!seznam.length) {
+        el('tSeznam').innerHTML = '<div class="text-sm text-gray-400">Še ni shranjenega transkripta.</div>';
+        return;
+      }
+      el('tSeznam').innerHTML = seznam.map(t => {
+        const ok = t.status === 'ok';
+        return `
+          <div class="border border-gray-200 rounded p-3 mb-2 ${ok ? '' : 'bg-red-50 border-red-200'}">
+            <div class="flex items-center justify-between gap-3 flex-wrap">
+              <div class="text-sm">
+                ${ok
+                  ? `<span class="text-[#00b894] font-semibold">✓ shranjen</span>
+                     <span class="text-gray-500">· ${Number(t.znakov || 0).toLocaleString('sl-SI')} znakov · vir: ${esc(t.vir)}</span>`
+                  : `<span class="text-red-700 font-semibold">✗ ni prenesen</span>
+                     <span class="text-red-600">· ${esc(t.napaka || 'neznana napaka')}</span>`}
+              </div>
+              <div class="text-xs text-gray-400">${formatDatum(t.fetched_at)}</div>
+            </div>
+            ${t.soniox_url ? `<div class="text-xs text-gray-400 mt-1 truncate">${esc(t.soniox_url)}</div>` : ''}
+            ${ok && t.predogled ? `
+              <details class="mt-2">
+                <summary class="text-xs text-[#00b894] cursor-pointer hover:underline">Pokaži začetek</summary>
+                <div class="mt-2 text-xs text-gray-600 font-mono whitespace-pre-wrap bg-gray-50 p-2 rounded max-h-40 overflow-y-auto">${esc(t.predogled)}…</div>
+              </details>` : ''}
+          </div>`;
+      }).join('');
+    }
+
+    el('tPrenesi').addEventListener('click', async () => {
+      const url = el('tUrl').value.trim();
+      if (!url) { el('tStatus').innerHTML = '<span class="text-red-600">Vpiši Soniox povezavo.</span>'; return; }
+
+      const gumb = el('tPrenesi');
+      gumb.disabled = true; gumb.textContent = 'Prenašam...';
+      el('tStatus').innerHTML = '<span class="text-gray-500">Prenašam transkript...</span>';
+
+      const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}/transkript`, {
+        method: 'POST', body: JSON.stringify({ soniox_url: url }),
+      });
+
+      gumb.disabled = false; gumb.textContent = 'Prenesi in shrani';
+
+      if (!d) {
+        el('tStatus').innerHTML = '<span class="text-red-600">Zahteva ni uspela.</span>';
+        return;
+      }
+      if (!d.ok) {
+        el('tStatus').innerHTML =
+          `<span class="text-amber-700">Samodejni prenos ni uspel (${esc(d.napaka || '?')}). ${esc(d.nasvet || '')}</span>`;
+        // Odpremo rocno polje, da je naslednji korak očiten.
+        el('tRocnoOvoj').open = true;
+      } else {
+        el('tStatus').innerHTML = '<span class="text-[#00b894]">Transkript shranjen v bazo.</span>';
+        el('tUrl').value = '';
+      }
+      naloziSejo();
+    });
+
+    el('tShraniRocno').addEventListener('click', async () => {
+      const besedilo = el('tBesedilo').value;
+      if (!besedilo.trim()) { el('tStatus').innerHTML = '<span class="text-red-600">Polje je prazno.</span>'; return; }
+
+      const gumb = el('tShraniRocno');
+      gumb.disabled = true; gumb.textContent = 'Shranjujem...';
+
+      const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}/transkript`, {
+        method: 'POST',
+        body: JSON.stringify({ besedilo, soniox_url: el('tUrl').value.trim() || null }),
+      });
+
+      gumb.disabled = false; gumb.textContent = 'Shrani prilepljeni transkript';
+
+      if (!d?.ok) {
+        el('tStatus').innerHTML = '<span class="text-red-600">Shranjevanje ni uspelo.</span>';
+        return;
+      }
+      el('tStatus').innerHTML = '<span class="text-[#00b894]">Transkript shranjen v bazo.</span>';
+      el('tBesedilo').value = '';
+      naloziSejo();
+    });
+
+    // ── Zakljuci ────────────────────────────────────────────────────────
+    el('btnZakljuci').addEventListener('click', async () => {
+      await shraniOdgovore();
+      let d = await apiFetch(`/api/procesi/seje/${SEJA_ID}/zakljuci`, {
+        method: 'POST', body: JSON.stringify({}),
+      });
+
+      // apiFetch vrne null pri ne-2xx, zato 422 (manjkajoca obvezna polja)
+      // preberemo z lastnim klicem, da lahko pokazemo, kaj manjka.
+      if (!d) {
+        const res = await fetch(`/api/procesi/seje/${SEJA_ID}/zakljuci`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        const telo = await res.json().catch(() => ({}));
+
+        if (res.status === 422 && Array.isArray(telo.manjka)) {
+          const seznam = telo.manjka.map(m => `<li>${esc(m.label)}</li>`).join('');
+          pokaziOpozorilo(
+            `<div class="font-semibold mb-1">Manjkajo obvezna polja (${telo.manjka.length}):</div>
+             <ul class="list-disc ml-5 mb-2">${seznam}</ul>
+             <button id="vsiliZakljucek" class="px-3 py-1.5 bg-amber-600 text-white rounded text-sm">
+               Vseeno zaključi
+             </button>`, 'opozorilo');
+          el('vsiliZakljucek').addEventListener('click', async () => {
+            const f = await apiFetch(`/api/procesi/seje/${SEJA_ID}/zakljuci`, {
+              method: 'POST', body: JSON.stringify({ vsiljeno: true }),
+            });
+            if (f?.ok) { pokaziOpozorilo('Sestanek zaključen.', 'uspeh'); naloziSejo(); }
+            else pokaziOpozorilo('Zaključevanje ni uspelo.', 'napaka');
+          });
+          return;
+        }
+        pokaziOpozorilo('Zaključevanje ni uspelo.', 'napaka');
+        return;
+      }
+
+      pokaziOpozorilo('Sestanek zaključen. Zdaj ga lahko pošlješ stranki.', 'uspeh');
+      naloziSejo();
+    });
+
+    // ── Urejanje vprasanj ───────────────────────────────────────────────
+    el('btnUredi').addEventListener('click', () => {
+      urejanjeVprasanj = !urejanjeVprasanj;
+      el('btnUredi').textContent = urejanjeVprasanj ? 'Končaj urejanje' : 'Uredi vprašanja';
+      el('btnUredi').className = urejanjeVprasanj
+        ? 'px-3 py-1.5 text-sm bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors'
+        : 'px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors';
+      if (urejanjeVprasanj) {
+        pokaziOpozorilo('Urejaš vprašanja <strong>samo za ta sestanek</strong>. Predloga za druge sestanke ostane nespremenjena.', 'info');
+      } else {
+        skrijOpozorilo();
+      }
+      izrisiObrazec();
+    });
+
+    // ── Posiljanje ──────────────────────────────────────────────────────
+    el('btnPoslji').addEventListener('click', () => {
+      el('kartaPosiljanje').scrollIntoView({ behavior: 'smooth' });
+      el('pEmail').focus();
+    });
+
+    el('pPoslji').addEventListener('click', async () => {
+      const prejemnik = el('pEmail').value.trim();
+      if (!prejemnik) { el('pStatus').innerHTML = '<span class="text-red-600">Vpiši e-naslov prejemnika.</span>'; return; }
+
+      if (!confirm(`Pošljem izpolnjen zapis na ${prejemnik}?\n\nStranka bo prejela e-pošto takoj.`)) return;
+
+      await shraniOdgovore();
+
+      const gumb = el('pPoslji');
+      gumb.disabled = true; gumb.textContent = 'Pošiljam...';
+      el('pStatus').innerHTML = '<span class="text-gray-500">Pošiljam...</span>';
+
+      const telo = {
+        potrjeno: true,
+        prejemnik,
+        zadeva: el('pZadeva').value.trim() || null,
+        sporocilo: el('pSporocilo').value,
+        prilozi_pdf: el('pPdf').checked,
+        poslal: seja.svetovalec || null,
+      };
+
+      let res = await fetch(`/api/procesi/seje/${SEJA_ID}/poslji`, {
+        method: 'POST', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(telo),
+      });
+      let d = await res.json().catch(() => ({}));
+
+      // Osnutek: ponudimo vsiljeno posiljanje, ne pa tiho.
+      if (res.status === 422 && d.error === 'seja_ni_zakljucena') {
+        gumb.disabled = false; gumb.textContent = 'Pošlji stranki';
+        const stManjka = Array.isArray(d.manjka) ? d.manjka.length : 0;
+        if (!confirm(`Sestanek še ni zaključen${stManjka ? ` (manjka ${stManjka} obveznih polj)` : ''}.\n\nPošljem vseeno?`)) {
+          el('pStatus').innerHTML = '<span class="text-gray-500">Pošiljanje preklicano.</span>';
+          return;
+        }
+        gumb.disabled = true; gumb.textContent = 'Pošiljam...';
+        res = await fetch(`/api/procesi/seje/${SEJA_ID}/poslji`, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ...telo, vsiljeno: true }),
+        });
+        d = await res.json().catch(() => ({}));
+      }
+
+      gumb.disabled = false; gumb.textContent = 'Pošlji stranki';
+
+      if (!res.ok || !d.ok) {
+        el('pStatus').innerHTML =
+          `<span class="text-red-600">Pošiljanje ni uspelo: ${esc(d.detail || d.error || 'neznana napaka')}</span>`;
+        return;
+      }
+      el('pStatus').innerHTML = `<span class="text-[#00b894]">Poslano na ${esc(prejemnik)}.</span>`;
+      naloziSejo();
+    });
+
+    function izrisiEmaile(seznam) {
+      if (!seznam.length) { el('pZgodovina').innerHTML = ''; return; }
+      el('pZgodovina').innerHTML = `
+        <div class="text-xs uppercase tracking-wide text-gray-400 mb-2">Zgodovina pošiljanja</div>
+        ${seznam.map(e => `
+          <div class="text-sm border-t border-gray-100 py-2 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              ${e.status === 'poslan'
+                ? '<span class="text-[#00b894] font-semibold">✓</span>'
+                : '<span class="text-red-600 font-semibold">✗</span>'}
+              <span class="text-gray-700">${esc(e.prejemnik)}</span>
+              ${e.napaka ? `<span class="text-red-600 text-xs"> — ${esc(e.napaka)}</span>` : ''}
+            </div>
+            <span class="text-xs text-gray-400">${formatDatum(e.sent_at)}</span>
+          </div>`).join('')}`;
+    }
+
+    // ── Nalozi sejo ─────────────────────────────────────────────────────
+    async function naloziSejo() {
+      const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}`);
+      if (!d?.seja) {
+        document.querySelector('main').innerHTML =
+          '<div class="bg-red-50 text-red-700 p-4 rounded">Sestanka ni bilo mogoče naložiti. Preveri povezavo ali ID.</div>';
+        return;
+      }
+
+      seja = d.seja;
+      vprasanja = Array.isArray(seja.questions_snapshot) ? seja.questions_snapshot : [];
+      odgovori = (seja.answers && typeof seja.answers === 'object') ? seja.answers : {};
+
+      osveziGlavo();
+
+      // Meta polja
+      el('mStranka').value = seja.stranka_naziv ?? '';
+      el('mProces').value = seja.proces ?? '';
+      el('mOddelek').value = seja.oddelek ?? '';
+      el('mSvetovalec').value = seja.svetovalec ?? '';
+      el('mDatum').value = seja.datum_sestanka ? String(seja.datum_sestanka).slice(0, 10) : '';
+
+      izrisiObrazec();
+      izrisiTranskripte(d.transkripti || []);
+      izrisiEmaile(d.emaili || []);
+
+      // Spremno besedilo napolnimo samo, ce ga uporabnik se ni urejal —
+      // drugace bi mu vsak refresh povozil besedilo.
+      if (!el('pSporocilo').value.trim()) el('pSporocilo').value = d.privzeto_sporocilo || '';
+      if (!el('pZadeva').value.trim()) {
+        el('pZadeva').value = `Zapis sestanka — ${seja.stranka_naziv}${seja.proces ? ` (${seja.proces})` : ''}`;
+      }
+
+      // Povezave na predoglede
+      el('pPredogled').href = `/api/procesi/seje/${SEJA_ID}/predogled?namen=stranka`;
+      el('pPredogledInterno').href = `/api/procesi/seje/${SEJA_ID}/predogled?namen=interno`;
+      el('pPdfLink').href = `/api/procesi/seje/${SEJA_ID}/pdf?namen=stranka`;
+
+      nastaviShranjeno(`Naloženo ${new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' })}`);
+    }
+
+    if (!Number.isInteger(SEJA_ID)) {
+      document.querySelector('main').innerHTML =
+        '<div class="bg-red-50 text-red-700 p-4 rounded">Manjka parameter ?id= v naslovu.</div>';
+    } else {
+      naloziSejo();
+    }
+  </script>
+</body>
+</html>

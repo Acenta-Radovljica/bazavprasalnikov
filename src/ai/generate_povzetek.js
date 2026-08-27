@@ -52,9 +52,14 @@ async function generirajPovzetek(responseId) {
     return null;
   }
 
-  // Varovalka: vprasalniki z namen='shramba' se SAMO shranijo, brez AI povzetka.
+  // Varovalka: AI povzetek tece SAMO za namen='lead'.
   // Gate je tu (ne v ruti), da pokrije oba vnosa — webhook in hosted form.
-  if (r.rows[0].namen === 'shramba') {
+  //
+  // Obrnjeno v dovoljenje (prej: "ce shramba, nehaj") ob migraciji 009, ko je
+  // pribil tretji namen 'proces'. Beli seznam pomeni, da vsaka prihodnja nova
+  // vrsta vprasalnika privzeto NE pade v lead AI tok — pozabljen gate je
+  // tiha napaka, pozabljeno dovoljenje pa opazna.
+  if (r.rows[0].namen !== 'lead') {
     return null;
   }
 

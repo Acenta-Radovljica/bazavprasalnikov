@@ -419,7 +419,7 @@ router.get('/:slug', async (req, res) => {
   if (!slug) return posljiInfo(res, 400, 'Manjkajoč podatek', 'V URL-ju manjka slug vprašalnika.');
 
   const r = await dbQuery(
-    'SELECT slug, naziv_prikaz, opis, questions, aktivna, custom_html FROM questionnaires WHERE slug = $1',
+    'SELECT slug, naziv_prikaz, opis, questions, aktivna, custom_html, namen FROM questionnaires WHERE slug = $1',
     [slug]
   );
   if (!r?.rows?.length) {
@@ -428,6 +428,19 @@ router.get('/:slug', async (req, res) => {
   }
 
   const q = r.rows[0];
+
+  // Procesni vprasalniki (namen='proces') NE gredo na javni URL. Dva razloga:
+  //   1. renderirajVprasanje() ne pozna njihovih tipov (section, table,
+  //      checkbox_multi) — obrazec bi bil pokvarjen, sekcije bi postale
+  //      besedilna polja;
+  //   2. so interni delovni dokument svetovalca, ne obrazec za stranko.
+  // Vrnemo 404 z ISTIM besedilom kot za neobstojec slug, da se z ugibanjem
+  // URL-jev ne da ugotoviti, kateri interni vprasalniki obstajajo.
+  if (q.namen === 'proces') {
+    return posljiInfo(res, 404, 'Vprašalnik ne obstaja',
+      'URL ne ustreza nobenemu obrazcu. Preverite povezavo, ki ste jo prejeli, ali se obrnite na info@acenta.si.');
+  }
+
   if (!q.aktivna) {
     return posljiInfo(res, 410, 'Vprašalnik je ugasnjen',
       'Ta vprašalnik trenutno ne sprejema novih odgovorov. Če ste prejeli povezavo nedavno, kontaktirajte Acenta ekipo.');
@@ -462,10 +475,19 @@ router.post('/:slug', async (req, res) => {
 
   // Najdi vprasalnik (mora biti aktiven)
   const r = await dbQuery(
-    'SELECT id, questions, aktivna FROM questionnaires WHERE slug = $1',
+    'SELECT id, questions, aktivna, namen FROM questionnaires WHERE slug = $1',
     [slug]
   );
   if (!r?.rows?.length) return res.status(404).json({ ok: false, error: 'not_found' });
+
+  // Procesni vprasalniki ne sprejemajo javnih oddaj. Brez tega bi POST na
+  // uganjen slug ustvaril vrstico v responses in podjetje v companies —
+  // torej smeti v lead lijaku iz internega dokumenta. Glej isto varovalko
+  // v GET /:slug zgoraj.
+  if (r.rows[0].namen === 'proces') {
+    return res.status(404).json({ ok: false, error: 'not_found' });
+  }
+
   if (!r.rows[0].aktivna) return res.status(410).json({ ok: false, error: 'inactive' });
 
   const questionnaireId = r.rows[0].id;
