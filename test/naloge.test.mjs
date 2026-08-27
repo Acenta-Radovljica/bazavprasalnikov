@@ -122,6 +122,26 @@ t('naslov strani je Danes', (await page.$eval('h1', (e) => e.textContent.trim())
 t('trak s stevilkami je napolnjen',
    (await page.$eval('#s-podjetja', (e) => e.textContent)).trim() !== '—',
    await page.$eval('#s-podjetja', (e) => e.textContent));
+// Naslovna vrstica: ena velika stevilka mora ustrezati vedru "Ukrepaj",
+// sklon pa slovenski dvojini (2 nalogi, ne "2 nalog").
+const hero = await page.evaluate(() => ({
+  num: document.getElementById('h-num').textContent.trim(),
+  naslov: document.getElementById('h-naslov').textContent.trim(),
+  caka: document.getElementById('h-caka').textContent.trim(),
+  zakljuceno: document.getElementById('h-zakljuceno').textContent.trim(),
+  velikost: parseFloat(getComputedStyle(document.getElementById('h-num')).fontSize),
+}));
+const stanje = (await api('/api/naloge')).telo;
+t('velika stevilka ustreza vedru Ukrepaj', hero.num === String(stanje.skupno.ukrepaj),
+   `${hero.num} vs ${stanje.skupno.ukrepaj}`);
+t('naslovna stevilka je res velika', hero.velikost >= 36, hero.velikost);
+const pricakovanSklon = { 1: 'naloga je', 2: 'nalogi sta', 3: 'naloge so', 4: 'naloge so' }[stanje.skupno.ukrepaj % 100] ?? 'nalog je';
+t('sklon ustreza stevilu', stanje.skupno.ukrepaj === 0 ? hero.naslov === 'Nič ni na tebi' : hero.naslov.startsWith(pricakovanSklon),
+   `"${hero.naslov}" za ${stanje.skupno.ukrepaj}`);
+t('stranska stevca sta izpolnjena',
+   hero.caka === String(stanje.skupno.caka) && hero.zakljuceno === String(stanje.skupno.zakljuceno),
+   `${hero.caka}/${hero.zakljuceno} vs ${stanje.skupno.caka}/${stanje.skupno.zakljuceno}`);
+
 const vrsticUkrepaj = await page.$$eval('#v-ukrepaj .naloga', (e) => e.length);
 t('vedro "Ukrepaj" ima naloge', vrsticUkrepaj >= 1, vrsticUkrepaj);
 t('naloga za novo sejo je vidna',

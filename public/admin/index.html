@@ -51,6 +51,21 @@
 
       <div class="p-4 flex flex-col gap-4">
 
+        <section class="hero" id="hero">
+          <div class="hero-main">
+            <div class="hero-num" id="h-num">—</div>
+            <div class="hero-txt">
+              <h2 id="h-naslov">Nalagam …</h2>
+              <p id="h-opis">&nbsp;</p>
+            </div>
+          </div>
+          <div class="hero-side">
+            <div class="stat"><b id="h-caka">—</b><span>Čaka druge</span></div>
+            <div class="vline"></div>
+            <div class="stat"><b id="h-zakljuceno">—</b><span>Zaključeno ta teden</span></div>
+          </div>
+        </section>
+
         <section class="kpis" id="kpi-vrh">
           <div class="kpi">
             <div class="k">Podjetja</div>
@@ -238,6 +253,39 @@
       });
       svg.innerHTML = `<path d="M ${tocke.join(' L ')}" fill="none" stroke="#12a594"
         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+    }
+
+    // Slovenska dvojina za naloge: 1 naloga, 2 nalogi, 3-4 naloge, 5+ nalog.
+    // Brez tega bi na dashboardu pisalo "2 nalog", kar zbode vsakega bralca.
+    function sklonNalog(n) {
+      const z = n % 100;
+      if (z === 1) return { stevnik: 'naloga', glagol: 'je' };
+      if (z === 2) return { stevnik: 'nalogi', glagol: 'sta' };
+      if (z === 3 || z === 4) return { stevnik: 'naloge', glagol: 'so' };
+      return { stevnik: 'nalog', glagol: 'je' };
+    }
+
+    function izrisiHero(skupno) {
+      const n = skupno?.ukrepaj ?? 0;
+      const num = document.getElementById('h-num');
+      const naslov = document.getElementById('h-naslov');
+      const opis = document.getElementById('h-opis');
+
+      if (n === 0) {
+        num.textContent = '0';
+        num.className = 'hero-num ok';
+        naslov.textContent = 'Nič ni na tebi';
+        opis.textContent = 'Prazen seznam je dober seznam. Preveri, kaj čaka druge.';
+      } else {
+        const { stevnik, glagol } = sklonNalog(n);
+        num.textContent = n;
+        num.className = 'hero-num' + (n >= 5 ? ' attn' : '');
+        naslov.textContent = `${stevnik} ${glagol} na tebi`;
+        opis.textContent = 'Začni na vrhu vedra „Ukrepaj" — razvrščeno je po nujnosti.';
+      }
+
+      document.getElementById('h-caka').textContent = skupno?.caka ?? 0;
+      document.getElementById('h-zakljuceno').textContent = skupno?.zakljuceno ?? 0;
     }
 
     // ── Naloge ────────────────────────────────────────────────────────────
@@ -465,6 +513,9 @@
         `${vTeku} v teku · ${t.vprasalniki_aktivni} aktivnih vprašalnikov`;
       renderSparkline('spark-odgovori', stats.timeline.slice(-14).map(r => r.st));
       document.getElementById('osvezeno').textContent = '· osveženo ' + relativnoTime(new Date().toISOString());
+
+      // Naslovna vrstica — ena velika stevilka pove stanje dneva
+      izrisiHero(naloge.skupno);
 
       // Tri vedra
       izrisiVedro('v-ukrepaj', naloge.ukrepaj, 'Nič ni na tebi. Prazen seznam je dober seznam.');
