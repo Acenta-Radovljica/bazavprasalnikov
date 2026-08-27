@@ -80,7 +80,38 @@ kbd{font:600 11px Inter;border:1px solid var(--line-2);background:#fff;border-ra
     </div>
   </div>
 
-  <h2>Tri smeri</h2>
+  <h2>Četrta smer — po pregledu referenc</h2>
+  <div class="opts">
+    <div class="opt" style="border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-soft)">
+      <div class="opt-h">
+        <span class="badge" style="background:#111820">D</span>
+        <h3>Studio</h3>
+        <span class="tag">Ista postavitev, močnejša obrt</span>
+        <a href="d-studio.html">Odpri smer D →</a>
+      </div>
+      <div class="opt-b">
+        <div>
+          <p>Zgrajeno po tem, ko sem pogledal, kako izgledajo dashboardi z najvišjo obrtno kakovostjo danes (<b>linear.app</b>, <b>attio.com</b>). Postavitev je ista kot A+B — spremenila se je izvedba.</p>
+          <ul>
+            <li>Aplikacija sedi v <b>uokvirjenem panelu</b> na mehki ambientni podlagi, ne kot ploska stran čez cel zaslon</li>
+            <li><b>Temen rail</b> proti svetli vsebini: kontrast dela strukturo brez dodatnih črt</li>
+            <li><b>Ukazna vrstica ⌘K</b> na vrhu raila kot prvorazreden element</li>
+            <li>KPI ploščice z mikro trendom, akcentno lasnico in ločenim opozorilnim stanjem</li>
+            <li>Shranjeni pogledi kot <b>segmentiran krmilnik</b>, filtri kot značke</li>
+            <li>Vrstica ob prehodu miške dobi tanko akcentno črto; teal samo za aktivno in pozitivno</li>
+          </ul>
+        </div>
+        <div class="side">
+          <b>Zakaj to</b>
+          <p style="margin-bottom:12px">Maks: „daj mal jači design". A je bila pravilna glede gostote, a je izgledala kot orodje brez avtorja.</p>
+          <b>Cena</b>
+          <p>Samo <code>admin.css</code> + glave strani. Struktura, endpointi in testi ostanejo.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>Prve tri smeri (izhodišče)</h2>
   <div class="opts">
 
     <div class="opt">
@@ -178,8 +209,8 @@ kbd{font:600 11px Inter;border:1px solid var(--line-2);background:#fff;border-ra
 
   <h2>Kaj predlagam</h2>
   <div class="reco">
-    <b>A kot podlaga, B kot prva stran.</b>
-    <p>Smeri se ne izključujeta: A je sistem gradnikov (paleta, gostota, tabele, filtri), B je odločitev, kaj je na prvi strani. Če narediva A najprej, dobiš takoj berljive sezname brez tveganja, ker se backend ne dotakne. „Danes" iz smeri B pride kot drugi korak, ko bo znano, katere naloge se res splača izpisati. C je isti A v temnem — če hočeš to, mi povej takoj, ker je smiselno graditi tokene enkrat, ne dvakrat.</p>
+    <b>Zgrajeno je A+B; naslednji korak je D kot koža na isti strukturi.</b>
+    <p>A+B sta že v kodi (veja <code>ui-prenova-a-b</code>): nova paleta, gostota, „Danes" s tremi vedri, skupine na Procesih, nov <code>/api/naloge</code>, 302 testne trditve. D ne premika ničesar od tega — zamenja samo <code>admin.css</code> in glave strani, da aplikacija dobi obraz: uokvirjen panel, temen rail, ⌘K, mikro trendi, segmentiran krmilnik. Če rečeš da, je to en obhod čez <code>admin.css</code> in nekaj vrstic po straneh, testi pa povedo, če se je kaj podrlo.</p>
   </div>
 
   <div class="foot">

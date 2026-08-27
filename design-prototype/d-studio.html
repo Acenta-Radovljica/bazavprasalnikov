@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smer D — Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══ Smer D — Studio ═══════════════════════════════════════════════════
+   Ista postavitev kot A+B (Danes + Procesi), bistveno mocnejsa obrt.
+   Kar sem pobral iz referenc (linear.app, attio.com):
+     · aplikacija sedi v UOKVIRJENEM panelu na ambientni podlagi
+     · rail je temen in tih, vsebina svetla — kontrast dela strukturo
+     · ukazna vrstica zgoraj (⌘K) je prvorazreden element, ne skrit input
+     · akcent se pojavi redko: aktivno stanje, pozitivna vrednost, ena crta
+     · mikrotipografija: tesnejsi tracking, tabularne stevilke, 11px oznake
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  /* Ambient */
+  --ambient-1:#eef2f6; --ambient-2:#e6ecf3; --ambient-3:#f6f8fa;
+
+  /* Rail (temen) */
+  --rail:#111820; --rail-2:#0c1219; --rail-line:#1e2a35;
+  --rail-ink:#e8eef5; --rail-ink-2:#9aa8b6; --rail-muted:#63707e;
+
+  /* Vsebina (svetla) */
+  --panel:#ffffff; --panel-2:#fafbfc; --panel-3:#f4f6f8;
+  --line:#e6e9ee; --line-2:#d5dae1;
+  --ink:#0d1520; --ink-2:#465364; --muted:#8a97a6;
+
+  --teal:#0f766e; --teal-2:#12a594; --teal-soft:#e8faf5; --teal-line:#a7e8d9;
+  --amber:#b45309; --amber-soft:#fff8ea; --amber-line:#fbdba7;
+  --red:#b42318; --red-soft:#fef4f2; --red-line:#f8c9c2;
+  --indigo:#3538cd; --indigo-soft:#eef0ff;
+
+  --r:12px; --r-sm:8px; --r-xs:6px;
+  --sh-panel:0 1px 2px rgba(13,21,32,.04), 0 12px 32px -12px rgba(13,21,32,.16), 0 0 0 1px rgba(13,21,32,.05);
+  --sh-card:0 1px 2px rgba(13,21,32,.05);
+  --sh-pop:0 8px 24px -8px rgba(13,21,32,.22), 0 0 0 1px rgba(13,21,32,.06);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:
+    radial-gradient(1200px 600px at 12% -8%, #dff3ee 0%, rgba(223,243,238,0) 60%),
+    radial-gradient(900px 520px at 92% 4%, #e7e9ff 0%, rgba(231,233,255,0) 55%),
+    linear-gradient(180deg, var(--ambient-3) 0%, var(--ambient-1) 40%, var(--ambient-2) 100%);
+  min-height:100%;
+  color:var(--ink);
+  font:400 13px/1.45 Inter,system-ui,-apple-system,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-0.006em;
+}
+.frame-label{max-width:1460px;margin:30px auto 10px;padding:0 22px;font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#7c8895}
+.frame{max-width:1460px;margin:0 auto;padding:0 22px}
+
+/* ── App panel ─────────────────────────────────────────────────────── */
+.app{
+  display:grid;grid-template-columns:216px 1fr;
+  height:770px;border-radius:var(--r);overflow:hidden;
+  background:var(--panel);box-shadow:var(--sh-panel);
+}
+
+/* ── Rail ──────────────────────────────────────────────────────────── */
+.rail{background:var(--rail);display:flex;flex-direction:column;min-width:0;position:relative}
+.rail::after{content:'';position:absolute;inset:0 0 auto;height:120px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,0));pointer-events:none}
+.rail-top{padding:12px 12px 10px;display:flex;align-items:center;gap:9px;position:relative;z-index:1}
+.mark{
+  width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;
+  background:linear-gradient(160deg,var(--teal-2),var(--teal));color:#04231f;font-weight:700;font-size:12px;
+  box-shadow:0 1px 0 rgba(255,255,255,.25) inset, 0 4px 10px -4px rgba(18,165,148,.7);
+}
+.rail-name{min-width:0;color:var(--rail-ink);font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-name small{display:block;font-weight:400;font-size:10.5px;color:var(--rail-muted)}
+.chev{margin-left:auto;color:var(--rail-muted);font-size:10px}
+
+/* Ukazna vrstica — prvorazreden element, ne skrit input */
+.cmd{
+  margin:2px 10px 12px;height:30px;padding:0 9px;border-radius:var(--r-sm);
+  display:flex;align-items:center;gap:8px;cursor:text;
+  background:rgba(255,255,255,.055);border:1px solid var(--rail-line);
+  color:var(--rail-muted);font-size:12px;position:relative;z-index:1;
+  transition:background .15s, border-color .15s;
+}
+.cmd:hover{background:rgba(255,255,255,.09);border-color:#2a3846}
+.cmd svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none}
+.cmd .kbd{margin-left:auto;display:flex;gap:3px}
+.kbd b{font:600 10px/1 Inter;color:var(--rail-ink-2);background:rgba(255,255,255,.08);border:1px solid var(--rail-line);border-radius:4px;padding:3px 5px}
+
+.rail nav{padding:0 8px;display:flex;flex-direction:column;gap:1px;position:relative;z-index:1}
+.rail-group{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--rail-muted);padding:14px 10px 6px}
+.item{
+  display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--r-xs);
+  color:var(--rail-ink-2);text-decoration:none;font-weight:500;font-size:12.5px;white-space:nowrap;
+  transition:background .14s, color .14s;position:relative;
+}
+.item:hover{background:rgba(255,255,255,.06);color:var(--rail-ink)}
+.item.on{background:rgba(255,255,255,.09);color:#fff;font-weight:600}
+.item.on::before{content:'';position:absolute;left:0;top:7px;bottom:7px;width:2px;border-radius:2px;background:var(--teal-2);box-shadow:0 0 10px 0 rgba(18,165,148,.75)}
+.item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none;opacity:.9}
+.item .n{margin-left:auto;font-size:10.5px;color:var(--rail-muted);font-weight:600}
+.item .b{margin-left:auto;font-size:10px;font-weight:700;color:#fff;background:#d92d20;border-radius:999px;padding:1px 6px;box-shadow:0 2px 6px -2px rgba(217,45,32,.9)}
+.rail-foot{margin-top:auto;padding:10px 12px;border-top:1px solid var(--rail-line);position:relative;z-index:1}
+.rail-foot .row{display:flex;align-items:center;gap:8px}
+.ava{width:24px;height:24px;border-radius:999px;background:linear-gradient(160deg,#2f3c4b,#1b2530);color:var(--rail-ink);font:700 10px Inter;display:grid;place-items:center;flex:none}
+.rail-foot b{font-size:11.5px;color:var(--rail-ink);font-weight:600;display:block;line-height:1.25}
+.rail-foot span{font-size:10.5px;color:var(--rail-muted)}
+
+/* ── Head ──────────────────────────────────────────────────────────── */
+.main{display:flex;flex-direction:column;min-width:0;background:var(--panel-2)}
+.head{
+  display:flex;align-items:center;gap:11px;height:52px;padding:0 16px;flex:none;
+  background:rgba(255,255,255,.82);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);
+}
+.head h1{font-size:16px;font-weight:600;letter-spacing:-.022em;white-space:nowrap}
+.head .sub{font-size:12px;color:var(--muted);white-space:nowrap}
+.head .sep{width:1px;height:16px;background:var(--line-2);flex:none}
+.spacer{flex:1}
+.btn{height:30px;padding:0 11px;border-radius:var(--r-xs);border:1px solid var(--line-2);background:#fff;color:var(--ink);font:600 12px Inter;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;box-shadow:var(--sh-card)}
+.btn:hover{background:var(--panel-3)}
+.btn.pri{
+  background:linear-gradient(180deg,#14201c 0%,#0b1512 100%);border-color:#0b1512;color:#fff;
+  box-shadow:0 1px 0 rgba(255,255,255,.12) inset, 0 6px 16px -8px rgba(11,21,18,.8);
+}
+.btn.pri:hover{background:#1b2a25}
+.body{padding:14px 16px 18px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:14px}
+
+/* ── KPI trak ──────────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.kpi{
+  background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px 10px;
+  box-shadow:var(--sh-card);position:relative;overflow:hidden;min-width:0;
+}
+.kpi::before{content:'';position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,rgba(18,165,148,0),rgba(18,165,148,.5),rgba(18,165,148,0))}
+.kpi .k{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .row{display:flex;align-items:flex-end;gap:9px;margin-top:5px}
+.kpi .v{font-size:27px;font-weight:600;letter-spacing:-.035em;line-height:1}
+.kpi .spark{flex:1;height:26px;opacity:.9}
+.kpi .d{margin-top:6px;font-size:11px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:5px}
+.up{color:var(--teal)} .down{color:var(--red)}
+.kpi.attn{background:linear-gradient(180deg,var(--amber-soft),#fff)}
+.kpi.attn::before{background:linear-gradient(90deg,rgba(180,83,9,0),rgba(180,83,9,.45),rgba(180,83,9,0))}
+.kpi.attn .v{color:#92400e}
+
+/* ── Vedra ─────────────────────────────────────────────────────────── */
+.vedra{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--sh-card);overflow:hidden}
+.card-h{display:flex;align-items:center;gap:8px;padding:10px 13px;border-bottom:1px solid var(--line)}
+.card-h h2{font-size:12.5px;font-weight:700;letter-spacing:-.008em}
+.pip{width:7px;height:7px;border-radius:2px;flex:none}
+.pip.red{background:#d92d20;box-shadow:0 0 8px 0 rgba(217,45,32,.55)}
+.pip.amb{background:#f79009;box-shadow:0 0 8px 0 rgba(247,144,9,.5)}
+.pip.teal{background:var(--teal-2);box-shadow:0 0 8px 0 rgba(18,165,148,.5)}
+.card-h .c{font-size:10.5px;font-weight:700;color:var(--ink-2);background:var(--panel-3);border:1px solid var(--line);border-radius:999px;padding:1px 7px}
+.card-h .hint{margin-left:auto;font-size:10.5px;color:var(--muted);white-space:nowrap}
+
+.naloga{padding:11px 13px;border-bottom:1px solid #f1f3f6;position:relative;transition:background .14s}
+.naloga:last-child{border-bottom:0}
+.naloga::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent}
+.naloga.nujno::before{background:linear-gradient(180deg,#f04438,#d92d20)}
+.naloga.opoz::before{background:linear-gradient(180deg,#fdb022,#f79009)}
+.naloga.mir::before{background:linear-gradient(180deg,#5fe3cd,var(--teal-2))}
+.naloga:hover{background:var(--panel-2)}
+.naloga b{display:block;font-size:13px;font-weight:600;letter-spacing:-.012em}
+.naloga p{font-size:11.5px;color:var(--muted);margin-top:2px}
+.naloga .noga{display:flex;align-items:center;gap:6px;margin-top:9px}
+.mini{height:26px;padding:0 9px;border-radius:var(--r-xs);border:1px solid var(--line-2);background:#fff;font:600 11.5px Inter;color:var(--ink-2);white-space:nowrap;box-shadow:var(--sh-card);cursor:pointer}
+.mini:hover{background:var(--panel-3);color:var(--ink)}
+.mini.dark{background:#101a22;border-color:#101a22;color:#fff}
+.mini.teal{background:var(--teal);border-color:var(--teal);color:#fff}
+.kdaj{margin-left:auto;font-size:10.5px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.prazno{padding:26px 13px;text-align:center;font-size:12px;color:var(--muted)}
+.prazno .ikona{width:26px;height:26px;margin:0 auto 8px;border-radius:8px;background:var(--panel-3);display:grid;place-items:center;color:var(--muted-2,#b6c0cb)}
+
+/* ── Segmentiran krmilnik ──────────────────────────────────────────── */
+.segs{display:inline-flex;padding:2px;background:var(--panel-3);border:1px solid var(--line);border-radius:9px;gap:2px}
+.seg{height:26px;padding:0 10px;border-radius:7px;border:0;background:none;font:600 12px Inter;color:var(--ink-2);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.seg:hover{color:var(--ink)}
+.seg.on{background:#fff;color:var(--ink);box-shadow:0 1px 2px rgba(13,21,32,.09)}
+.seg .n{font-size:10.5px;color:var(--muted);font-weight:700}
+.seg.on .n{color:var(--teal)}
+
+/* ── Filtri ────────────────────────────────────────────────────────── */
+.filtri{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.chip{
+  height:28px;padding:0 10px;border-radius:999px;border:1px solid var(--line-2);background:#fff;
+  display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:500;color:var(--ink-2);
+  white-space:nowrap;box-shadow:var(--sh-card);cursor:pointer;
+}
+.chip:hover{border-color:var(--muted)}
+.chip.on{background:var(--teal-soft);border-color:var(--teal-line);color:var(--teal);font-weight:600}
+.chip.dark{background:#101a22;border-color:#101a22;color:#fff;font-weight:600}
+.chip x{font-style:normal;opacity:.6;font-weight:700}
+.chip svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
+
+/* ── Tabela ────────────────────────────────────────────────────────── */
+.tabela{background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:var(--sh-card);overflow:hidden}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{
+  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);
+  text-align:left;padding:8px 10px;background:var(--panel-2);border-bottom:1px solid var(--line);white-space:nowrap;
+}
+th.s{color:var(--ink-2)}
+td{padding:0 10px;height:38px;border-bottom:1px solid #f2f4f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;color:var(--ink-2)}
+tbody tr{position:relative;transition:background .12s}
+tbody tr:hover td{background:#fbfdfd}
+tbody tr td:first-child{box-shadow:inset 2px 0 0 transparent}
+tbody tr:hover td:first-child{box-shadow:inset 2px 0 0 var(--teal-2)}
+td b{font-weight:600;color:var(--ink);letter-spacing:-.012em}
+td .sub{display:block;color:var(--muted);font-size:10.5px;margin-top:-3px}
+tr.skupina td{
+  background:var(--panel-3);height:31px;font-size:10.5px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-2);border-bottom:1px solid var(--line);border-top:1px solid var(--line);
+}
+tr.skupina:hover td{background:var(--panel-3)}
+tr.skupina .st{margin-left:8px;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0}
+tr.skupina .namig{float:right;font-weight:500;color:var(--muted);text-transform:none;letter-spacing:0}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:2px 7px;border-radius:5px;background:var(--panel-3);color:var(--ink-2);border:1px solid var(--line)}
+.tag.ok{background:var(--teal-soft);color:var(--teal);border-color:var(--teal-line)}
+.tag.info{background:var(--indigo-soft);color:var(--indigo);border-color:#c7cbff}
+.tag.warn{background:var(--amber-soft);color:var(--amber);border-color:var(--amber-line)}
+.tag.bad{background:var(--red-soft);color:var(--red);border-color:var(--red-line)}
+.meter{display:flex;align-items:center;gap:7px}
+.meter .t{width:44px;height:4px;border-radius:999px;background:#e9edf2;overflow:hidden;flex:none}
+.meter .f{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--teal-2),var(--teal))}
+.meter .f.low{background:linear-gradient(90deg,#fdb022,#f79009)}
+.meter span{font-size:11px;font-weight:600;color:var(--ink-2)}
+.ok{color:var(--teal);font-weight:700}
+.no{color:var(--muted)}
+.note{max-width:1460px;margin:8px auto 0;padding:0 22px;font-size:11.5px;color:#7c8895}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ ZASLON 1 — DANES ══════════════ -->
+<div class="frame-label">Smer D · Zaslon 1 — Danes</div>
+<div class="frame">
+<div class="app">
+
+  <aside class="rail">
+    <div class="rail-top">
+      <div class="mark">a</div>
+      <div class="rail-name">Acenta baza<small>Interna konzola</small></div>
+      <span class="chev">▾</span>
+    </div>
+    <div class="cmd">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Išči ali ukaz
+      <span class="kbd"><b>⌘</b><b>K</b></span>
+    </div>
+    <nav>
+      <a class="item on" href="#"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/></svg>Danes<span class="b">8</span></a>
+      <div class="rail-group">Delo</div>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Procesi<span class="n">5</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M20 7h-9"/><path d="M14 17H5"/></svg>Podjetja<span class="n">47</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Vprašalniki<span class="n">6</span></a>
+      <div class="rail-group">Analiza</div>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Iskanje</a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 4-6"/></svg>Cross-client</a>
+    </nav>
+    <div class="rail-foot">
+      <div class="row">
+        <div class="ava">MZ</div>
+        <div style="min-width:0">
+          <b>ai@acenta.si</b>
+          <span>Sinhronizirano pred 3 min</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="head">
+      <h1>Danes</h1>
+      <span class="sep"></span>
+      <span class="sub">četrtek, 27. avgust 2026</span>
+      <div class="spacer"></div>
+      <button class="btn">Statistika</button>
+      <button class="btn pri">+ Nov sestanek</button>
+    </div>
+
+    <div class="body">
+
+      <div class="kpis">
+        <div class="kpi">
+          <div class="k">Podjetja</div>
+          <div class="row">
+            <div class="v">47</div>
+            <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none">
+              <path d="M0 20 L15 18 L30 19 L45 14 L60 15 L75 10 L90 11 L105 6 L120 4" fill="none" stroke="#12a594" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="d"><span class="up">↑ 3</span> ta teden</div>
+        </div>
+        <div class="kpi">
+          <div class="k">Odgovori (7 dni)</div>
+          <div class="row">
+            <div class="v">12</div>
+            <svg class="spark" viewBox="0 0 120 26" preserveAspectRatio="none">
+              <path d="M0 22 L15 16 L30 20 L45 12 L60 18 L75 9 L90 13 L105 7 L120 8" fill="none" stroke="#12a594" stroke-width="1.6" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="d"><span class="up">↑ 50 %</span> vs prejšnji teden</div>
+        </div>
+        <div class="kpi attn">
+          <div class="k">Brez priporočil</div>
+          <div class="row"><div class="v">8</div></div>
+          <div class="d">zahteva ukrep</div>
+        </div>
+        <div class="kpi attn">
+          <div class="k">Zastarela priporočila</div>
+          <div class="row"><div class="v">3</div></div>
+          <div class="d">novejši odgovor po generaciji</div>
+        </div>
+      </div>
+
+      <div class="vedra">
+        <div class="card">
+          <div class="card-h"><span class="pip red"></span><h2>Ukrepaj</h2><span class="c">8</span><span class="hint">na tebi</span></div>
+          <div class="naloga nujno">
+            <b>Hotel Astoria Bled</b>
+            <p>Brez transkripta · rezervacije · izpolnjeno 84 %</p>
+            <div class="noga"><button class="mini dark">Dodaj transkript</button><button class="mini">Odpri</button><span class="kdaj">1 dan</span></div>
+          </div>
+          <div class="naloga nujno">
+            <b>Terme Olimia</b>
+            <p>Zaključeno · jedilniki · stranki še ni poslano</p>
+            <div class="noga"><button class="mini teal">Odpri in pošlji</button><span class="kdaj">2 dni</span></div>
+          </div>
+          <div class="naloga opoz">
+            <b>8 podjetij brez priporočil</b>
+            <p>Imajo odgovore, AI priporočila še niso bila generirana</p>
+            <div class="noga"><button class="mini">Odpri seznam</button><span class="kdaj">—</span></div>
+          </div>
+          <div class="naloga opoz">
+            <b>3 zastarela priporočila</b>
+            <p>Po zadnji generaciji je prišel novejši odgovor</p>
+            <div class="noga"><button class="mini">Odpri seznam</button><span class="kdaj">—</span></div>
+          </div>
+          <div class="naloga opoz">
+            <b>Kaass avto</b>
+            <p>Nov odgovor, brez kvalifikacije</p>
+            <div class="noga"><button class="mini dark">Oceni</button><span class="kdaj">2 h</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="pip amb"></span><h2>Čaka druge</h2><span class="c">3</span><span class="hint">ne blokira tebe</span></div>
+          <div class="naloga opoz">
+            <b>Kaass avto</b>
+            <p>Osnutek brez sprememb 7 dni · Peter Novak</p>
+            <div class="noga"><button class="mini">Odpri</button><span class="kdaj">7 dni</span></div>
+          </div>
+          <div class="naloga opoz">
+            <b>Royal Bled</b>
+            <p>Poslano 21. 8. · brez odziva stranke</p>
+            <div class="noga"><button class="mini">Odpri</button><span class="kdaj">6 dni</span></div>
+          </div>
+          <div class="naloga">
+            <b>Gostilna Krpan</b>
+            <p>Shramba obrazec · brez naloge</p>
+            <div class="noga"><button class="mini">Odpri</button><span class="kdaj">4 dni</span></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><span class="pip teal"></span><h2>Zaključeno ta teden</h2><span class="c">4</span><span class="hint">brez ukrepa</span></div>
+          <div class="naloga mir">
+            <b>Sportmix</b>
+            <p>Seja zaključena · 96 %</p>
+            <div class="noga"><span class="tag ok">Transkript ✓</span><span class="kdaj">9 dni</span></div>
+          </div>
+          <div class="naloga mir">
+            <b>Royal Bled</b>
+            <p>Poslano stranki 21. 8.</p>
+            <div class="noga"><span class="tag info">Poslano</span><span class="kdaj">6 dni</span></div>
+          </div>
+          <div class="naloga mir">
+            <b>Camp Bled</b>
+            <p>AI priporočila generirana</p>
+            <div class="noga"><span class="tag ok">AI ✓</span><span class="kdaj">3 dni</span></div>
+          </div>
+          <div class="naloga mir">
+            <b>Hotel Triglav</b>
+            <p>Nov odgovor ocenjen kot HOT</p>
+            <div class="noga"><span class="tag bad">HOT</span><span class="kdaj">4 dni</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+<div class="note">Statična maketa. Aplikacija je uokvirjena na ambientni podlagi, rail je temen, akcent (teal) nosi samo aktivno stanje in pozitivno vrednost.</div>
+
+<!-- ══════════════ ZASLON 2 — PROCESI ══════════════ -->
+<div class="frame-label">Smer D · Zaslon 2 — Procesi</div>
+<div class="frame">
+<div class="app">
+
+  <aside class="rail">
+    <div class="rail-top">
+      <div class="mark">a</div>
+      <div class="rail-name">Acenta baza<small>Interna konzola</small></div>
+      <span class="chev">▾</span>
+    </div>
+    <div class="cmd">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      Išči ali ukaz
+      <span class="kbd"><b>⌘</b><b>K</b></span>
+    </div>
+    <nav>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/></svg>Danes<span class="b">8</span></a>
+      <div class="rail-group">Delo</div>
+      <a class="item on" href="#"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Procesi<span class="n">5</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M20 7h-9"/><path d="M14 17H5"/></svg>Podjetja<span class="n">47</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Vprašalniki<span class="n">6</span></a>
+      <div class="rail-group">Analiza</div>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Iskanje</a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 4-6"/></svg>Cross-client</a>
+    </nav>
+    <div class="rail-foot">
+      <div class="row">
+        <div class="ava">MZ</div>
+        <div style="min-width:0"><b>ai@acenta.si</b><span>Predloga: 51 vprašanj</span></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="head">
+      <h1>Procesi</h1>
+      <span class="sep"></span>
+      <span class="sub">5 od 5 sestankov</span>
+      <div class="spacer"></div>
+      <button class="btn">Knjižnica</button>
+      <button class="btn pri">+ Nov sestanek</button>
+    </div>
+
+    <div class="body">
+
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <div class="segs">
+          <button class="seg on">Vsi<span class="n">5</span></button>
+          <button class="seg">V teku<span class="n">2</span></button>
+          <button class="seg">Brez transkripta<span class="n">2</span></button>
+          <button class="seg">Za pošiljanje<span class="n">3</span></button>
+          <button class="seg">Poslani<span class="n">0</span></button>
+          <button class="seg">Arhiv<span class="n">0</span></button>
+        </div>
+        <div class="spacer"></div>
+        <div class="filtri">
+          <span class="chip dark"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>astoria</span>
+          <span class="chip on">Transkript: manjka <x>×</x></span>
+          <span class="chip">Svetovalec: vsi</span>
+          <span class="chip">Obdobje: 30 dni</span>
+          <span class="chip">Izpolnjenost: vse</span>
+        </div>
+      </div>
+
+      <div class="tabela">
+        <table>
+          <colgroup><col style="width:19%"><col style="width:14%"><col style="width:10%"><col style="width:13%"><col style="width:12%"><col style="width:11%"><col style="width:11%"><col style="width:10%"></colgroup>
+          <thead><tr>
+            <th class="s">Stranka ↓</th><th>Proces</th><th>Oddelek</th><th>Svetovalec</th><th>Izpolnjenost</th><th>Transkript</th><th>Poslano</th><th>Datum</th>
+          </tr></thead>
+          <tbody>
+            <tr class="skupina"><td colspan="8">V teku<span class="st">2 seji</span><span class="namig">Izpolnjuje se med sestankom, autosave</span></td></tr>
+            <tr>
+              <td><b>Hotel Astoria Bled</b><span class="sub">Ocena potenciala</span></td>
+              <td>Rezervacije</td><td>Recepcija</td><td>Maja Lesjak</td>
+              <td><div class="meter"><span class="t"><i class="f" style="width:84%;display:block;height:100%"></i></span><span>84 %</span></div></td>
+              <td class="no">manjka</td><td class="no">—</td><td>26. 8. 2026</td>
+            </tr>
+            <tr>
+              <td><b>Kaass avto</b><span class="sub">Ocena potenciala</span></td>
+              <td>Servisni termini</td><td>Servis</td><td>Peter Novak</td>
+              <td><div class="meter"><span class="t"><i class="f low" style="width:31%;display:block;height:100%"></i></span><span>31 %</span></div></td>
+              <td class="no">manjka</td><td class="no">—</td><td>20. 8. 2026</td>
+            </tr>
+
+            <tr class="skupina"><td colspan="8">Zaključeno, čaka pošiljanje<span class="st">3 seje</span><span class="namig">Pripravljeno za stranko</span></td></tr>
+            <tr>
+              <td><b>Terme Olimia</b><span class="sub">Ocena potenciala</span></td>
+              <td>Jedilniki</td><td>Kuhinja</td><td>Maja Lesjak</td>
+              <td><div class="meter"><span class="t"><i class="f" style="width:100%;display:block;height:100%"></i></span><span>100 %</span></div></td>
+              <td class="ok">✓ 1</td><td class="no">—</td><td>25. 8. 2026</td>
+            </tr>
+            <tr>
+              <td><b>Royal Bled</b><span class="sub">Ocena potenciala</span></td>
+              <td>Golf rezervacije</td><td>Prodaja</td><td>Maks Zager</td>
+              <td><div class="meter"><span class="t"><i class="f" style="width:100%;display:block;height:100%"></i></span><span>100 %</span></div></td>
+              <td class="ok">✓ 2</td><td class="no">—</td><td>21. 8. 2026</td>
+            </tr>
+            <tr>
+              <td><b>Sportmix</b><span class="sub">Ocena potenciala</span></td>
+              <td>Zaloge</td><td>Nabava</td><td>Maks Zager</td>
+              <td><div class="meter"><span class="t"><i class="f" style="width:96%;display:block;height:100%"></i></span><span>96 %</span></div></td>
+              <td class="ok">✓ 1</td><td class="no">—</td><td>18. 8. 2026</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h2>Knjižnica vprašalnikov</h2><span class="c">1</span><span class="hint">Urejanje velja za prihodnje sestanke</span></div>
+        <div class="naloga">
+          <b>Ocena poslovnega potenciala za AI</b>
+          <p>51 vprašanj · 8 sklopov · 5 sestankov · spremenjeno 24. 8. 2026</p>
+          <div class="noga"><button class="mini dark">Začni izpolnjevati</button><button class="mini">Uredi vprašanja</button><span class="kdaj">ocena-poslovnega-potenciala-ai</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+<div class="note">Shranjeni pogledi so segmentiran krmilnik, filtri so značke; vrstica ob prehodu miške dobi tanko akcentno črto na levi.</div>
+<div style="height:44px"></div>
+
+</body>
+</html>

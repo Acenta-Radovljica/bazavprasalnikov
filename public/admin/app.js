@@ -159,17 +159,51 @@ function sidebarHtml(active = '') {
   }).join('');
 
   return `
-    <div class="flex items-center gap-2.5 mb-4 px-1">
+    <div class="flex items-center gap-2.5 mb-2 px-1">
       <div class="brand-mark">a</div>
-      <div class="min-w-0">
-        <div class="font-semibold leading-tight ellipsis" style="font-size:13px; letter-spacing:-0.01em;">Acenta baza</div>
-        <div class="text-muted ellipsis" style="font-size:11px">ai@acenta.si</div>
+      <div class="min-w-0 rail-name">
+        <div class="font-semibold leading-tight ellipsis" style="font-size:12.5px; letter-spacing:-0.01em;">Acenta baza</div>
+        <small class="ellipsis" style="font-size:10.5px">Interna konzola</small>
       </div>
     </div>
 
+    <a href="/admin/search.html" class="cmd-bar mb-3" title="Iskanje po odgovorih (⌘K ali /)">
+      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span>Išči</span>
+      <span class="keys"><b>⌘</b><b>K</b></span>
+    </a>
+
     <nav class="space-y-0.5 flex-1">${postavke}</nav>
 
-    <div style="border-top:1px solid var(--hairline); padding-top:10px; font-size:11px" class="text-muted ellipsis" id="nav-noga">Admin</div>`;
+    <div class="rail-foot" style="padding-top:10px; margin-top:10px">
+      <div class="flex items-center gap-2">
+        <div class="rail-avatar">MZ</div>
+        <div class="min-w-0">
+          <b class="ellipsis" style="display:block;font-size:11.5px;line-height:1.25">ai@acenta.si</b>
+          <span class="ellipsis" style="display:block;font-size:10.5px" id="nav-noga">Admin</span>
+        </div>
+      </div>
+    </div>`;
+}
+
+// ⌘K / Ctrl+K in "/" odpreta iskanje. Ukazna vrstica v railu je povezava,
+// zato deluje tudi brez tipkovnice — bliznjica je pospesek, ne pogoj.
+function vezaviTipkovnice() {
+  if (window.__bliznjiceVezane) return;
+  window.__bliznjiceVezane = true;
+  document.addEventListener('keydown', (e) => {
+    const vTipkanju = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')
+      || e.target?.isContentEditable;
+    const jeK = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k';
+    const jePosevnica = e.key === '/' && !vTipkanju && !e.metaKey && !e.ctrlKey && !e.altKey;
+    if (!jeK && !jePosevnica) return;
+    e.preventDefault();
+    if (location.pathname.endsWith('/search.html')) {
+      document.querySelector('input')?.focus();
+    } else {
+      location.href = '/admin/search.html';
+    }
+  });
 }
 
 // Napolni stevec nalog v navigaciji. Tiho odneha, ce ruta ni dosegljiva —
@@ -248,8 +282,10 @@ function renderSidebar(active = '') {
     return;
   }
   el.innerHTML = sidebarHtml(active);
+  el.parentElement?.classList.add('app-shell');
   poskrbiZaOdzivnost(el, active);
   napolniZnackoNalog();
+  vezaviTipkovnice();
 }
 
 // Poskrbi, da so nalozeni skupni stili in pisave. Stare strani nalagajo samo
@@ -293,7 +329,7 @@ function renderNav(active = '') {
   // Sestavimo ovojnico, kakrsno imajo nove strani ze v HTML — potem
   // odzivnost uredi ista funkcija za vse.
   const ovoj = document.createElement('div');
-  ovoj.className = 'flex min-h-screen';
+  ovoj.className = 'flex min-h-screen app-shell';
 
   const aside = document.createElement('aside');
   aside.id = 'sidebar';
@@ -306,6 +342,7 @@ function renderNav(active = '') {
 
   poskrbiZaOdzivnost(aside, active);
   napolniZnackoNalog();
+  vezaviTipkovnice();
 
   if (glava) glava.remove();
   document.body.classList.remove('bg-gray-50');

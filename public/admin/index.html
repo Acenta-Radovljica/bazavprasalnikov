@@ -10,34 +10,24 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
-    /* Per-page: tri vedra dela. Skupni gradniki so v admin.css. */
-    .strip { display: flex; align-items: center; gap: 22px; padding: 10px 14px; border: 1px solid var(--hairline); border-radius: var(--r); background: var(--bg-sub); overflow: hidden; flex-wrap: wrap; row-gap: 8px; }
-    /* Na ozkem zaslonu trak v dva stolpca; locila skrijemo, ker po ovijanju
-       ne locujejo vec nicesar. */
-    @media (max-width: 700px) {
-      .strip { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
-      .strip .sep { display: none; }
-      .strip .last { grid-column: 1 / -1; margin-left: 0; }
-    }
-    .strip .num { font-size: 17px; font-weight: 600; letter-spacing: -.01em; }
-    .strip .lbl { font-size: 12px; color: var(--muted); margin-left: 6px; }
-    .strip .sep { width: 1px; align-self: stretch; background: var(--hairline); flex: none; }
-    .strip .last { margin-left: auto; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
-
+    /* Per-page: tri vedra dela. Skupni gradniki (kpi, card, tag) so v admin.css. */
     .vedra { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
     @media (max-width: 1100px) { .vedra { grid-template-columns: 1fr; } }
 
-    .naloga { padding: 10px 13px; border-bottom: 1px solid var(--row-line); border-left: 3px solid transparent; }
+    /* Naloga: barvni trak je psevdoelement, da se ob prehodu miške ne
+       premakne vsebina (border-left bi jo premaknil za 3px). */
+    .naloga { padding: 11px 13px; border-bottom: 1px solid var(--row-line); position: relative; transition: background .14s var(--ease); }
     .naloga:last-child { border-bottom: 0; }
-    .naloga:hover { background: var(--bg-sub); }
-    .naloga.nujno { border-left-color: #d92d20; }
-    .naloga.opozorilo { border-left-color: #f79009; }
-    .naloga.mirno { border-left-color: var(--acenta-teal); }
-    .naloga b { display: block; font-size: 13px; font-weight: 600; color: var(--ink); }
-    .naloga p { font-size: 12px; color: var(--muted); margin-top: 2px; }
-    .naloga .noga { display: flex; align-items: center; gap: 7px; margin-top: 8px; }
-    .naloga .kdaj { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
-    .prazno { padding: 20px 13px; text-align: center; font-size: 12.5px; color: var(--muted); }
+    .naloga:hover { background: var(--bg); }
+    .naloga::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent; }
+    .naloga.nujno::before { background: linear-gradient(180deg, #f04438, #d92d20); }
+    .naloga.opozorilo::before { background: linear-gradient(180deg, #fdb022, #f79009); }
+    .naloga.mirno::before { background: linear-gradient(180deg, #5fe3cd, var(--acenta-teal-2)); }
+    .naloga b { display: block; font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: -.012em; }
+    .naloga p { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+    .naloga .noga { display: flex; align-items: center; gap: 6px; margin-top: 9px; }
+    .naloga .kdaj { margin-left: auto; font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+    .prazno { padding: 24px 13px; text-align: center; font-size: 12px; color: var(--muted); }
   </style>
 </head>
 <body>
@@ -51,7 +41,9 @@
 
       <header class="page-head">
         <h1 class="display">Danes</h1>
+        <span class="sep"></span>
         <span class="sub" id="datum">—</span>
+        <span class="sub" id="osvezeno">·</span>
         <div class="spacer"></div>
         <button class="btn-secondary" id="btn-statistika" onclick="preklopiStatistiko()">Statistika</button>
         <a class="btn-dark" href="/admin/procesi.html#nov">+ Nov sestanek</a>
@@ -59,38 +51,63 @@
 
       <div class="p-4 flex flex-col gap-4">
 
-        <section class="strip" id="strip">
-          <div><span class="num" id="s-podjetja">—</span><span class="lbl">podjetij</span></div>
-          <div class="sep"></div>
-          <div><span class="num" id="s-odgovori">—</span><span class="lbl">odgovorov (7 dni)</span></div>
-          <div class="sep"></div>
-          <div><span class="num" id="s-seje">—</span><span class="lbl">procesnih sej</span></div>
-          <div class="sep"></div>
-          <div><span class="num" id="s-vprasalniki">—</span><span class="lbl">aktivnih vprašalnikov</span></div>
-          <div class="last" id="osvezeno">Nalagam …</div>
+        <section class="kpis" id="kpi-vrh">
+          <div class="kpi">
+            <div class="k">Podjetja</div>
+            <div class="row"><div class="v" id="s-podjetja">—</div></div>
+            <div class="d" id="d-podjetja">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k">Odgovori (7 dni)</div>
+            <div class="row">
+              <div class="v" id="s-odgovori">—</div>
+              <!-- Mikro trend je iz PRAVIH podatkov (stats.timeline). Kjer
+                   dnevne serije ni (npr. podjetja), crte ne rise nobena. -->
+              <svg class="spark" id="spark-odgovori" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true"></svg>
+            </div>
+            <div class="d" id="d-odgovori">—</div>
+          </div>
+          <div class="kpi">
+            <div class="k">Procesne seje</div>
+            <div class="row"><div class="v" id="s-seje">—</div></div>
+            <div class="d" id="d-seje">—</div>
+          </div>
+          <div class="kpi attn">
+            <div class="k">Brez priporočil</div>
+            <div class="row"><div class="v" id="s-brez">—</div></div>
+            <div class="d warn">imajo odgovore, AI ni tekel</div>
+          </div>
+          <div class="kpi attn">
+            <div class="k">Zastarela priporočila</div>
+            <div class="row"><div class="v" id="s-zastarela">—</div></div>
+            <div class="d warn">novejši odgovor po generaciji</div>
+          </div>
         </section>
 
         <section class="vedra">
           <article class="card">
             <div class="card-head">
+              <span class="pip red"></span>
               <h2>Ukrepaj</h2><span class="count" id="c-ukrepaj">—</span>
-              <span style="margin-left:auto;font-size:11px;color:var(--muted)">na tebi</span>
+              <span style="margin-left:auto;font-size:10.5px;color:var(--muted)">na tebi</span>
             </div>
             <div id="v-ukrepaj"><div class="prazno">Nalagam …</div></div>
           </article>
 
           <article class="card">
             <div class="card-head">
+              <span class="pip warn"></span>
               <h2>Čaka druge</h2><span class="count" id="c-caka">—</span>
-              <span style="margin-left:auto;font-size:11px;color:var(--muted)">ne blokira tebe</span>
+              <span style="margin-left:auto;font-size:10.5px;color:var(--muted)">ne blokira tebe</span>
             </div>
             <div id="v-caka"><div class="prazno">Nalagam …</div></div>
           </article>
 
           <article class="card">
             <div class="card-head">
+              <span class="pip ok"></span>
               <h2>Zaključeno ta teden</h2><span class="count" id="c-zakljuceno">—</span>
-              <span style="margin-left:auto;font-size:11px;color:var(--muted)">brez ukrepa</span>
+              <span style="margin-left:auto;font-size:10.5px;color:var(--muted)">brez ukrepa</span>
             </div>
             <div id="v-zakljuceno"><div class="prazno">Nalagam …</div></div>
           </article>
@@ -108,11 +125,11 @@
                 </select>
               </div>
             </div>
-            <div class="kpis" style="border:0;border-radius:0">
-              <div class="kpi"><div class="k">Podjetja</div><div class="v" id="stat-podjetja">—</div><div class="d"><span id="delta-podjetja" class="delta-flat">—</span></div></div>
-              <div class="kpi"><div class="k">Odgovori</div><div class="v" id="stat-odgovori">—</div><div class="d"><span id="delta-odgovori" class="delta-flat">—</span></div></div>
-              <div class="kpi attn"><div class="k">Zastarela priporočila</div><div class="v" id="stat-zastarela">—</div><div class="d warn">regeneriraj v podjetju</div></div>
-              <div class="kpi attn"><div class="k">Brez priporočil</div><div class="v" id="stat-brez">—</div><div class="d warn">še nikoli generirana</div></div>
+            <div class="kpis" style="padding:12px">
+              <div class="kpi"><div class="k">Podjetja skupaj</div><div class="row"><div class="v" id="stat-podjetja">—</div></div><div class="d" id="delta-podjetja">—</div></div>
+              <div class="kpi"><div class="k">Odgovori skupaj</div><div class="row"><div class="v" id="stat-odgovori">—</div></div><div class="d" id="delta-odgovori">—</div></div>
+              <div class="kpi attn"><div class="k">Zastarela priporočila</div><div class="row"><div class="v" id="stat-zastarela">—</div></div><div class="d warn">regeneriraj v podjetju</div></div>
+              <div class="kpi attn"><div class="k">Brez priporočil</div><div class="row"><div class="v" id="stat-brez">—</div></div><div class="d warn">še nikoli generirana</div></div>
             </div>
           </article>
 
@@ -188,14 +205,39 @@
       return `${d} ${d === 1 ? 'dan' : 'dni'}`;
     }
 
-    function deltaBadge(elId, current, previous) {
+    // Delta v vrstici pod stevilko. `pripis` je besedilo za odstotkom, da
+    // stevilka nikoli ne stoji brez konteksta ("50 %" cesa?).
+    function deltaBadge(elId, current, previous, pripis = 'vs prejšnji teden') {
       const el = document.getElementById(elId);
-      if (previous === 0 && current === 0) { el.className = 'delta-flat'; el.textContent = '— vs prejšnji teden'; return; }
-      if (previous === 0) { el.className = 'delta-up'; el.textContent = `↑ ${current} nov`; return; }
+      if (!el) return;
+      const zapisi = (razred, znak, besedilo) => {
+        el.className = 'd' + (razred ? ' ' + razred : '');
+        el.innerHTML = `<span class="${razred === 'up' ? 'delta-up' : razred === 'down' ? 'delta-down' : 'delta-flat'}">${znak}</span> ${besedilo}`;
+      };
+      if (previous === 0 && current === 0) return zapisi('', '—', pripis);
+      if (previous === 0) return zapisi('up', `↑ ${current}`, pripis);
       const pct = Math.round(((current - previous) / previous) * 100);
-      if (pct > 0)      { el.className = 'delta-up';   el.textContent = `↑ ${pct} %`; }
-      else if (pct < 0) { el.className = 'delta-down'; el.textContent = `↓ ${Math.abs(pct)} %`; }
-      else              { el.className = 'delta-flat'; el.textContent = '0 %'; }
+      if (pct > 0) return zapisi('up', `↑ ${pct} %`, pripis);
+      if (pct < 0) return zapisi('down', `↓ ${Math.abs(pct)} %`, pripis);
+      return zapisi('', '0 %', pripis);
+    }
+
+    // Mikro trend v KPI ploscici. Riseva ga SAMO, kadar imamo pravo dnevno
+    // serijo; izmisljena crta bi bila lepsa in lazniva.
+    function renderSparkline(svgId, vrednosti) {
+      const svg = document.getElementById(svgId);
+      if (!svg || !vrednosti.length) return;
+      const W = 120, H = 26, pad = 3;
+      const max = Math.max(1, ...vrednosti);
+      const min = Math.min(...vrednosti);
+      const razpon = max - min || 1;
+      const tocke = vrednosti.map((v, i) => {
+        const x = (i / (vrednosti.length - 1 || 1)) * W;
+        const y = H - pad - ((v - min) / razpon) * (H - 2 * pad);
+        return `${x.toFixed(1)} ${y.toFixed(1)}`;
+      });
+      svg.innerHTML = `<path d="M ${tocke.join(' L ')}" fill="none" stroke="#12a594"
+        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
 
     // ── Naloge ────────────────────────────────────────────────────────────
@@ -408,13 +450,21 @@
       }
 
       const t = stats.totals;
+      const vseSeje = seje?.seje ?? [];
+      const vTeku = vseSeje.filter(s => s.status === 'osnutek').length;
 
-      // Trak s stevilkami
+      // KPI ploscice na vrhu
       document.getElementById('s-podjetja').textContent = t.podjetja_total;
       document.getElementById('s-odgovori').textContent = t.odgovori_7d;
-      document.getElementById('s-seje').textContent = (seje?.seje ?? []).length;
-      document.getElementById('s-vprasalniki').textContent = t.vprasalniki_aktivni;
-      document.getElementById('osvezeno').textContent = 'Osveženo ' + relativnoTime(new Date().toISOString());
+      document.getElementById('s-seje').textContent = vseSeje.length;
+      document.getElementById('s-brez').textContent = t.brez_priporocil;
+      document.getElementById('s-zastarela').textContent = stats.zastarela;
+      deltaBadge('d-podjetja', t.podjetja_7d, t.podjetja_prej_7d, 'novih ta teden');
+      deltaBadge('d-odgovori', t.odgovori_7d, t.odgovori_prej_7d, 'vs prejšnji teden');
+      document.getElementById('d-seje').textContent =
+        `${vTeku} v teku · ${t.vprasalniki_aktivni} aktivnih vprašalnikov`;
+      renderSparkline('spark-odgovori', stats.timeline.slice(-14).map(r => r.st));
+      document.getElementById('osvezeno').textContent = '· osveženo ' + relativnoTime(new Date().toISOString());
 
       // Tri vedra
       izrisiVedro('v-ukrepaj', naloge.ukrepaj, 'Nič ni na tebi. Prazen seznam je dober seznam.');
