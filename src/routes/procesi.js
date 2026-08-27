@@ -11,6 +11,7 @@ import { renderirajIzpolnjen } from '../procesi/render.js';
 import { renderirajHtml } from '../pdf/render.js';
 import { dodajIzPovezave, shraniTranskript, najnovejsiTranskript, jeUrl } from '../procesi/transcript.js';
 import { posljiStranki, privzetoSporocilo, veljavenEmail } from '../procesi/mail.js';
+import { izracunajAnalizo } from '../procesi/analiza.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -655,5 +656,102 @@ router.post('/seje/:id/poslji', async (req, res) => {
   res.json({ ok: true, resend_id: rezultat.resend_id, prejemnik });
 });
 
-// ── DEL 8: Named export ──────────────────────────────────────────────────
+// ── DEL 8: Ruta — cross-analiza (FAZA 1, determinirano) ──────────────────
+
+// GET /api/procesi/analiza — primerjava izpolnjenih vprasalnikov cez seje.
+//
+// Tu ni AI klica. Vsaka stevilka je prestevek nad odgovori (src/procesi/analiza.js);
+// Faza 2 bo ta izpis podala modelu kot dejstva, ki jih sme citirati, ne racunati.
+//
+// Filtri (vsi neobvezni):
+//   ?status=zakljucen,poslan   seznam statusov | 'vse' | privzeto vse razen arhiva
+//   ?predloga=<questionnaire_id>
+//   ?od=YYYY-MM-DD & ?do=YYYY-MM-DD   po datumu sestanka
+//   ?svetovalec=<niz>  ?stranka=<niz>
+//
+// Filtri so v SQL in ne v brskalniku (za razliko od seznama sej): analiza
+// prenasa cele snapshote in odgovore, zato je nabor treba zozati PRED
+// prenosom, ne po njem.
+router.get('/analiza', async (req, res) => {
+  const pogoji = [];
+  const params = [];
+  let p = 1;
+
+  const status = typeof req.query.status === 'string' ? req.query.status.trim() : '';
+  if (status === 'vse') {
+    // brez pogoja
+  } else if (status) {
+    // Seznam je dovoljen, ker je "zakljucene in poslane" (= izpolnjeni
+    // vprasalniki, ki jih je smiselno primerjati) osnovni pogled te strani.
+    const izbrani = status.split(',').map(s => s.trim()).filter(Boolean);
+    for (const s of izbrani) {
+      if (!STATUSI.has(s)) return res.status(400).json({ error: 'invalid_status', detail: s });
+    }
+    if (!izbrani.length) return res.status(400).json({ error: 'invalid_status', detail: status });
+    pogoji.push(`s.status = ANY($${p++})`);
+    params.push(izbrani);
+  } else {
+    pogoji.push(`s.status <> 'arhiv'`);
+  }
+
+  const predloga = idIzParam(req.query.predloga);
+  if (typeof req.query.predloga === 'string' && req.query.predloga.trim() && !predloga) {
+    return res.status(400).json({ error: 'invalid_predloga' });
+  }
+  if (predloga) {
+    pogoji.push(`s.questionnaire_id = $${p++}`);
+    params.push(predloga);
+  }
+
+  // Datum sestanka je DATE; primerjamo z nizom, ker ga tako tudi beremo
+  // (pg.types.setTypeParser(1082) v src/db.js — brez tega se datum premakne
+  // za dan nazaj).
+  for (const [kljuc, operator] of [['od', '>='], ['do', '<=']]) {
+    const v = typeof req.query[kljuc] === 'string' ? req.query[kljuc].trim() : '';
+    if (!v) continue;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      return res.status(400).json({ error: 'invalid_datum', detail: kljuc });
+    }
+    pogoji.push(`s.datum_sestanka ${operator} $${p++}::date`);
+    params.push(v);
+  }
+
+  for (const [kljuc, stolpec] of [['svetovalec', 's.svetovalec'], ['stranka', 's.stranka_naziv']]) {
+    const v = typeof req.query[kljuc] === 'string' ? req.query[kljuc].trim() : '';
+    if (!v) continue;
+    pogoji.push(`${stolpec} ILIKE $${p++}`);
+    params.push(`%${v}%`);
+  }
+
+  const where = pogoji.length ? `WHERE ${pogoji.join(' AND ')}` : '';
+
+  const r = await dbQuery(`
+    SELECT s.id, s.stranka_naziv, s.proces, s.oddelek, s.svetovalec,
+           s.datum_sestanka, s.status, s.questionnaire_id,
+           s.questions_snapshot, s.answers,
+           q.naziv_prikaz
+      FROM process_sessions s
+      JOIN questionnaires q ON q.id = s.questionnaire_id
+      ${where}
+     ORDER BY s.datum_sestanka DESC NULLS LAST, s.id DESC
+     LIMIT 200
+  `, params);
+
+  if (!r) return res.status(500).json({ error: 'db_error' });
+
+  const analiza = izracunajAnalizo(r.rows);
+  res.json({
+    ...analiza,
+    filtri: {
+      status: status || 'brez arhiva',
+      predloga: predloga ?? null,
+      od: req.query.od ?? null,
+      do: req.query.do ?? null,
+      svetovalec: req.query.svetovalec ?? null,
+      stranka: req.query.stranka ?? null,
+    },
+  });
+});
+
+// ── DEL 9: Named export ──────────────────────────────────────────────────
 export { router };

@@ -16,8 +16,10 @@ function t(ime, pogoj, dodatek = '') {
 // Pricakovane postavke — ista resnica kot NAV_POSTAVKE v public/admin/app.js.
 // Prenova 27. 8. 2026: "Pregled" se imenuje "Danes" (prva stran je seznam
 // dela, ne porocilo) in Procesi so pred Podjetji, ker so glavno delo.
-const POSTAVKE = ['Danes', 'Procesi', 'Podjetja', 'Vprašalniki', 'Iskanje', 'Cross-client'];
-const KLJUCI   = ['pregled', 'procesi', 'podjetja', 'questionnaires', 'search', 'insights'];
+// Isti dan dodana "Primerjava" (cross-analiza procesnih vprasalnikov, FAZA 1)
+// kot prva postavka skupine Analiza.
+const POSTAVKE = ['Danes', 'Procesi', 'Podjetja', 'Vprašalniki', 'Primerjava', 'Iskanje', 'Cross-client'];
+const KLJUCI   = ['pregled', 'procesi', 'podjetja', 'questionnaires', 'analiza', 'search', 'insights'];
 
 const STRANI = [
   ['Danes',        '/admin/index.html',          'pregled'],
@@ -25,6 +27,7 @@ const STRANI = [
   ['Kanban',       '/admin/kanban.html',         'podjetja'],
   ['Procesi',      '/admin/procesi.html',        'procesi'],
   ['Vprašalniki',  '/admin/questionnaires.html', 'questionnaires'],
+  ['Primerjava',   '/admin/analiza.html',        'analiza'],
   ['Iskanje',      '/admin/search.html',         'search'],
   ['Cross-client', '/admin/insights.html',       'insights'],
 ];
@@ -70,7 +73,7 @@ for (const [ime, pot, aktivenKljuc] of STRANI) {
   });
 
   t('stranska vrstica je izrisana', izvid.imaSidebar);
-  t('vseh 6 postavk', izvid.postavke.length === 6, JSON.stringify(izvid.postavke));
+  t('vseh 7 postavk', izvid.postavke.length === 7, JSON.stringify(izvid.postavke));
   t('postavke so prave', JSON.stringify(izvid.postavke) === JSON.stringify(POSTAVKE),
      JSON.stringify(izvid.postavke));
   t('Procesi so v navigaciji', izvid.postavke.includes('Procesi'));

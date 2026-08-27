@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acenta — Primerjava vprašalnikov</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <style>
+    /* Orodna vrstica filtrov — enaka kot na Procesih, da se stran ne uci znova. */
+    .orodna { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; padding: 10px 12px; }
+    .polje { display: block; min-width: 140px; }
+    .polje > span { display: block; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+                    text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+    .polje .select, .polje .input { height: 30px; padding: 0 8px; font-size: 12.5px; }
+    .znacke { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 12px 10px; }
+
+    /* ── Matrika pokritosti ──────────────────────────────────────────
+       Vprasanja v vrsticah, seje v stolpcih. Prvi stolpec je lepljiv, ker
+       je brez imena vprasanja stolpec kljukic neberljiv takoj, ko je sej
+       toliko, da je treba drseti. */
+    table.matrika { border-collapse: separate; border-spacing: 0; width: 100%; }
+    table.matrika th, table.matrika td { border-bottom: 1px solid var(--row-line); }
+    table.matrika thead th {
+      position: sticky; top: 0; z-index: 2;
+      background: var(--bg-sub); border-bottom: 1px solid var(--hairline);
+      font-size: 10.5px; font-weight: 700; color: var(--ink-2);
+      text-align: center; padding: 7px 6px; vertical-align: bottom;
+    }
+    table.matrika thead th.vprasanje, table.matrika tbody td.vprasanje {
+      position: sticky; left: 0; z-index: 3;
+      text-align: left; min-width: 260px; max-width: 340px;
+      background: var(--card-bg);
+      box-shadow: 1px 0 0 var(--hairline);
+    }
+    table.matrika thead th.vprasanje { background: var(--bg-sub); z-index: 4; }
+    table.matrika tbody td { padding: 6px; text-align: center; font-size: 12px; }
+    table.matrika tbody tr:hover td { background: #fbfcfd; }
+    table.matrika tbody tr:hover td.vprasanje { background: #fbfcfd; }
+    table.matrika td.vprasanje b { display: block; font-weight: 500; font-size: 12.5px; color: var(--ink);
+                                   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    table.matrika td.vprasanje small { color: var(--muted); font-size: 10.5px; }
+    tr.skupina td {
+      background: var(--bg-sub) !important; height: 28px; text-align: left !important;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--ink-2); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+    }
+    /* Tri stanja celice so namenoma razlicna: odgovorjeno, prazno in
+       "tega vprasanja ta seja sploh nima" niso ista stvar. */
+    .kljuka { color: var(--acenta-teal); font-weight: 700; }
+    .prazno { color: var(--muted-2); }
+    .ni-vprasanja { color: var(--muted-2); font-size: 10px; letter-spacing: .1em; }
+    /* Na telefonu bi lepljiv stolpec z imenom vprasanja pojedel skoraj celo
+       sirino in od matrike ne bi ostalo nic vidnega. */
+    @media (max-width: 640px) {
+      table.matrika th.vprasanje, table.matrika tbody td.vprasanje { min-width: 150px; max-width: 168px; }
+    }
+    th.seja a { display: block; max-width: 104px; overflow: hidden; text-overflow: ellipsis;
+                white-space: nowrap; color: var(--ink); text-decoration: none; }
+    th.seja a:hover { color: var(--acenta-teal); text-decoration: underline; }
+    th.seja small { display: block; font-weight: 600; color: var(--muted); font-size: 10px; margin-top: 2px; }
+
+    /* ── Porazdelitve ─────────────────────────────────────────────── */
+    .vrsta-moznosti { display: grid; grid-template-columns: minmax(150px, 240px) 1fr auto; gap: 10px;
+                      align-items: center; padding: 5px 0; }
+    .vrsta-moznosti .ime { font-size: 12.5px; color: var(--ink); }
+    .vrsta-moznosti.nic .ime { color: var(--muted); }
+    .stolpic { height: 8px; border-radius: 999px; background: #eef1f4; overflow: hidden; min-width: 40px; }
+    .stolpic i { display: block; height: 100%; border-radius: 999px;
+                 background: linear-gradient(90deg, var(--acenta-teal-2), var(--acenta-teal)); }
+    /* Stevilo sej in delez sta LOCENA. Zapis "1 · 17 %" v eni vrsti se je pri
+       branju zlil v "1,17 %"; zdaj je stevilo krepko, delez pa siv za njim. */
+    .vrsta-moznosti .st { display: flex; align-items: baseline; gap: 8px; justify-content: flex-end;
+                          white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 76px; }
+    .vrsta-moznosti .st b { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .vrsta-moznosti .st .pc { font-size: 11.5px; font-weight: 500; color: var(--muted); min-width: 34px; text-align: right; }
+    .vrsta-moznosti.nic .st b { color: var(--muted-2); font-weight: 500; }
+    .kdo { display: flex; flex-wrap: wrap; gap: 4px; grid-column: 2 / -1; padding-bottom: 6px; }
+    .kdo a { font-size: 10.5px; color: var(--ink-2); background: var(--bg-sub);
+             border: 1px solid var(--hairline); border-radius: 5px; padding: 1px 6px; text-decoration: none; }
+    .kdo a:hover { border-color: var(--acenta-teal-line); color: var(--acenta-teal); }
+
+    /* ── Odgovori drug ob drugem ──────────────────────────────────── */
+    details.vprasanje-blok { border-bottom: 1px solid var(--row-line); }
+    details.vprasanje-blok:last-child { border-bottom: 0; }
+    details.vprasanje-blok > summary {
+      cursor: pointer; list-style: none; padding: 9px 12px;
+      display: flex; align-items: center; gap: 9px;
+    }
+    details.vprasanje-blok > summary::-webkit-details-marker { display: none; }
+    details.vprasanje-blok > summary:hover { background: #fbfcfd; }
+    details.vprasanje-blok > summary b { font-weight: 600; font-size: 12.5px; }
+    details.vprasanje-blok > summary .puscica { color: var(--muted-2); transition: transform .15s var(--ease); }
+    details.vprasanje-blok[open] > summary .puscica { transform: rotate(90deg); }
+    .odgovor { display: grid; grid-template-columns: 190px 1fr; gap: 12px; padding: 7px 12px 7px 30px;
+               border-top: 1px dashed var(--row-line); }
+    .odgovor .kdo-ime a { font-weight: 600; font-size: 12px; color: var(--ink); text-decoration: none; }
+    .odgovor .kdo-ime a:hover { color: var(--acenta-teal); }
+    /* Proces in datum sta LOCENI vrstici. Zdruzena sta se lomila sredi datuma
+       ("26. 8." v eni vrsti, "2026" v naslednji), kar je videti kot napaka. */
+    .odgovor .kdo-ime small { display: block; color: var(--muted); font-size: 10.5px; line-height: 1.35; }
+    .odgovor .kdo-ime small.datum { color: var(--muted-2); white-space: nowrap; }
+    /* Odgovori so cela poved, ne podatek v celici: cez celo sirino zaslona bi
+       vrstica merila 950 px in bi se pri branju izgubljala. */
+    .odgovor .vsebina { font-size: 12.5px; color: var(--ink-2); white-space: pre-wrap; line-height: 1.55;
+                        max-width: 78ch; }
+    @media (max-width: 720px) { .odgovor { grid-template-columns: 1fr; padding-left: 12px; } }
+
+    /* ── Kazalniki ────────────────────────────────────────────────── */
+    table.kaz { width: 100%; border-collapse: collapse; }
+    table.kaz th { text-align: left; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+                   text-transform: uppercase; color: var(--muted); padding: 5px 8px;
+                   border-bottom: 1px solid var(--hairline); }
+    table.kaz td { padding: 6px 8px; font-size: 12.5px; color: var(--ink-2);
+                   border-bottom: 1px solid var(--row-line); vertical-align: top; }
+
+    /* Tailwindov .flex (display:flex) je mocnejsi od privzetega [hidden],
+       zato bi bili paneli vidni vsi hkrati, ne glede na izbran zavihek. */
+    [data-panel][hidden] { display: none !important; }
+
+    .opozorilo { background: var(--warn-soft); border: 1px solid var(--warn-line); color: var(--warn);
+                 border-radius: var(--r); padding: 10px 13px; font-size: 12.5px; }
+    .opozorilo ul { margin: 0; padding-left: 16px; }
+    .opozorilo li + li { margin-top: 3px; }
+    .prazno-stanje { text-align: center; color: var(--muted); padding: 40px 16px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="flex min-h-screen">
+    <aside id="sidebar" class="w-52 app-sidebar p-3 flex flex-col"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col">
+
+      <!-- ── Glava ── -->
+      <header class="page-head">
+        <h1 class="display">Primerjava vprašalnikov</h1>
+        <span class="sub" id="stevec">&mdash;</span>
+        <div class="spacer"></div>
+        <a class="btn-secondary" href="/admin/procesi.html">Seznam sej</a>
+      </header>
+
+      <div class="p-4 flex flex-col gap-4">
+
+        <!-- ── Filtri ── -->
+        <section class="card">
+          <div class="orodna">
+            <label class="polje" style="min-width:180px">
+              <span>Status</span>
+              <select id="fStatus" class="select">
+                <option value="">Vse razen arhiva</option>
+                <option value="zakljucen,poslan">Zaključene in poslane</option>
+                <option value="zakljucen">Samo zaključene</option>
+                <option value="poslan">Samo poslane</option>
+                <option value="osnutek">Samo osnutki</option>
+                <option value="vse">Vse, tudi arhiv</option>
+              </select>
+            </label>
+            <label class="polje" style="min-width:200px">
+              <span>Vprašalnik</span>
+              <select id="fPredloga" class="select"><option value="">Vsi</option></select>
+            </label>
+            <label class="polje" style="min-width:130px">
+              <span>Sestanki od</span>
+              <input id="fOd" type="date" class="input">
+            </label>
+            <label class="polje" style="min-width:130px">
+              <span>do</span>
+              <input id="fDo" type="date" class="input">
+            </label>
+            <label class="polje">
+              <span>Svetovalec</span>
+              <input id="fSvetovalec" type="text" class="input" placeholder="ime">
+            </label>
+            <label class="polje">
+              <span>Stranka</span>
+              <input id="fStranka" type="text" class="input" placeholder="naziv">
+            </label>
+            <button id="bPocisti" class="btn-secondary" style="height:30px">Počisti</button>
+          </div>
+          <div class="znacke" id="znacke"></div>
+        </section>
+
+        <!-- ── Opozorila o naboru ── -->
+        <div id="opozorila"></div>
+
+        <!-- ── Števila nabora ── -->
+        <section class="kpis" id="kpi"></section>
+
+        <!-- ── Zavihki ── -->
+        <nav class="tabs" id="zavihki">
+          <button type="button" class="tab active" data-zavihek="pokritost">
+            Pokritost <span class="num" id="n-pokritost"></span>
+          </button>
+          <button type="button" class="tab" data-zavihek="porazdelitve">
+            Porazdelitve <span class="num" id="n-porazdelitve"></span>
+          </button>
+          <button type="button" class="tab" data-zavihek="odgovori">
+            Odgovori <span class="num" id="n-odgovori"></span>
+          </button>
+          <button type="button" class="tab" data-zavihek="kazalniki">
+            Kazalniki <span class="num" id="n-kazalniki"></span>
+          </button>
+        </nav>
+
+        <!-- ── Panel: pokritost ── -->
+        <section class="card" data-panel="pokritost">
+          <div class="card-head">
+            <h2>Kdo je na katero vprašanje odgovoril</h2>
+            <div class="spacer" style="flex:1"></div>
+            <span class="text-muted" style="font-size:11.5px">
+              <span class="kljuka">&#10003;</span> odgovorjeno &nbsp;·&nbsp;
+              <span class="prazno">&bull;</span> vprašanje je, odgovora ni &nbsp;·&nbsp;
+              <span class="ni-vprasanja">n/v</span> tega vprašanja ta seja nima &nbsp;·&nbsp;
+              <span class="text-muted">*</span> obvezno
+            </span>
+          </div>
+          <div class="scroll-x" id="matrika" style="max-height:70vh; overflow-y:auto"></div>
+        </section>
+
+        <!-- ── Panel: porazdelitve ── -->
+        <section data-panel="porazdelitve" hidden class="flex flex-col gap-3">
+          <div id="porazdelitve"></div>
+        </section>
+
+        <!-- ── Panel: odgovori ── -->
+        <section data-panel="odgovori" hidden class="card">
+          <div class="card-head">
+            <h2>Odgovori drug ob drugem</h2>
+            <div class="spacer" style="flex:1"></div>
+            <input id="iskanjeOdgovori" class="input" style="height:28px; max-width:240px; font-size:12.5px"
+                   placeholder="filtriraj po vprašanju ali besedilu">
+            <button id="bRazpri" class="btn-mini">Razpri vse</button>
+            <button id="bStrni" class="btn-mini">Strni vse</button>
+          </div>
+          <div id="odgovori"></div>
+        </section>
+
+        <!-- ── Panel: kazalniki ── -->
+        <section data-panel="kazalniki" hidden class="flex flex-col gap-3">
+          <div id="kazalniki"></div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/admin/app.js"></script>
+  <script>
+  // ── Stanje strani ───────────────────────────────────────────────────
+  // Filtri gredo v URL, da je pogled deljiv in prezivi osvezitev. Filtriranje
+  // se zgodi na strezniku (glej /api/procesi/analiza) — odziv nosi cele
+  // snapshote in odgovore, zato je nabor treba zoziti pred prenosom.
+  let podatki = null;
+  let aktiven = 'pokritost';
+
+  const POLJA = {
+    fStatus: 'status', fPredloga: 'predloga', fOd: 'od', fDo: 'do',
+    fSvetovalec: 'svetovalec', fStranka: 'stranka',
+  };
+
+  const OPISI_FILTROV = {
+    status: 'status', predloga: 'vprašalnik', od: 'od', do: 'do',
+    svetovalec: 'svetovalec', stranka: 'stranka',
+  };
+
+  function beriFiltre() {
+    const f = {};
+    for (const [elId, kljuc] of Object.entries(POLJA)) {
+      const v = document.getElementById(elId).value.trim();
+      if (v) f[kljuc] = v;
+    }
+    return f;
+  }
+
+  function zapisiFiltreVUrl(f) {
+    const p = new URLSearchParams(f);
+    if (aktiven !== 'pokritost') p.set('zavihek', aktiven);
+    const niz = p.toString();
+    history.replaceState(null, '', niz ? `?${niz}` : location.pathname);
+  }
+
+  function nastaviFiltreIzUrl() {
+    const p = new URLSearchParams(location.search);
+    for (const [elId, kljuc] of Object.entries(POLJA)) {
+      const v = p.get(kljuc);
+      if (v) document.getElementById(elId).value = v;
+    }
+    const z = p.get('zavihek');
+    if (z && document.querySelector(`[data-panel="${z}"]`)) aktiven = z;
+  }
+
+  // ── Nalaganje ───────────────────────────────────────────────────────
+  async function nalozi() {
+    const f = beriFiltre();
+    zapisiFiltreVUrl(f);
+    const qsNiz = new URLSearchParams(f).toString();
+
+    document.getElementById('stevec').textContent = 'nalagam …';
+    const r = await apiFetch('/api/procesi/analiza' + (qsNiz ? `?${qsNiz}` : ''));
+    if (!r) {
+      document.getElementById('stevec').textContent = 'napaka';
+      document.getElementById('matrika').innerHTML =
+        '<div class="prazno-stanje">Analize ni bilo mogoče naložiti. Poglej konzolo.</div>';
+      return;
+    }
+    podatki = r;
+    izrisi();
+  }
+
+  async function nalozPredloge() {
+    const r = await apiFetch('/api/procesi/predloge');
+    if (!r) return;
+    const sel = document.getElementById('fPredloga');
+    const izbrano = sel.value;
+    sel.innerHTML = '<option value="">Vsi</option>' + r.predloge
+      .map(p => `<option value="${p.id}">${esc(p.naziv_prikaz)} (${p.st_sej})</option>`).join('');
+    sel.value = izbrano;
+  }
+
+  // ── Izris ───────────────────────────────────────────────────────────
+  function izrisi() {
+    const o = podatki.obseg;
+    document.getElementById('stevec').textContent =
+      `${sklon(o.sej, SKLONI.seja)} · ${sklon(o.strank, SKLONI.stranka)}`;
+
+    izrisiZnacke();
+    izrisiOpozorila();
+    izrisiKpi();
+
+    document.getElementById('n-pokritost').textContent = podatki.pokritost.length;
+    document.getElementById('n-porazdelitve').textContent = podatki.porazdelitve.length;
+    document.getElementById('n-odgovori').textContent = podatki.besedilna.length;
+    document.getElementById('n-kazalniki').textContent =
+      podatki.tabele.reduce((n, t) => n + t.odgovorjeno_v, 0);
+
+    izrisiMatriko();
+    izrisiPorazdelitve();
+    izrisiOdgovore();
+    izrisiKazalnike();
+    preklopi(aktiven);
+  }
+
+  // Sklanjanje je v app.js (sklon + SKLONI), ker ga potrebuje vsaka stran.
+  // Za zvezo "od N ..." velja rodilnik: od 1 seje, od 2 sej, od 6 sej.
+  const rodilnikSej = (n) => (n === 1 ? 'seje' : 'sej');
+
+  function izrisiZnacke() {
+    const f = podatki.filtri || {};
+    const el = document.getElementById('znacke');
+    const znacke = [];
+    for (const [kljuc, opis] of Object.entries(OPISI_FILTROV)) {
+      const v = f[kljuc];
+      if (!v || v === 'brez arhiva') continue;
+      let prikaz = v;
+      if (kljuc === 'predloga') {
+        const p = podatki.obseg.predloge.find(x => String(x.id) === String(v));
+        prikaz = p ? p.naziv_prikaz : v;
+      }
+      znacke.push(`<span class="chip active" data-odstrani="${kljuc}">${esc(opis)}: ${esc(prikaz)}
+        <i class="x">&times;</i></span>`);
+    }
+    el.innerHTML = znacke.length
+      ? znacke.join('') + '<button class="chip" id="znackePocisti">Počisti vse</button>'
+      : '<span class="text-muted" style="font-size:11.5px">Brez filtrov: vse seje razen arhiviranih.</span>';
+
+    el.querySelectorAll('[data-odstrani]').forEach(c => c.onclick = () => {
+      const kljuc = c.getAttribute('data-odstrani');
+      const elId = Object.keys(POLJA).find(k => POLJA[k] === kljuc);
+      document.getElementById(elId).value = '';
+      nalozi();
+    });
+    const p = document.getElementById('znackePocisti');
+    if (p) p.onclick = pocisti;
+  }
+
+  function izrisiOpozorila() {
+    const el = document.getElementById('opozorila');
+    const seznam = [...podatki.obseg.opozorila];
+    if (podatki.neskladja.length) {
+      seznam.push(`Zaznanih ${podatki.neskladja.length} neskladij med snapshoti (isti id vprašanja, drugo besedilo ali tip). Glej spodaj.`);
+    }
+    if (!seznam.length) { el.innerHTML = ''; return; }
+    el.innerHTML = `<div class="opozorilo">
+      <b>Kaj to pomeni za trditve iz teh številk</b>
+      <ul>${seznam.map(o => `<li>${esc(o)}</li>`).join('')}</ul>
+    </div>`;
+  }
+
+  function izrisiKpi() {
+    const o = podatki.obseg;
+    const zakljucenih = o.po_statusu.zakljucen + o.po_statusu.poslan;
+    const polnoOdgovorjenih = podatki.pokritost.filter(p => p.odgovorjeno_v === p.od_skupno && p.od_skupno > 0).length;
+
+    document.getElementById('kpi').innerHTML = `
+      <div class="kpi">
+        <div class="k">Sej v naboru</div>
+        <div class="row"><div class="v">${o.sej}</div></div>
+        <div class="d">${zakljucenih} od ${o.sej} je zaključenih ali poslanih</div>
+      </div>
+      <div class="kpi">
+        <div class="k">Strank</div>
+        <div class="row"><div class="v">${o.strank}</div></div>
+        <div class="d">${sklon(o.svetovalcev, SKLONI.svetovalec)} · ${sklon(o.predloge.length, SKLONI.vprasalnik)}</div>
+      </div>
+      <div class="kpi${o.povprecna_izpolnjenost < 60 ? ' attn' : ''}">
+        <div class="k">Povprečna izpolnjenost</div>
+        <div class="row"><div class="v">${o.povprecna_izpolnjenost}%</div></div>
+        <div class="d${o.povprecna_izpolnjenost < 60 ? ' warn' : ''}">delež izpolnjenih polj na sejo</div>
+      </div>
+      <div class="kpi">
+        <div class="k">Vprašanj v naboru</div>
+        <div class="row"><div class="v">${podatki.pokritost.length}</div></div>
+        <div class="d">${polnoOdgovorjenih} od ${podatki.pokritost.length} jih ima odgovor povsod</div>
+      </div>`;
+  }
+
+  // ── Matrika pokritosti ─────────────────────────────────────────────
+  function izrisiMatriko() {
+    const el = document.getElementById('matrika');
+    if (!podatki.seje.length) { el.innerHTML = praznoStanje(); return; }
+
+    const glave = podatki.seje.map(s => `
+      <th class="seja">
+        <a href="/admin/proces-seja.html?id=${s.id}" title="${esc(s.stranka_naziv)}${s.proces ? ' — ' + esc(s.proces) : ''}">${esc(s.stranka_naziv)}</a>
+        <small>${s.napredek.odstotek}% · ${esc(s.status)}</small>
+      </th>`).join('');
+
+    let zadnjiSklop = null;
+    const vrstice = [];
+    for (const p of podatki.pokritost) {
+      if (p.sklop !== zadnjiSklop) {
+        zadnjiSklop = p.sklop;
+        vrstice.push(`<tr class="skupina"><td colspan="${podatki.seje.length + 2}">${esc(p.sklop || 'Brez sklopa')}</td></tr>`);
+      }
+      const celice = podatki.seje.map(s => {
+        if (!p.seje_z_odgovorom.includes(s.id) && !p.seje_brez_odgovora.includes(s.id)) {
+          return '<td><span class="ni-vprasanja" title="Tega vprašanja snapshot te seje nima">n/v</span></td>';
+        }
+        return p.seje_z_odgovorom.includes(s.id)
+          ? '<td><span class="kljuka">&#10003;</span></td>'
+          : '<td><span class="prazno" title="Vprašanje obstaja, odgovora ni">&bull;</span></td>';
+      }).join('');
+
+      vrstice.push(`
+        <tr>
+          <td class="vprasanje">
+            <b title="${esc(p.label)}">${esc(p.label)}${p.obvezno ? ' <span class="text-muted">*</span>' : ''}</b>
+            <small>${esc(p.id)} · ${esc(p.tip)}</small>
+          </td>
+          <td style="min-width:104px">
+            <div class="meter" style="justify-content:center">
+              <span class="track"><i class="fill${p.odstotek < 60 ? ' low' : ''}" style="display:block;height:100%;width:${p.odstotek}%"></i></span>
+              <span>${p.odgovorjeno_v}/${p.od_skupno}</span>
+            </div>
+          </td>
+          ${celice}
+        </tr>`);
+    }
+
+    el.innerHTML = `
+      <table class="matrika">
+        <thead><tr>
+          <th class="vprasanje">Vprašanje</th>
+          <th style="min-width:104px">Odgovorjeno</th>
+          ${glave}
+        </tr></thead>
+        <tbody>${vrstice.join('')}</tbody>
+      </table>`;
+  }
+
+  // ── Porazdelitve ───────────────────────────────────────────────────
+  function imeSeje(id) {
+    const s = podatki.seje.find(x => x.id === id);
+    return s ? s.stranka_naziv : `seja ${id}`;
+  }
+
+  function povezaveSej(ids) {
+    if (!ids.length) return '';
+    return `<div class="kdo">${ids.map(id =>
+      `<a href="/admin/proces-seja.html?id=${id}" title="Odpri sejo">${esc(imeSeje(id))}</a>`).join('')}</div>`;
+  }
+
+  function izrisiPorazdelitve() {
+    const el = document.getElementById('porazdelitve');
+    // Prazen nabor in nabor brez takih vprasanj nista isto — vsak zavihek zato
+    // pove isto zgodbo, ne svoje. Prej je pri 0 sejah pisalo "ni besedilnih
+    // odgovorov", kar zveni, kot da seje so, pa so prazne.
+    if (!podatki.seje.length) { el.innerHTML = `<div class="card">${praznoStanje()}</div>`; return; }
+    if (!podatki.porazdelitve.length) {
+      el.innerHTML = `<div class="card"><div class="prazno-stanje">V tem naboru ni vprašanj z izbirami.</div></div>`;
+      return;
+    }
+
+    el.innerHTML = podatki.porazdelitve.map(d => {
+      // Sirina stolpica je DELEZ, ne delez najvecje vrednosti. Ce bi
+      // najpogostejsa moznost vedno merila cez cel prostor, bi 3 od 6 sej
+      // izgledalo enako kot 6 od 6, izpisana stevilka pa bi govorila drugace.
+      const vrstice = d.moznosti.map(m => `
+        <div class="vrsta-moznosti${m.sej ? '' : ' nic'}">
+          <div class="ime">${esc(m.vrednost)}${m.izven_seznama ? ' <span class="tag warn">ni v vprašalniku</span>' : ''}</div>
+          <div class="stolpic"><i style="width:${m.odstotek}%"></i></div>
+          <div class="st"><b>${m.sej}</b><span class="pc">${m.odstotek}%</span></div>
+        </div>
+        ${povezaveSej(m.seje)}`).join('');
+
+      const drugo = d.drugo.length ? `
+        <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--row-line)">
+          <div class="text-muted" style="font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:5px">
+            Vpisano pod „drugo"
+          </div>
+          ${d.drugo.map(x => `<div class="odgovor" style="padding-left:0">
+            <div class="kdo-ime"><a href="/admin/proces-seja.html?id=${x.seja_id}">${esc(x.stranka)}</a></div>
+            <div class="vsebina">${esc(x.vrednost)}</div>
+          </div>`).join('')}
+        </div>` : '';
+
+      return `
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head">
+            <h3>${esc(d.label)}</h3>
+            <span class="tag">${esc(d.sklop)}</span>
+            ${d.vec_izbir ? '<span class="tag info">več izbir</span>' : ''}
+            <div class="spacer" style="flex:1"></div>
+            <span class="count">odgovorjeno v ${d.odgovorjeno_v} od ${d.od_skupno} ${rodilnikSej(d.od_skupno)}</span>
+          </div>
+          <div style="padding:10px 13px 12px">
+            ${d.vec_izbir ? `<div class="text-muted" style="font-size:11.5px; margin-bottom:6px">
+              Seja lahko izbere več možnosti, zato je vsota deležev lahko večja od 100 %.
+              Odstotek je delež sej z odgovorom (${d.odgovorjeno_v}), ne delež izbir.
+            </div>` : ''}
+            ${vrstice}
+            ${drugo}
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ── Odgovori drug ob drugem ────────────────────────────────────────
+  function izrisiOdgovore() {
+    const el = document.getElementById('odgovori');
+    const zOdgovori = podatki.besedilna.filter(b => b.odgovorjeno_v > 0);
+    if (!podatki.seje.length) { el.innerHTML = praznoStanje(); return; }
+    if (!zOdgovori.length) {
+      el.innerHTML = `<div class="prazno-stanje">Seje v naboru so, besedilnih odgovorov v njih pa ni.</div>`;
+      return;
+    }
+
+    let zadnjiSklop = null;
+    const kosi = [];
+    for (const b of zOdgovori) {
+      if (b.sklop !== zadnjiSklop) {
+        zadnjiSklop = b.sklop;
+        kosi.push(`<div class="skupina-naslov" style="background:var(--bg-sub); padding:6px 12px;
+          font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+          color:var(--ink-2); border-top:1px solid var(--hairline); border-bottom:1px solid var(--hairline)">
+          ${esc(b.sklop || 'Brez sklopa')}</div>`);
+      }
+      const odgovori = b.odgovori.map(o => `
+        <div class="odgovor">
+          <div class="kdo-ime">
+            <a href="/admin/proces-seja.html?id=${o.seja_id}">${esc(o.stranka)}</a>
+            ${o.proces || o.oddelek ? `<small>${esc(o.proces || o.oddelek)}</small>` : ''}
+            ${o.datum_sestanka ? `<small class="datum">${formatDan(o.datum_sestanka)}</small>` : ''}
+          </div>
+          <div class="vsebina">${esc(o.vrednost)}${o.skrajsano ? ' <span class="tag">skrajšano</span>' : ''}</div>
+        </div>`).join('');
+
+      // Privzeto STRNJENO: 33 razprtih vprasanj je deset tisoc slikovnih tock
+      // dolg dokument, v katerem ni mogoce nicesar najti. Strnjen seznam je
+      // kazalo, "Razpri vse" pa naredi iz njega dokument, kadar ga kdo hoce.
+      kosi.push(`
+        <details class="vprasanje-blok" data-iskanje="${esc((b.label + ' ' + b.odgovori.map(o => o.stranka + ' ' + o.vrednost).join(' ')).toLowerCase())}">
+          <summary>
+            <span class="puscica">&#9656;</span>
+            <b>${esc(b.label)}</b>
+            <div class="spacer" style="flex:1"></div>
+            <span class="text-muted" style="font-size:11.5px">${b.odgovorjeno_v} od ${b.od_skupno}</span>
+          </summary>
+          ${odgovori}
+        </details>`);
+    }
+    el.innerHTML = kosi.join('');
+  }
+
+  // Filter po vprašanju ali besedilu odgovora. Skupinski naslov skrijemo,
+  // kadar pod njim ni vec nobenega vidnega vprasanja.
+  function filtrirajOdgovore() {
+    const iskano = document.getElementById('iskanjeOdgovori').value.trim().toLowerCase();
+    const otroci = [...document.getElementById('odgovori').children];
+    let zadnjiNaslov = null;
+    let vidnihPodNaslovom = 0;
+
+    for (const el of otroci) {
+      if (el.classList.contains('skupina-naslov')) {
+        if (zadnjiNaslov) zadnjiNaslov.hidden = vidnihPodNaslovom === 0;
+        zadnjiNaslov = el;
+        vidnihPodNaslovom = 0;
+        continue;
+      }
+      const ujema = !iskano || (el.dataset.iskanje || '').includes(iskano);
+      el.hidden = !ujema;
+      // Iskanje po besedilu odgovora mora zadetek tudi POKAZATI; ob praznem
+      // iskalniku se seznam vrne v kazalo.
+      if (iskano) el.open = ujema;
+      else el.open = false;
+      if (ujema) vidnihPodNaslovom++;
+    }
+    if (zadnjiNaslov) zadnjiNaslov.hidden = vidnihPodNaslovom === 0;
+  }
+
+  // ── Kazalniki ──────────────────────────────────────────────────────
+  function izrisiKazalnike() {
+    const el = document.getElementById('kazalniki');
+    const vnosi = podatki.tabele.flatMap(t => t.seje.map(s => ({ ...s, naslov: t.label })));
+    if (!podatki.seje.length) { el.innerHTML = `<div class="card">${praznoStanje()}</div>`; return; }
+    if (!vnosi.length) {
+      el.innerHTML = `<div class="card"><div class="prazno-stanje">
+        Nobena seja v naboru nima izpolnjene tabele kazalnikov.</div></div>`;
+      return;
+    }
+
+    el.innerHTML = vnosi.map(v => `
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-head">
+          <h3><a href="/admin/proces-seja.html?id=${v.seja_id}">${esc(v.stranka)}</a></h3>
+          ${v.proces ? `<span class="tag">${esc(v.proces)}</span>` : ''}
+          <div class="spacer" style="flex:1"></div>
+          <span class="count">${esc(v.naslov)}</span>
+        </div>
+        <div class="scroll-x" style="padding:4px 8px 8px">
+          <table class="kaz">
+            <thead><tr>${v.stolpci.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+            <tbody>${v.vrstice.map(r => `<tr>${v.stolpci.map((_, i) =>
+              `<td>${esc(r[i] || '—')}</td>`).join('')}</tr>`).join('')}</tbody>
+          </table>
+        </div>
+      </div>`).join('');
+  }
+
+  function praznoStanje() {
+    return `<div class="prazno-stanje">
+      Nobena seja ne ustreza filtrom.<br>
+      <span style="font-size:12px">Prazen izpis pomeni prazen nabor, ne praznih vprašalnikov.</span><br>
+      <button class="btn-secondary" style="margin-top:10px" onclick="pocisti()">Počisti filtre</button>
+    </div>`;
+  }
+
+  // ── Zavihki ────────────────────────────────────────────────────────
+  function preklopi(kljuc) {
+    aktiven = kljuc;
+    document.querySelectorAll('#zavihki .tab').forEach(b =>
+      b.classList.toggle('active', b.dataset.zavihek === kljuc));
+    document.querySelectorAll('[data-panel]').forEach(p =>
+      p.hidden = p.dataset.panel !== kljuc);
+    zapisiFiltreVUrl(beriFiltre());
+  }
+
+  function pocisti() {
+    for (const elId of Object.keys(POLJA)) document.getElementById(elId).value = '';
+    nalozi();
+  }
+
+  // ── Zagon ──────────────────────────────────────────────────────────
+  renderSidebar('analiza');
+  nastaviFiltreIzUrl();
+
+  document.querySelectorAll('#zavihki .tab').forEach(b =>
+    b.onclick = () => preklopi(b.dataset.zavihek));
+  for (const elId of Object.keys(POLJA)) {
+    const el = document.getElementById(elId);
+    el.addEventListener(el.tagName === 'SELECT' || el.type === 'date' ? 'change' : 'input',
+      el.tagName === 'SELECT' || el.type === 'date' ? nalozi : debounce(nalozi, 400));
+  }
+  document.getElementById('bPocisti').onclick = pocisti;
+  document.getElementById('iskanjeOdgovori').addEventListener('input', debounce(filtrirajOdgovore, 200));
+  document.getElementById('bRazpri').onclick = () =>
+    document.querySelectorAll('details.vprasanje-blok').forEach(d => d.open = true);
+  document.getElementById('bStrni').onclick = () =>
+    document.querySelectorAll('details.vprasanje-blok').forEach(d => d.open = false);
+
+  nalozPredloge();
+  nalozi();
+  </script>
+</body>
+</html>

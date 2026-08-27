@@ -213,6 +213,28 @@ function normalizirajOdgovore(questions, vhod) {
 
 // ── DEL 6: Preverjanje obveznih polj ─────────────────────────────────────
 
+// Ali ima to vprasanje odgovor? ENA definicija "izpolnjenosti" za cel projekt.
+//
+// ZAKAJ na enem mestu: to isto vprasanje si zastavijo stiri mesta —
+// preveriObvezna (ali smem zakljuciti sejo), izracunajNapredek ("18/43" na
+// seznamu), /api/naloge (kaj je treba narediti) in cross-analiza (pokritost
+// vprasanj cez seje). Ce bi vsako mesto imelo svojo razlicico, bi seja lahko
+// veljala za 100 % izpolnjeno na seznamu in hkrati imela manjkajoca obvezna
+// polja ob zakljucku. Taka razlika se opazi sele pri stranki.
+function jeIzpolnjen(q, v) {
+  if (!q || !nosiOdgovor(q.tip)) return false;
+
+  if (q.tip === 'checkbox_multi') {
+    const izbrano = Array.isArray(v?.izbrano) ? v.izbrano : [];
+    return izbrano.length > 0 || !!niz(v?.drugo).trim();
+  }
+  if (q.tip === 'table') {
+    // Tabela steje za izpolnjeno, ce ima vsaj ena celica vsebino.
+    return Array.isArray(v) && v.some(r => Array.isArray(r) && r.some(c => niz(c).trim()));
+  }
+  return !!niz(v).trim();
+}
+
 // Vrne seznam { id, label } obveznih vprasanj, ki so ostala prazna.
 // Klice se SAMO ob prehodu seje v status 'zakljucen' ali pred posiljanjem
 // stranki — nikoli ob autosave.
@@ -222,21 +244,7 @@ function preveriObvezna(questions, answers) {
 
   for (const q of Array.isArray(questions) ? questions : []) {
     if (!q || !nosiOdgovor(q.tip) || !q.obvezno) continue;
-
-    const v = a[q.id];
-    let prazno;
-
-    if (q.tip === 'checkbox_multi') {
-      const izbrano = Array.isArray(v?.izbrano) ? v.izbrano : [];
-      prazno = izbrano.length === 0 && !niz(v?.drugo).trim();
-    } else if (q.tip === 'table') {
-      // Tabela steje za izpolnjeno, ce ima vsaj ena celica vsebino.
-      prazno = !(Array.isArray(v) && v.some(r => Array.isArray(r) && r.some(c => niz(c).trim())));
-    } else {
-      prazno = !niz(v).trim();
-    }
-
-    if (prazno) manjka.push({ id: q.id, label: q.label });
+    if (!jeIzpolnjen(q, a[q.id])) manjka.push({ id: q.id, label: q.label });
   }
   return manjka;
 }
@@ -253,17 +261,7 @@ function izracunajNapredek(questions, answers) {
   for (const q of Array.isArray(questions) ? questions : []) {
     if (!q || !nosiOdgovor(q.tip)) continue;
     skupaj++;
-
-    const v = a[q.id];
-    let ima;
-    if (q.tip === 'checkbox_multi') {
-      ima = (Array.isArray(v?.izbrano) && v.izbrano.length > 0) || !!niz(v?.drugo).trim();
-    } else if (q.tip === 'table') {
-      ima = Array.isArray(v) && v.some(r => Array.isArray(r) && r.some(c => niz(c).trim()));
-    } else {
-      ima = !!niz(v).trim();
-    }
-    if (ima) izpolnjenih++;
+    if (jeIzpolnjen(q, a[q.id])) izpolnjenih++;
   }
 
   const odstotek = skupaj === 0 ? 0 : Math.round((izpolnjenih / skupaj) * 100);
@@ -332,6 +330,7 @@ export {
   vrsticTabele,
   validirajVprasanja,
   normalizirajOdgovore,
+  jeIzpolnjen,
   preveriObvezna,
   izracunajNapredek,
   odgovorVBesedilo,

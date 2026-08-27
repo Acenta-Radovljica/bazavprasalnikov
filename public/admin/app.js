@@ -60,6 +60,27 @@ function qs(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
+// Stevilo s pravilno sklanjanim samostalnikom: 1 seja, 2 seji, 3 seje, 5 sej.
+// oblike = [ednina, dvojina, mnozina 3-4, rodilnik 5 in vec].
+//
+// ZAKAJ: "2 svetovalcev" in "3 osnutkov" v vmesniku bereta kot strojni prevod.
+// Slovenscina ima dvojino, zato pogoj `n === 1 ? a : b` NI dovolj.
+function sklon(n, oblike) {
+  const d = Math.abs(Math.trunc(n)) % 100;
+  const i = d === 1 ? 0 : d === 2 ? 1 : (d === 3 || d === 4) ? 2 : 3;
+  return `${n} ${oblike[i]}`;
+}
+
+// Najpogostejsi nabori, da jih ni treba pisati na vsaki strani znova.
+const SKLONI = {
+  seja:       ['seja', 'seji', 'seje', 'sej'],
+  stranka:    ['stranka', 'stranki', 'stranke', 'strank'],
+  vprasanje:  ['vprašanje', 'vprašanji', 'vprašanja', 'vprašanj'],
+  svetovalec: ['svetovalec', 'svetovalca', 'svetovalci', 'svetovalcev'],
+  vprasalnik: ['vprašalnik', 'vprašalnika', 'vprašalniki', 'vprašalnikov'],
+  osnutek:    ['osnutek', 'osnutka', 'osnutki', 'osnutkov'],
+};
+
 // Odloži klic, dokler uporabnik neha tipkati. Brez tega vsak pritisk tipke
 // sproži zahtevo na strežnik.
 function debounce(fn, ms = 300) {
@@ -101,6 +122,10 @@ const NAV_POSTAVKE = [
   },
   {
     skupina: 'Analiza',
+    kljuc: 'analiza', naslov: 'Primerjava', href: '/admin/analiza.html',
+    ikona: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
+  },
+  {
     kljuc: 'search', naslov: 'Iskanje', href: '/admin/search.html',
     ikona: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
   },
