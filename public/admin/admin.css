@@ -1,34 +1,62 @@
 /* ──────────────────────────────────────────────────────────────────────
-   Acenta admin — Direction A (Premium Agency)
+   Acenta admin — Direction A (Operativna konzola)
    Single source of truth for shared design tokens & primitives.
    Per-page CSS lives inline in each HTML file (page-specific only).
+
+   Prenova 27. 8. 2026: prej "Premium Agency" (krem podlaga, serifni
+   naslovi, 88px serifne stevilke, gradientni robovi, blob). Aplikacija
+   je interna konzola, ne brosura, zato je zdaj vodilo GOSTOTA in
+   berljivost: nevtralna paleta, samo Inter, tabularne stevilke,
+   vrstice 36px, teal SAMO za aktivno in pozitivno.
+
+   Imena razredov so NALASC ostala enaka (.card, .stat-number, .display,
+   .badge-*, .btn-*, .input ...), da se vseh 7 strani preobleche brez
+   urejanja vsake posebej. Ne preimenuj jih brez prehoda po straneh.
    ────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Brand */
-  --acenta-teal:      #00b894;
-  --acenta-teal-soft: #d4f4ec;
-  --acenta-teal-dark: #006e5a;
-  --acenta-navy:      #1a1a2e;
+  /* Brand — teal je akcent, ne dekoracija */
+  --acenta-teal:      #0f766e;
+  --acenta-teal-soft: #effcf7;
+  --acenta-teal-line: #99e6d3;
+  --acenta-teal-dark: #0b5f59;
+  --acenta-navy:      #101828;
 
-  /* Surface — warmer, editorial */
-  --bg:         #fcfbf9;   /* cream */
-  --bg-sub:     #f5f3ee;   /* sidebar / subtle blocks */
+  /* Surface — nevtralna, brez krem odtenka */
+  --bg:         #f7f8fa;
+  --bg-sub:     #fbfcfd;   /* sidebar / subtle blocks */
   --card-bg:    #ffffff;
-  --card-border:#ece9e1;   /* warm gray */
-  --hairline:   #ece9e1;
+  --card-border:#e4e7ec;
+  --hairline:   #e4e7ec;
+  --hairline-2: #d0d5dd;   /* mocnejsi rob za gumbe in vnosna polja */
+  --row-line:   #f1f3f6;   /* locilo med vrsticami v tabelah */
 
-  /* Type — neutrals */
-  --ink:        #15151f;
-  --ink-2:      #3a3a48;
-  --muted:      #8a8a95;
-  --muted-2:    #b5b5bd;
+  /* Type */
+  --ink:        #101828;
+  --ink-2:      #475467;
+  --muted:      #98a2b3;
+  --muted-2:    #b9c0ca;
 
-  /* Motion */
+  /* Semantika stanj */
+  --warn:       #b54708;
+  --warn-soft:  #fffaeb;
+  --warn-line:  #fedf89;
+  --danger:     #b42318;
+  --danger-soft:#fef3f2;
+  --info:       #175cd3;
+  --info-soft:  #eff8ff;
+  --info-line:  #b2ddff;
+
+  /* Motion & globina — plosko, brez dekorativnih senc */
   --ease: cubic-bezier(.2, .8, .2, 1);
-  --shadow-1: 0 1px 2px rgba(20, 18, 12, 0.04);
-  --shadow-2: 0 1px 2px rgba(20, 18, 12, 0.04), 0 8px 24px -12px rgba(20, 18, 12, 0.10);
-  --shadow-lift: 0 1px 2px rgba(20, 18, 12, 0.04), 0 18px 40px -18px rgba(20, 18, 12, 0.18);
+  --shadow-1: 0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow-2: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-lift: 0 1px 2px rgba(16, 24, 40, 0.05), 0 8px 20px -12px rgba(16, 24, 40, 0.16);
+
+  /* Radiji — en korak, ne pet */
+  --r-sm: 6px;
+  --r:    9px;
+  --r-lg: 12px;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────── */
@@ -36,61 +64,63 @@ html, body {
   background: var(--bg);
   color: var(--ink);
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  font-size: 13.5px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Stevilke v tabelah se morajo poravnati po stolpcih. */
+  font-variant-numeric: tabular-nums;
 }
 
-/* Page fade-in (200ms) */
-body {
-  animation: pageFade 240ms var(--ease) both;
-}
-@keyframes pageFade {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: none; }
-}
+/* Page fade-in — brez premika, da tabele ne poskakujejo */
+body { animation: pageFade 160ms var(--ease) both; }
+@keyframes pageFade { from { opacity: 0; } to { opacity: 1; } }
 
-/* Editorial display headings */
+/* ── Naslovi ───────────────────────────────────────────────────────────
+   .display / .display-serif sta ostala kot imena, a nista vec serifna.
+   Naslov strani je oznaka, ne plakat. */
 h1.display, .display-serif {
-  font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-  font-weight: 500;
-  font-variation-settings: 'opsz' 96, 'SOFT' 30;
-  letter-spacing: -0.025em;
+  font-family: inherit;
+  font-weight: 600;
+  letter-spacing: -0.02em;
   color: var(--ink);
 }
+h1.display { font-size: 21px; line-height: 1.25; }
+h2.display-serif, h3.display-serif { font-size: 15px; line-height: 1.3; }
 
-/* Tailwind base sets letter-spacing on .text-3xl; we override only when display */
-h1.display {
-  font-size: 44px;
-  line-height: 1.05;
-}
+/* Tailwind text-3xl ipd. na straneh se ne bori s tem: .display je
+   deklariran pozneje (admin.css se vrine na konec <head>). */
 
-/* ── Card — gradient border + multi-layer shadow ────────────────── */
+/* ── Card ──────────────────────────────────────────────────────────── */
 .card {
   position: relative;
   background: var(--card-bg);
-  border-radius: 22px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--r);
   box-shadow: var(--shadow-2);
 }
-/* Gradient hairline border via mask */
-.card::before {
-  content: '';
-  position: absolute; inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(160deg, rgba(0, 184, 148, 0.35) 0%, rgba(236, 233, 225, 1) 35%, rgba(236, 233, 225, 1) 100%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
-  pointer-events: none;
-}
+/* Gradientni rob je odstranjen; ::before ostane prazen, ker ga nekatere
+   strani se ciljajo v inline CSS. */
+.card::before { content: none; }
 
-/* Quieter card variant (no gradient flourish) — for nested rows etc. */
 .card-flat {
   background: var(--card-bg);
   border: 1px solid var(--hairline);
-  border-radius: 16px;
-  box-shadow: var(--shadow-1);
+  border-radius: var(--r);
+  box-shadow: none;
 }
+
+/* Glava kartice — enotna za vse strani */
+.card-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 13px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg-sub);
+  border-radius: var(--r) var(--r) 0 0;
+}
+.card-head h2, .card-head h3 { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
+.card-head .count { font-size: 11px; font-weight: 700; color: var(--muted); background: #eef2f6; border-radius: 999px; padding: 1px 7px; }
+.card-head a { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--acenta-teal); text-decoration: none; white-space: nowrap; }
+.card-head a:hover { text-decoration: underline; }
 
 /* ── Sidebar ───────────────────────────────────────────────────────── */
 .app-sidebar {
@@ -98,186 +128,337 @@ h1.display {
   border-right: 1px solid var(--hairline);
 }
 .sidebar-item {
-  display: flex; align-items: center; gap: 12px;
-  padding: 10px 14px; border-radius: 12px;
-  color: var(--ink-2); font-size: 14px; font-weight: 500;
-  cursor: pointer; text-decoration: none;
-  transition: background 0.18s var(--ease), color 0.18s var(--ease), transform 0.18s var(--ease);
-}
-.sidebar-item:hover { background: rgba(255,255,255,0.7); color: var(--ink); }
-.sidebar-item.active {
-  background: #fff;
-  color: var(--ink);
-  box-shadow: var(--shadow-1);
-  border: 1px solid var(--hairline);
-}
-.sidebar-sub {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 7px 14px 7px 46px; border-radius: 10px;
-  color: var(--muted); font-size: 13px;
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 11px; border-radius: var(--r-sm);
+  color: var(--ink-2); font-size: 13px; font-weight: 500;
   cursor: pointer; text-decoration: none;
   transition: background 0.15s var(--ease), color 0.15s var(--ease);
 }
-.sidebar-sub:hover { background: rgba(255,255,255,0.7); color: var(--ink); }
-
-/* Brand mark in sidebar header */
-.brand-mark {
-  width: 40px; height: 40px; border-radius: 12px;
-  background: linear-gradient(135deg, var(--acenta-navy) 0%, #2a2a48 100%);
-  color: #fff; font-family: 'Fraunces', serif; font-weight: 500;
-  display: flex; align-items: center; justify-content: center;
-  letter-spacing: -0.02em; font-size: 22px;
-  box-shadow: 0 6px 14px -4px rgba(26, 26, 46, 0.4);
+.sidebar-item:hover { background: #eef1f5; color: var(--ink); }
+.sidebar-item.active {
+  background: #eef2f6;
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--acenta-teal);
+  border: 0;
 }
+.sidebar-item .num { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--muted); }
+.sidebar-item .badge-count {
+  margin-left: auto; font-size: 10.5px; font-weight: 700;
+  background: var(--danger-soft); color: var(--danger);
+  border-radius: 999px; padding: 1px 7px;
+}
+.sidebar-group {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--muted);
+  padding: 12px 11px 5px;
+}
+.sidebar-sub {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 6px 11px 6px 42px; border-radius: var(--r-sm);
+  color: var(--muted); font-size: 12.5px;
+  cursor: pointer; text-decoration: none;
+  transition: background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.sidebar-sub:hover { background: #eef1f5; color: var(--ink); }
+
+/* Brand mark — kvadratek, brez gradienta in sence */
+.brand-mark {
+  width: 28px; height: 28px; border-radius: var(--r-sm);
+  background: var(--acenta-navy);
+  color: #fff; font-family: inherit; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  letter-spacing: -0.01em; font-size: 13px;
+  box-shadow: none;
+  flex: none;
+}
+
+/* ── Vrstica z naslovom strani ─────────────────────────────────────── */
+.page-head {
+  display: flex; align-items: center; gap: 10px;
+  /* Na ozkem zaslonu se mora ovijati, sicer gumb desno potisne stran v
+     vodoravno drsenje (izmerjeno: 469px pri 390px zaslonu). */
+  flex-wrap: wrap; row-gap: 8px;
+  min-height: 48px; padding: 8px 16px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--card-bg);
+}
+.page-head h1.display { margin-right: 2px; }
+.page-head .sub { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.page-head .spacer { flex: 1; }
 
 /* ── Badges / pills ────────────────────────────────────────────────── */
-.badge-warning { background: #fdecd0; color: #8a4d00; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-.badge-success { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-.badge-neutral { background: #ece9e1; color: #6b6b75; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
-.badge-info { background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.badge-warning { background: var(--warn-soft); color: var(--warn); box-shadow: inset 0 0 0 1px var(--warn-line); }
+.badge-success { background: var(--acenta-teal-soft); color: var(--acenta-teal); box-shadow: inset 0 0 0 1px var(--acenta-teal-line); }
+.badge-neutral { background: #eef2f6; color: var(--ink-2); }
+.badge-info    { background: var(--info-soft); color: var(--info); box-shadow: inset 0 0 0 1px var(--info-line); }
+.badge-warning, .badge-success, .badge-neutral, .badge-info {
+  display: inline-flex; align-items: center;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 2px 7px; border-radius: var(--r-sm);
+  white-space: nowrap;
+}
 
-.pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: #ece9e1; color: #6b6b75; }
-.pill.teal  { background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); }
-.pill.warn  { background: #fdecd0; color: #8a4d00; }
-.pill.muted { background: #f2efe7; color: var(--muted); }
+/* .tag je vzdevek za isti gradnik — uporabljaj ga v novih pogledih */
+.tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; padding: 2px 7px; border-radius: var(--r-sm); white-space: nowrap; background: #eef2f6; color: var(--ink-2); }
+.tag.ok   { background: var(--acenta-teal-soft); color: var(--acenta-teal); box-shadow: inset 0 0 0 1px var(--acenta-teal-line); }
+.tag.warn { background: var(--warn-soft); color: var(--warn); box-shadow: inset 0 0 0 1px var(--warn-line); }
+.tag.bad  { background: var(--danger-soft); color: var(--danger); }
+.tag.info { background: var(--info-soft); color: var(--info); box-shadow: inset 0 0 0 1px var(--info-line); }
 
-/* ── Stat number — editorial serif ─────────────────────────────────── */
+.pill { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; background: #eef2f6; color: var(--ink-2); }
+.pill.teal  { background: var(--acenta-teal-soft); color: var(--acenta-teal); }
+.pill.warn  { background: var(--warn-soft); color: var(--warn); }
+.pill.muted { background: #f2f4f7; color: var(--muted); }
+
+/* ── Stevilke ──────────────────────────────────────────────────────────
+   Prej 88px serif. Stevilka je podatek, ne naslovnica. */
 .stat-number {
-  font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-  font-weight: 400;
-  font-variation-settings: 'opsz' 144, 'SOFT' 100;
-  font-size: 88px;
-  line-height: 0.95;
-  letter-spacing: -0.04em;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 26px;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
 .stat-number.muted { color: var(--muted-2); }
-
-/* Compact variant for narrower cards */
 .stat-number-sm {
-  font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
-  font-weight: 400;
-  font-size: 56px;
-  line-height: 1;
-  letter-spacing: -0.035em;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 20px;
+  line-height: 1.3;
+  letter-spacing: -0.015em;
   color: var(--ink);
+  font-variant-numeric: tabular-nums;
 }
+/* Brez animacije vstopa — stevilke ne smejo utripati ob vsakem nalozenju */
+.stat-number, .stat-number-sm { opacity: 1; animation: none; }
 
-/* Count-up animation — increments handled in JS, this is for fade-in */
-.stat-number, .stat-number-sm {
-  opacity: 0;
-  animation: numIn 600ms var(--ease) 80ms forwards;
+/* ── KPI trak ──────────────────────────────────────────────────────────
+   Sest majhnih ploscic v enem traku namesto dveh velikih kartic. */
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--hairline);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r);
+  overflow: hidden;
 }
-@keyframes numIn { to { opacity: 1; } }
+.kpi { background: var(--card-bg); padding: 11px 13px; min-width: 0; }
+.kpi .k {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.kpi .v { font-size: 25px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.25; margin-top: 3px; }
+.kpi .d { font-size: 11px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kpi .d.up { color: var(--acenta-teal); }
+.kpi .d.down { color: var(--danger); }
+.kpi .d.warn { color: var(--warn); }
+.kpi.attn { background: var(--warn-soft); }
 
 /* ── Delta chips ───────────────────────────────────────────────────── */
-.delta-up   { display: inline-flex; align-items: center; gap: 4px; background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
-.delta-down { display: inline-flex; align-items: center; gap: 4px; background: #fde2e2; color: #a02020; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
-.delta-flat { display: inline-flex; align-items: center; gap: 4px; background: #f2efe7; color: var(--muted); font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 999px; }
+.delta-up, .delta-down, .delta-flat {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11.5px; font-weight: 600;
+  padding: 2px 8px; border-radius: 999px;
+}
+.delta-up   { background: var(--acenta-teal-soft); color: var(--acenta-teal); }
+.delta-down { background: var(--danger-soft); color: var(--danger); }
+.delta-flat { background: #f2f4f7; color: var(--muted); }
 
-/* ── Icon backgrounds for stat cards ───────────────────────────────── */
-.icon-bg { width: 52px; height: 52px; border-radius: 14px; background: #f5f3ee; display: flex; align-items: center; justify-content: center; }
-.icon-bg.muted { background: #f8f6f1; }
-.icon-bg.warn  { background: #fbeed4; }
-.icon-bg svg { width: 24px; height: 24px; stroke: var(--ink); stroke-width: 1.6; fill: none; }
+/* ── Ikone ─────────────────────────────────────────────────────────── */
+.icon-bg { width: 32px; height: 32px; border-radius: var(--r-sm); background: #f2f4f7; display: flex; align-items: center; justify-content: center; flex: none; }
+.icon-bg.muted { background: #f7f8fa; }
+.icon-bg.warn  { background: var(--warn-soft); }
+.icon-bg svg { width: 16px; height: 16px; stroke: var(--ink-2); stroke-width: 1.8; fill: none; }
 .icon-bg.muted svg { stroke: var(--muted-2); }
-.icon-bg.warn  svg { stroke: #c07c00; }
+.icon-bg.warn  svg { stroke: var(--warn); }
+
+/* ── Tabela ────────────────────────────────────────────────────────────
+   Skupni gradnik za vse sezname. Vrstica 36px, glave v malih verzalkah
+   (v verzalkah se naslovi niso prilegali), besedilo z elipso. */
+.app-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.app-table th {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--muted);
+  text-align: left; padding: 7px 10px;
+  background: var(--bg-sub);
+  border-bottom: 1px solid var(--hairline);
+  white-space: nowrap;
+}
+.app-table th.sorted { color: var(--ink-2); }
+.app-table th.sortable { cursor: pointer; user-select: none; }
+.app-table th.sortable:hover { color: var(--ink-2); }
+.app-table td {
+  padding: 0 10px; height: 36px;
+  border-bottom: 1px solid var(--row-line);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  font-size: 12.5px; color: var(--ink-2);
+}
+.app-table tbody tr:hover { background: var(--acenta-teal-soft); }
+.app-table tbody tr.clickable { cursor: pointer; }
+.app-table td b, .app-table td strong { font-weight: 600; color: var(--ink); }
+.app-table td .sub { display: block; color: var(--muted); font-size: 11px; margin-top: -2px; }
+.app-table td.num { text-align: right; }
+.app-table .ok { color: var(--acenta-teal); font-weight: 700; }
+.app-table .no { color: var(--muted); }
+
+/* ── Merilnik izpolnjenosti ────────────────────────────────────────── */
+.meter { display: flex; align-items: center; gap: 6px; }
+.meter .track { width: 46px; height: 5px; border-radius: 999px; background: #e9edf2; overflow: hidden; flex: none; }
+.meter .fill { display: block; height: 100%; background: var(--acenta-teal); }
+.meter .fill.low { background: #f79009; }
+.meter span { font-size: 11px; font-weight: 600; color: var(--ink-2); }
+
+/* ── Zavihki in filtri ─────────────────────────────────────────────── */
+.tabs { display: flex; gap: 2px; padding: 0 13px; border-bottom: 1px solid var(--hairline); background: var(--bg-sub); overflow-x: auto; }
+.tab { padding: 9px 11px; font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer; background: none; border-top: 0; border-left: 0; border-right: 0; }
+.tab:hover { color: var(--ink-2); }
+.tab.active { color: var(--ink); border-bottom-color: var(--acenta-teal); }
+.tab .num { font-size: 10.5px; color: var(--muted); margin-left: 5px; font-weight: 600; }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  height: 26px; padding: 0 9px;
+  border: 1px solid var(--hairline-2); border-radius: 999px;
+  font-size: 11.5px; font-weight: 500; color: var(--ink-2);
+  background: #fff; white-space: nowrap; cursor: pointer;
+}
+.chip:hover { border-color: var(--muted); }
+.chip.on { background: var(--ink); border-color: var(--ink); color: #fff; font-weight: 600; }
+.chip.active { background: var(--acenta-teal-soft); border-color: var(--acenta-teal-line); color: var(--acenta-teal); font-weight: 600; }
+.chip .x { font-style: normal; opacity: .65; font-weight: 700; }
+.chip svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+/* ── Vrstica seznama (naloge, aktivnost, knjiznica) ────────────────── */
+.list-row { display: flex; align-items: center; gap: 11px; padding: 9px 13px; border-bottom: 1px solid var(--row-line); }
+.list-row:last-child { border-bottom: 0; }
+.list-row:hover { background: var(--bg-sub); }
+.list-row .dot { width: 6px; height: 6px; border-radius: 999px; flex: none; background: var(--muted); }
+.list-row .dot.ok { background: var(--acenta-teal); }
+.list-row .dot.warn { background: #f79009; }
+.list-row .dot.bad { background: #f04438; }
+.list-row .txt { min-width: 0; flex: 1; }
+.list-row .txt b { display: block; font-weight: 600; font-size: 12.5px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-row .txt span { display: block; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.list-row .when { font-size: 11px; color: var(--muted); white-space: nowrap; }
 
 /* ── Skeleton loader ───────────────────────────────────────────────── */
-.skeleton { background: linear-gradient(90deg, #f2efe7 0%, #e9e5dc 50%, #f2efe7 100%); background-size: 200% 100%; animation: skel 1.4s infinite; border-radius: 10px; }
+.skeleton { background: linear-gradient(90deg, #f2f4f7 0%, #e9edf2 50%, #f2f4f7 100%); background-size: 200% 100%; animation: skel 1.4s infinite; border-radius: var(--r-sm); }
 @keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 /* ── Avatar ────────────────────────────────────────────────────────── */
 .avatar {
-  width: 40px; height: 40px; border-radius: 999px;
-  background: linear-gradient(135deg, var(--acenta-teal-soft) 0%, #ebf9f4 100%);
-  color: var(--acenta-teal-dark);
-  font-weight: 600; font-size: 14px;
+  width: 30px; height: 30px; border-radius: 999px;
+  background: var(--acenta-teal-soft);
+  color: var(--acenta-teal);
+  font-weight: 700; font-size: 12px;
   display: flex; align-items: center; justify-content: center;
+  flex: none;
 }
 
-/* ── Hover-lift on clickable rows ──────────────────────────────────── */
-.row-lift {
-  transition: transform 0.18s var(--ease), box-shadow 0.18s var(--ease), background 0.18s var(--ease);
-}
-.row-lift:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lift);
-  background: #fff;
-}
+/* ── Klikljive vrstice ─────────────────────────────────────────────────
+   Prej dvig + velika senca. V seznamu s 40 vrsticami je to nemir; zdaj
+   samo podlaga. */
+.row-lift { transition: background 0.15s var(--ease); }
+.row-lift:hover { transform: none; box-shadow: none; background: var(--acenta-teal-soft); }
 
 /* ── Buttons ───────────────────────────────────────────────────────── */
 .btn-primary {
   background: var(--acenta-teal); color: #fff;
-  padding: 10px 18px; border-radius: 12px;
-  font-weight: 600; font-size: 14px; border: none; cursor: pointer;
-  transition: background 0.15s var(--ease), transform 0.15s var(--ease), box-shadow 0.15s var(--ease);
-  box-shadow: 0 6px 14px -4px rgba(0, 184, 148, 0.4);
+  height: 30px; padding: 0 12px; border-radius: var(--r-sm);
+  font-weight: 600; font-size: 12.5px; border: 1px solid var(--acenta-teal); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  transition: background 0.15s var(--ease);
+  box-shadow: none;
 }
-.btn-primary:hover { background: var(--acenta-teal-dark); transform: translateY(-1px); box-shadow: 0 10px 20px -6px rgba(0, 184, 148, 0.45); }
-.btn-primary:disabled { background: #aaa; cursor: not-allowed; box-shadow: none; transform: none; }
+.btn-primary:hover { background: var(--acenta-teal-dark); border-color: var(--acenta-teal-dark); transform: none; box-shadow: none; }
+.btn-primary:disabled { background: var(--muted-2); border-color: var(--muted-2); cursor: not-allowed; }
 
 .btn-secondary {
   background: #fff; color: var(--ink);
-  padding: 10px 18px; border-radius: 12px;
-  font-weight: 600; font-size: 14px; border: 1px solid var(--hairline); cursor: pointer;
+  height: 30px; padding: 0 12px; border-radius: var(--r-sm);
+  font-weight: 600; font-size: 12.5px; border: 1px solid var(--hairline-2); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
   transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
 }
-.btn-secondary:hover { background: var(--bg-sub); border-color: #d6d2c5; }
+.btn-secondary:hover { background: #f2f4f7; border-color: var(--muted); }
+
+/* Temni gumb za glavno dejanje strani (npr. "+ Nov sestanek") */
+.btn-dark {
+  background: var(--acenta-navy); color: #fff;
+  height: 30px; padding: 0 12px; border-radius: var(--r-sm);
+  font-weight: 600; font-size: 12.5px; border: 1px solid var(--acenta-navy); cursor: pointer;
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+}
+.btn-dark:hover { background: #1d2939; }
+
+/* Drobni gumb v vrstici tabele ali seznama */
+.btn-mini {
+  height: 26px; padding: 0 9px; border-radius: var(--r-sm);
+  border: 1px solid var(--hairline-2); background: #fff;
+  font: 600 11.5px/1 'Inter', sans-serif; color: var(--ink-2);
+  cursor: pointer; white-space: nowrap; display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-mini:hover { background: #f2f4f7; color: var(--ink); }
+.btn-mini.dark { background: var(--acenta-navy); border-color: var(--acenta-navy); color: #fff; }
+.btn-mini.teal { background: var(--acenta-teal); border-color: var(--acenta-teal); color: #fff; }
 
 .btn-danger {
-  background: #fff; color: #a02020;
-  padding: 8px 14px; border-radius: 10px;
-  font-weight: 600; font-size: 13px;
-  border: 1px solid #fde2e2; cursor: pointer;
+  background: #fff; color: var(--danger);
+  height: 26px; padding: 0 10px; border-radius: var(--r-sm);
+  font-weight: 600; font-size: 11.5px;
+  border: 1px solid #fecdca; cursor: pointer;
   transition: background 0.15s;
 }
-.btn-danger:hover { background: #fde2e2; }
+.btn-danger:hover { background: var(--danger-soft); }
 
 /* ── Form fields ───────────────────────────────────────────────────── */
-.field-label { display: block; font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.005em; }
-.field-help  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.field-label { display: block; font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 5px; }
+.field-help  { font-size: 11.5px; color: var(--muted); margin-top: 4px; }
 .input, .select, .textarea {
   width: 100%; background: #fff;
-  border: 1px solid var(--hairline); border-radius: 10px;
-  padding: 10px 12px; font-size: 14px; color: var(--ink);
+  border: 1px solid var(--hairline-2); border-radius: var(--r-sm);
+  padding: 7px 10px; font-size: 13px; color: var(--ink);
   font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
+.select { height: 32px; padding: 0 8px; }
 .input:focus, .select:focus, .textarea:focus {
   outline: none; border-color: var(--acenta-teal);
   box-shadow: 0 0 0 3px var(--acenta-teal-soft);
 }
 .textarea { resize: vertical; min-height: 80px; }
-.textarea.code { font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace; font-size: 13px; }
+.textarea.code { font-family: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace; font-size: 12.5px; }
 
-/* ── Hero gradient blob (subtle, sits behind h1) ───────────────────── */
-.hero-blob {
-  position: absolute; pointer-events: none;
-  width: 480px; height: 480px;
-  background: radial-gradient(circle at center, rgba(0, 184, 148, 0.10) 0%, rgba(0, 184, 148, 0) 60%);
-  filter: blur(8px);
-  top: -160px; left: -120px;
-  z-index: 0;
-  animation: blobDrift 18s ease-in-out infinite alternate;
-}
-@keyframes blobDrift {
-  from { transform: translate(0, 0) scale(1); }
-  to   { transform: translate(60px, 30px) scale(1.1); }
-}
+/* ── Iskalno polje v glavi strani ──────────────────────────────────── */
+.search-box { display: flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px; border: 1px solid var(--hairline-2); border-radius: var(--r-sm); background: #fff; }
+.search-box svg { width: 13px; height: 13px; stroke: var(--muted); fill: none; stroke-width: 2; flex: none; }
+.search-box input { border: 0; outline: none; font: 400 12.5px 'Inter', sans-serif; color: var(--ink); width: 100%; background: none; }
+.search-box input::placeholder { color: var(--muted); }
 
-/* Ensure content above blob */
+/* ── Odstranjeno okrasje ───────────────────────────────────────────────
+   Blob je bil dekoracija brez pomena; razred ostane, da strani, ki ga
+   se izpisujejo, ne dobijo prazne skatle. */
+.hero-blob { display: none !important; }
 .hero-content { position: relative; z-index: 1; }
 
 /* ── Small utils ───────────────────────────────────────────────────── */
-.divider { border: 0; border-top: 1px solid var(--hairline); margin: 32px 0; }
+.divider { border: 0; border-top: 1px solid var(--hairline); margin: 20px 0; }
 .text-muted { color: var(--muted); }
-/* Se svetlejsa raven za prazne vrednosti v tabelah (pomisljaj namesto podatka). */
 .text-muted-2 { color: var(--muted-2); }
+.nowrap { white-space: nowrap; }
+.ellipsis { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Vodoravno drseci ovoj za siroke tabele — stran se ne sme prelivati. */
+.scroll-x { overflow-x: auto; }
 
 /* Prose tweaks (markdown content in company.html) */
-.prose h2 { color: var(--ink); border-bottom: 2px solid var(--acenta-teal); padding-bottom: 0.3rem; font-family: 'Fraunces', serif; font-weight: 500; }
-.prose h3 { color: var(--ink); font-family: 'Fraunces', serif; font-weight: 500; }
+.prose h2 { color: var(--ink); border-bottom: 1px solid var(--hairline); padding-bottom: 0.3rem; font-family: inherit; font-weight: 600; font-size: 16px; }
+.prose h3 { color: var(--ink); font-family: inherit; font-weight: 600; font-size: 14px; }
 .prose strong { color: var(--ink); }
 .prose blockquote { border-left-color: var(--acenta-teal); }
 .prose table { font-size: 0.875rem; }

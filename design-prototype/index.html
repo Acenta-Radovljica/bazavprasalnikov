@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Baza vprašalnikov — tri smeri prenove UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f7f8fa; --surface:#fff; --surface-2:#fbfcfd;
+  --line:#e4e7ec; --line-2:#d0d5dd;
+  --ink:#101828; --ink-2:#475467; --muted:#98a2b3;
+  --accent:#0f766e; --accent-soft:#effcf7; --accent-line:#99e6d3;
+  --warn:#b54708; --warn-soft:#fffaeb;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:400 14px/1.6 Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1080px;margin:0 auto;padding:44px 24px 80px}
+h1{font-size:29px;font-weight:600;letter-spacing:-.025em;line-height:1.2}
+.lede{color:var(--ink-2);margin-top:10px;max-width:70ch}
+h2{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:38px 0 14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+.diag{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.diag div{background:var(--surface);border:1px solid var(--line);border-left:3px solid #f79009;border-radius:9px;padding:13px 15px}
+.diag b{display:block;font-size:13.5px;font-weight:600;margin-bottom:3px}
+.diag p{font-size:13px;color:var(--ink-2)}
+.opts{display:flex;flex-direction:column;gap:14px}
+.opt{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.opt-h{display:flex;align-items:center;gap:12px;padding:15px 20px;border-bottom:1px solid var(--line)}
+.opt-h .badge{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:14px;flex:none;color:#fff}
+.opt-h h3{font-size:17px;font-weight:600;letter-spacing:-.015em}
+.opt-h .tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
+.opt-h a{margin-left:auto;height:34px;padding:0 15px;border-radius:8px;background:var(--ink);color:#fff;font-weight:600;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
+.opt-b{padding:16px 20px;display:grid;grid-template-columns:1.25fr 1fr;gap:22px}
+.opt-b p{font-size:13.5px;color:var(--ink-2);margin-bottom:10px}
+.opt-b ul{list-style:none;display:flex;flex-direction:column;gap:6px}
+.opt-b li{font-size:13px;color:var(--ink-2);padding-left:16px;position:relative}
+.opt-b li::before{content:'';position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:99px;background:var(--accent-line)}
+.opt-b li.x::before{background:#fda29b}
+.side b{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{text-align:left;padding:10px 14px;font-size:13px;border-bottom:1px solid var(--line)}
+th{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:600;color:var(--ink)}
+td.y{color:var(--accent);font-weight:600}
+td.n{color:var(--muted)}
+.reco{background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:12px;padding:18px 22px}
+.reco b{color:var(--accent)}
+.reco p{color:#134e48;font-size:13.5px;margin-top:6px}
+.foot{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
+kbd{font:600 11px Inter;border:1px solid var(--line-2);background:#fff;border-radius:4px;padding:2px 5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Baza vprašalnikov — tri smeri prenove vmesnika</h1>
+  <p class="lede">Vsaka smer je delujoč HTML z dvema zaslonoma: <b>Pregled</b> (prva stran) in <b>Procesi</b> (delovni seznam). Številke so vzorčne, ker so pravi podatki za Basic Auth. Nič od tega še ni v aplikaciji — najprej izberi smer, potem gradim.</p>
+
+  <h2>Kaj po mojem danes ne dela</h2>
+  <div class="diag">
+    <div>
+      <b>Vmesnik je oblečen kot brošura, uporablja pa se kot orodje</b>
+      <p>Krem ozadje, serifni naslovi, 88 px velike serifne številke, plavajoč zeleni blob za naslovom. To je jezik agencijske predstavitve, ne notranje konzole, v kateri gledaš 47 podjetij in 10 stolpcev.</p>
+    </div>
+    <div>
+      <b>Ena številka zavzame toliko prostora kot deset vrstic podatka</b>
+      <p>Dve veliki kartici z „podjetja" in „odgovori" pojesta prvi zaslon, pravo delo (kaj moram narediti) pa je nižje ali skrito v drugem pogledu.</p>
+    </div>
+    <div>
+      <b>Pregled ne ve, da procesi obstajajo</b>
+      <p>Prva stran šteje samo podjetja in odgovore. Procesne seje, manjkajoči transkripti in „pripravljeno za pošiljanje" se ne pojavijo nikjer, čeprav so zdaj glavno delo.</p>
+    </div>
+    <div>
+      <b>Vsaka stran ima svoj slog</b>
+      <p>Navigacijo sem poenotil, ostalo pa ne: gradniki kartic, velikosti pisav in gostota vrstic se med Pregledom, Podjetji, Procesi in Vprašalniki še vedno razlikujejo.</p>
+    </div>
+  </div>
+
+  <h2>Tri smeri</h2>
+  <div class="opts">
+
+    <div class="opt">
+      <div class="opt-h">
+        <span class="badge" style="background:#0f766e">A</span>
+        <h3>Operativna konzola</h3>
+        <span class="tag">Gostota</span>
+        <a href="a-konzola.html">Odpri smer A →</a>
+      </div>
+      <div class="opt-b">
+        <div>
+          <p>Isti zasloni, samo brez okrasja. Nevtralna svetla paleta, brez serifa, brez blobov. Vrstice 36 px, tabularne številke, naslovi stolpcev v malih verzalkah. Šest majhnih KPI ploščic v enem traku namesto dveh velikih kartic.</p>
+          <ul>
+            <li>Na zaslon gre 3× več podatka, brez drobnega tiska</li>
+            <li>Levi rail dobi skupine (Delo / Analiza) in števce</li>
+            <li>Filtri procesov v eni vrstici, ki se ne preliva</li>
+            <li>Najmanj tvegana pot: struktura ostane, zamenja se koža</li>
+          </ul>
+        </div>
+        <div class="side">
+          <b>Za koga</b>
+          <p style="margin-bottom:12px">Zate in za Majo, ki v seznamu iščeta konkretno sejo.</p>
+          <b>Cena</b>
+          <p>Prepis <code>admin.css</code> + čiščenje inline stilov po straneh. Brez sprememb backenda.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="opt">
+      <div class="opt-h">
+        <span class="badge" style="background:#1c2127">B</span>
+        <h3>Danes — prioritetni nabiralnik</h3>
+        <span class="tag">Struktura</span>
+        <a href="b-danes.html">Odpri smer B →</a>
+      </div>
+      <div class="opt-b">
+        <div>
+          <p>Sprememba ni barva, ampak vsebina prve strani. Namesto števcev pokaže tri vrste dela: <b>Ukrepaj</b> (na tebi), <b>Čaka druge</b>, <b>Zaključeno ta teden</b>. Vsaka vrstica ima gumb za naslednji korak. Procesi niso ena tabela z 10 stolpci, ampak skupine po statusu.</p>
+          <ul>
+            <li>Prva stran je delovna površina, ne poročilo</li>
+            <li>„Pripravljeno za pošiljanje" in „brez transkripta" nista več skrita v filtrih</li>
+            <li>Shranjeni pogledi (Moji, Brez transkripta, Za pošiljanje)</li>
+            <li class="x">Rabi nov endpoint, ki sestavi naloge — največ dela</li>
+          </ul>
+        </div>
+        <div class="side">
+          <b>Za koga</b>
+          <p style="margin-bottom:12px">Za komercialista, ki odpre aplikacijo in hoče vedeti, kaj mora danes narediti.</p>
+          <b>Cena</b>
+          <p>Nov <code>/api/naloge</code> + predelava Pregleda in seznama procesov.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="opt">
+      <div class="opt-h">
+        <span class="badge" style="background:#111820">C</span>
+        <h3>Noir Teal — temna, kot Acenta OS</h3>
+        <span class="tag">Enotnost sistemov</span>
+        <a href="c-noir.html">Odpri smer C →</a>
+      </div>
+      <div class="opt-b">
+        <div>
+          <p>Ista gostota kot smer A, samo temna in poravnana z Acenta OS, ki je od 20. 8. v Noir Teal temi. Teal je rezerviran samo za aktivno stanje in pozitivne vrednosti, nikoli za dekoracijo.</p>
+          <ul>
+            <li>Baza in Acenta OS izgledata kot ena hiša</li>
+            <li>Manj utrujajoče, če v tem preživiš cel dan</li>
+            <li class="x">Prilogo za stranko (PDF, e-pošta) je treba pustiti svetlo</li>
+            <li class="x">Vsi obstoječi inline Tailwind razredi po straneh so svetli — največ prepisovanja med tremi smermi</li>
+          </ul>
+        </div>
+        <div class="side">
+          <b>Za koga</b>
+          <p style="margin-bottom:12px">Zate, če hočeš en vizualni jezik čez vsa interna orodja.</p>
+          <b>Cena</b>
+          <p>Kot A, plus revizija vsake strani za temno podlago.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <h2>Primerjava</h2>
+  <table>
+    <thead><tr><th>Merilo</th><th>A · Konzola</th><th>B · Danes</th><th>C · Noir</th></tr></thead>
+    <tbody>
+      <tr><td>Preglednost seznamov</td><td class="y">Zelo dobra</td><td>Dobra</td><td class="y">Zelo dobra</td></tr>
+      <tr><td>Odgovori „kaj naj naredim"</td><td class="n">Delno</td><td class="y">Da, to je bistvo</td><td class="n">Delno</td></tr>
+      <tr><td>Enotnost z Acenta OS</td><td class="n">Ne</td><td class="n">Ne</td><td class="y">Da</td></tr>
+      <tr><td>Sprememba backenda</td><td class="y">Nobene</td><td>Nov endpoint za naloge</td><td class="y">Nobene</td></tr>
+      <tr><td>Obseg dela</td><td class="y">Najmanjši</td><td>Srednji</td><td>Največji</td></tr>
+      <tr><td>Tveganje regresije</td><td class="y">Nizko</td><td>Srednje</td><td>Srednje</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Kaj predlagam</h2>
+  <div class="reco">
+    <b>A kot podlaga, B kot prva stran.</b>
+    <p>Smeri se ne izključujeta: A je sistem gradnikov (paleta, gostota, tabele, filtri), B je odločitev, kaj je na prvi strani. Če narediva A najprej, dobiš takoj berljive sezname brez tveganja, ker se backend ne dotakne. „Danes" iz smeri B pride kot drugi korak, ko bo znano, katere naloge se res splača izpisati. C je isti A v temnem — če hočeš to, mi povej takoj, ker je smiselno graditi tokene enkrat, ne dvakrat.</p>
+  </div>
+
+  <div class="foot">
+    Datoteke so v <code>design-prototype/</code> v repozitoriju in ostanejo tam kot vizualna referenca, dokler pravi vmesnik ne izgleda tako. Vrni mi <b>en seznam</b>: izbrana smer + kaj v njej popraviti. Namig: <kbd>Ctrl</kbd> + <kbd>−</kbd> za pogled celega zaslona.
+  </div>
+
+</div>
+</body>
+</html>

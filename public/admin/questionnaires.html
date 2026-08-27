@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
     /* Per-page: vprašanje row */
@@ -21,10 +21,10 @@
 
     <!-- ── SIDEBAR ── -->
     <!-- Stransko vrstico izrise renderSidebar() v /admin/app.js -->
-    <aside id="sidebar" class="w-64 app-sidebar p-5 flex flex-col shrink-0"></aside>
+    <aside id="sidebar" class="w-52 app-sidebar p-3 flex flex-col shrink-0"></aside>
 
     <!-- ── MAIN ── -->
-    <main class="flex-1 p-10 max-w-[1280px]">
+    <main class="flex-1 min-w-0 p-4">
 
       <!-- ── SEZNAM ── -->
       <section id="view-list" class="relative overflow-hidden">
@@ -200,7 +200,7 @@
         <div class="row-lift flex items-center justify-between px-5 py-4 border border-transparent rounded-xl cursor-pointer"
              onclick="odpriUrejevalnik(${q.id})">
           <div class="flex items-center gap-4 min-w-0">
-            <div class="avatar" style="font-family:'Fraunces',serif; font-size:18px; font-weight:500;">
+            <div class="avatar" style="font-size:12px; font-weight:700;">
               ${esc((q.naziv_prikaz || '?')[0].toUpperCase())}
             </div>
             <div class="min-w-0">

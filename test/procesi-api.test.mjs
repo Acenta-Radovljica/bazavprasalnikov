@@ -1,4 +1,4 @@
-const BASE = 'http://127.0.0.1:3399';
+const BASE = process.env.TEST_BASE || 'http://127.0.0.1:3399';
 const AUTH = 'Basic ' + Buffer.from('test@acenta.si:testgeslo123').toString('base64');
 
 let ok = 0, fail = 0;

@@ -14,10 +14,13 @@ function t(ime, pogoj, dodatek = '') {
 }
 
 // Pricakovane postavke — ista resnica kot NAV_POSTAVKE v public/admin/app.js.
-const POSTAVKE = ['Pregled', 'Podjetja', 'Procesi', 'Vprašalniki', 'Iskanje', 'Cross-client'];
+// Prenova 27. 8. 2026: "Pregled" se imenuje "Danes" (prva stran je seznam
+// dela, ne porocilo) in Procesi so pred Podjetji, ker so glavno delo.
+const POSTAVKE = ['Danes', 'Procesi', 'Podjetja', 'Vprašalniki', 'Iskanje', 'Cross-client'];
+const KLJUCI   = ['pregled', 'procesi', 'podjetja', 'questionnaires', 'search', 'insights'];
 
 const STRANI = [
-  ['Pregled',      '/admin/index.html',          'pregled'],
+  ['Danes',        '/admin/index.html',          'pregled'],
   ['Podjetja',     '/admin/podjetja.html',       'podjetja'],
   ['Kanban',       '/admin/kanban.html',         'podjetja'],
   ['Procesi',      '/admin/procesi.html',        'procesi'],
@@ -50,8 +53,12 @@ for (const [ime, pot, aktivenKljuc] of STRANI) {
 
   const izvid = await page.evaluate(() => {
     const aside = document.getElementById('sidebar');
-    const postavke = aside ? [...aside.querySelectorAll('nav a')].map(a => a.textContent.trim()) : [];
-    const aktivne = aside ? [...aside.querySelectorAll('nav a.active')].map(a => a.textContent.trim()) : [];
+    // Samo glavne postavke (.sidebar-item). Podseznam podjetij pod "Podjetja"
+    // so tudi povezave v <nav>, zato je "nav a" prestevalo se stranke; in
+    // oznaka postavke je prvi <span>, ker anchor vsebuje tudi stevec nalog.
+    const imePostavke = (a) => (a.querySelector('span')?.textContent ?? a.textContent).trim();
+    const postavke = aside ? [...aside.querySelectorAll('nav a.sidebar-item')].map(imePostavke) : [];
+    const aktivne = aside ? [...aside.querySelectorAll('nav a.active')].map(imePostavke) : [];
     return {
       imaSidebar: !!aside,
       postavke,
@@ -69,8 +76,7 @@ for (const [ime, pot, aktivenKljuc] of STRANI) {
   t('Procesi so v navigaciji', izvid.postavke.includes('Procesi'));
   t('natanko ena aktivna postavka', izvid.aktivne.length === 1, JSON.stringify(izvid.aktivne));
   t('aktivna je prava stran',
-     izvid.aktivne[0] === POSTAVKE.find((_, i) =>
-       ['pregled','podjetja','procesi','questionnaires','search','insights'][i] === aktivenKljuc),
+     izvid.aktivne[0] === POSTAVKE[KLJUCI.indexOf(aktivenKljuc)],
      `aktivna="${izvid.aktivne[0]}" pricakovano za "${aktivenKljuc}"`);
   t('stara vrhnja vrstica odstranjena', !izvid.staraVrhnjaVrstica);
   t('skupni stili nalozeni', izvid.imaCss);

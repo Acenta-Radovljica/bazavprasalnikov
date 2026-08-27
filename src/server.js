@@ -10,6 +10,7 @@ import { router as debugSimRouter } from './routes/debug-sim.js';
 import { router as apiRouter } from './routes/api.js';
 import { router as questionnairesRouter } from './routes/questionnaires.js';
 import { router as procesiRouter } from './routes/procesi.js';
+import { router as nalogeRouter } from './routes/naloge.js';
 import { router as formRouter } from './routes/form.js';
 import { basicAuth } from './middleware/auth.js';
 
@@ -69,6 +70,10 @@ app.use('/api/questionnaires', basicAuth, questionnairesRouter);
 // kot questionnaires: /api/companies/:id bi drugace pozrl "procesi" kot :id.
 // Zascitena z basic auth — to je interno orodje svetovalca, nikoli javno.
 app.use('/api/procesi', basicAuth, procesiRouter);
+
+// Naloge za stran "Danes". Mountan pred apiRouter-jem iz istega razloga kot
+// zgornji dve: /api/companies/:id bi drugace pozrl "naloge" kot :id.
+app.use('/api/naloge', basicAuth, nalogeRouter);
 
 app.use('/api', basicAuth, apiRouter);
 

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smer B — Danes (prioritetni nabiralnik)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══ Smer B — Danes ════════════════════════════════════════════════════
+   Sprememba ni barva, ampak VSEBINA prvega zaslona. Namesto števcev
+   pokaže tri vrste dela: kaj moram narediti jaz, kaj čaka druge, kaj je
+   zaključeno. Vsaka vrstica ima svoj gumb, zato je pregled hkrati
+   delovna povrsina in ne samo poročilo.
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#f4f5f7; --surface:#fff; --surface-2:#fafbfc;
+  --line:#e3e6ea; --line-2:#cfd4da;
+  --ink:#1c2127; --ink-2:#4a5561; --muted:#8b95a1;
+  --teal:#0d9488; --teal-soft:#e6faf6; --teal-line:#8ee0d0;
+  --amber:#c2740a; --amber-soft:#fff8e8; --amber-line:#f6d590;
+  --red:#c0392b; --red-soft:#fdeeec; --red-line:#f4bdb6;
+  --blue:#2563eb; --blue-soft:#eef4ff;
+  --r:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:400 13.5px/1.5 Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.frame-label{max-width:1400px;margin:28px auto 8px;padding:0 20px;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.frame{max-width:1400px;margin:0 auto;padding:0 20px}
+.app{display:grid;grid-template-columns:212px 1fr;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;height:780px}
+
+/* rail */
+.rail{background:var(--surface-2);border-right:1px solid var(--line);display:flex;flex-direction:column}
+.rail-top{padding:15px 14px;display:flex;align-items:center;gap:10px}
+.mark{width:28px;height:28px;border-radius:8px;background:var(--teal);color:#fff;display:grid;place-items:center;font-weight:700;font-size:13px;flex:none}
+.rail-top div{font-weight:600;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-top small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.rail nav{padding:6px 8px;display:flex;flex-direction:column;gap:2px}
+.item{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:8px;color:var(--ink-2);text-decoration:none;font-weight:500;white-space:nowrap}
+.item:hover{background:#eef0f3;color:var(--ink)}
+.item.on{background:var(--surface);color:var(--ink);font-weight:600;border:1px solid var(--line);box-shadow:0 1px 2px rgba(16,24,40,.05)}
+.item svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
+.item .b{margin-left:auto;font-size:11px;font-weight:700;background:var(--red);color:#fff;border-radius:99px;padding:1px 6px}
+.item .n{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
+.rail-foot{margin-top:auto;padding:12px 14px;border-top:1px solid var(--line)}
+.rail-foot b{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.rail-foot p{font-size:12px;color:var(--ink-2)}
+
+/* head */
+.main{display:flex;flex-direction:column;min-width:0}
+.head{display:flex;align-items:baseline;gap:12px;padding:18px 22px 14px;flex:none}
+.head h1{font-size:22px;font-weight:600;letter-spacing:-.02em;white-space:nowrap}
+.head .sub{font-size:13px;color:var(--muted);white-space:nowrap}
+.spacer{flex:1}
+.btn{height:34px;padding:0 14px;border-radius:8px;border:1px solid var(--line-2);background:#fff;color:var(--ink);font:600 13px Inter;cursor:pointer;white-space:nowrap}
+.btn.pri{background:var(--teal);border-color:var(--teal);color:#fff}
+.body{padding:0 22px 22px;overflow:auto;flex:1}
+
+/* strip */
+.strip{display:flex;gap:26px;padding:11px 16px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface-2);margin-bottom:18px;white-space:nowrap;overflow:hidden}
+.strip div{min-width:0}
+.strip b{font-size:17px;font-weight:600;letter-spacing:-.01em}
+.strip span{font-size:12px;color:var(--muted);margin-left:6px}
+.strip .sep{width:1px;background:var(--line);flex:none}
+.strip .last{margin-left:auto;font-size:12px;color:var(--muted);align-self:center}
+
+/* queues */
+.queues{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;align-items:start}
+.q{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.q-h{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line)}
+.q-h b{font-size:13px;font-weight:700}
+.q-h .c{font-size:11px;font-weight:700;border-radius:99px;padding:1px 8px}
+.q-h .c.red{background:var(--red-soft);color:var(--red)}
+.q-h .c.amb{background:var(--amber-soft);color:var(--amber)}
+.q-h .c.teal{background:var(--teal-soft);color:var(--teal)}
+.q-h p{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}
+.row{padding:11px 14px;border-bottom:1px solid #eff1f4;border-left:3px solid transparent}
+.row:last-child{border-bottom:0}
+.row:hover{background:var(--surface-2)}
+.row.red{border-left-color:var(--red)}
+.row.amb{border-left-color:#e9a63b}
+.row.teal{border-left-color:var(--teal)}
+.row b{display:block;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row p{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .foot{display:flex;align-items:center;gap:8px;margin-top:8px}
+.act-btn{height:27px;padding:0 10px;border-radius:6px;border:1px solid var(--line-2);background:#fff;font:600 11.5px Inter;color:var(--ink);white-space:nowrap}
+.act-btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+.act-btn.teal{background:var(--teal);border-color:var(--teal);color:#fff}
+.ago{margin-left:auto;font-size:11px;color:var(--muted);white-space:nowrap}
+.q-more{display:block;padding:9px 14px;font-size:12px;font-weight:600;color:var(--teal);text-decoration:none;background:var(--surface-2);border-top:1px solid var(--line)}
+.empty{padding:22px 14px;text-align:center;font-size:12.5px;color:var(--muted)}
+
+/* views + grouped list (zaslon 2) */
+.views{display:flex;gap:7px;padding:0 22px 14px;flex-wrap:nowrap;overflow:hidden}
+.view{height:31px;padding:0 12px;border-radius:8px;border:1px solid var(--line-2);background:#fff;display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;color:var(--ink-2);white-space:nowrap}
+.view.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+.view .n{font-size:11px;opacity:.7;font-weight:700}
+.group{margin-bottom:16px;border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--surface)}
+.group-h{display:flex;align-items:center;gap:9px;padding:10px 14px;background:var(--surface-2);border-bottom:1px solid var(--line)}
+.group-h b{font-size:12.5px;font-weight:700}
+.group-h .c{font-size:11px;font-weight:700;color:var(--muted)}
+.group-h .hint{margin-left:auto;font-size:11.5px;color:var(--muted);white-space:nowrap}
+.sr{display:grid;grid-template-columns:1.5fr 1fr .9fr 130px 150px;align-items:center;gap:14px;padding:11px 14px;border-bottom:1px solid #eff1f4}
+.sr:last-child{border-bottom:0}
+.sr:hover{background:var(--surface-2)}
+.sr .who b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr .who span{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.sr .m{font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr .m i{font-style:normal;color:var(--muted);display:block;font-size:11.5px}
+.bar{display:flex;align-items:center;gap:8px}
+.bar .t{flex:1;height:6px;border-radius:99px;background:#e8ebef;overflow:hidden;min-width:40px}
+.bar .f{display:block;height:100%;background:var(--teal)}
+.bar .f.low{background:#e9a63b}
+.bar span{font-size:11.5px;font-weight:600;color:var(--ink-2)}
+.flags{display:flex;gap:5px;flex-wrap:nowrap}
+.flag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.02em;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.flag.t-ok{background:var(--teal-soft);color:var(--teal)}
+.flag.t-no{background:var(--red-soft);color:var(--red)}
+.flag.s-no{background:var(--amber-soft);color:var(--amber)}
+.flag.s-ok{background:var(--blue-soft);color:var(--blue)}
+.acts{display:flex;gap:6px;justify-content:flex-end}
+.note{max-width:1400px;margin:6px auto 0;padding:0 20px;font-size:11.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ ZASLON 1 — DANES ══════════════════ -->
+<div class="frame-label">Smer B · Zaslon 1 — Pregled kot „Danes"</div>
+<div class="frame">
+<div class="app">
+
+  <aside class="rail">
+    <div class="rail-top"><div class="mark">A</div><div>Acenta baza<small>ai@acenta.si</small></div></div>
+    <nav>
+      <a class="item on" href="#"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/></svg>Danes<span class="b">6</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Procesi<span class="n">5</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M20 7h-9"/><path d="M14 17H5"/></svg>Podjetja<span class="n">47</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M9 5h9"/><path d="M9 12h9"/><path d="M9 19h9"/><path d="M4 5h1"/><path d="M4 12h1"/><path d="M4 19h1"/></svg>Vprašalniki<span class="n">6</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Iskanje</a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 4-6"/></svg>Cross-client</a>
+    </nav>
+    <div class="rail-foot">
+      <b>Ta teden</b>
+      <p>3 nova podjetja<br>12 odgovorov<br>2 seji zaključeni</p>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="head">
+      <h1>Danes</h1>
+      <span class="sub">četrtek, 27. avgust 2026</span>
+      <div class="spacer"></div>
+      <button class="btn">Pregled številk</button>
+      <button class="btn pri">+ Nov sestanek</button>
+    </div>
+
+    <div class="body">
+      <div class="strip">
+        <div><b>47</b><span>podjetij</span></div><div class="sep"></div>
+        <div><b>12</b><span>odgovorov (7 dni)</span></div><div class="sep"></div>
+        <div><b>5</b><span>procesnih sej</span></div><div class="sep"></div>
+        <div><b>6</b><span>aktivnih vprašalnikov</span></div>
+        <div class="last">Osveženo pred 3 min</div>
+      </div>
+
+      <div class="queues">
+        <div class="q">
+          <div class="q-h"><b>Ukrepaj</b><span class="c red">6</span><p>na tebi</p></div>
+          <div class="row red">
+            <b>Hotel Astoria Bled</b>
+            <p>Seja brez transkripta · sestanek 26. 8.</p>
+            <div class="foot"><button class="act-btn pri">Dodaj transkript</button><button class="act-btn">Odpri</button><span class="ago">1 dan</span></div>
+          </div>
+          <div class="row red">
+            <b>Terme Olimia</b>
+            <p>Zaključeno, stranki še ni poslano</p>
+            <div class="foot"><button class="act-btn teal">Pošlji stranki</button><button class="act-btn">PDF</button><span class="ago">2 dni</span></div>
+          </div>
+          <div class="row amb">
+            <b>8 podjetij brez priporočil</b>
+            <p>Imajo odgovore, AI še ni tekel</p>
+            <div class="foot"><button class="act-btn pri">Generiraj vse</button><button class="act-btn">Seznam</button><span class="ago">–</span></div>
+          </div>
+          <div class="row amb">
+            <b>3 zastarela priporočila</b>
+            <p>Novejši odgovor po zadnji generaciji</p>
+            <div class="foot"><button class="act-btn pri">Regeneriraj</button><span class="ago">–</span></div>
+          </div>
+          <div class="row amb">
+            <b>Kaass avto</b>
+            <p>Nov odgovor, ni kvalificiran</p>
+            <div class="foot"><button class="act-btn pri">Oceni</button><button class="act-btn">Odpri</button><span class="ago">2 h</span></div>
+          </div>
+          <a class="q-more" href="#">Prikaži vse (6) →</a>
+        </div>
+
+        <div class="q">
+          <div class="q-h"><b>Čaka druge</b><span class="c amb">4</span><p>ne blokira tebe</p></div>
+          <div class="row amb">
+            <b>Kaass avto</b>
+            <p>Seja 31 % · svetovalec Peter Novak</p>
+            <div class="foot"><button class="act-btn">Opomni</button><span class="ago">7 dni</span></div>
+          </div>
+          <div class="row amb">
+            <b>Royal Bled</b>
+            <p>Poslano 21. 8. · brez odgovora stranke</p>
+            <div class="foot"><button class="act-btn">Follow-up</button><span class="ago">6 dni</span></div>
+          </div>
+          <div class="row">
+            <b>Sportmix</b>
+            <p>Zaključeno · čaka interni kick-off</p>
+            <div class="foot"><button class="act-btn">Odpri</button><span class="ago">9 dni</span></div>
+          </div>
+          <div class="row">
+            <b>Gostilna Krpan</b>
+            <p>Shramba obrazec · brez naloge</p>
+            <div class="foot"><button class="act-btn">Odpri</button><span class="ago">4 dni</span></div>
+          </div>
+        </div>
+
+        <div class="q">
+          <div class="q-h"><b>Zaključeno ta teden</b><span class="c teal">5</span><p>brez ukrepa</p></div>
+          <div class="row teal"><b>Terme Olimia</b><p>Seja zaključena 25. 8. · 100 %</p><div class="foot"><span class="flag t-ok">Transkript ✓</span><span class="ago">2 dni</span></div></div>
+          <div class="row teal"><b>Sportmix</b><p>Seja zaključena 18. 8. · 96 %</p><div class="foot"><span class="flag t-ok">Transkript ✓</span><span class="ago">9 dni</span></div></div>
+          <div class="row teal"><b>Royal Bled</b><p>Poslano stranki 21. 8.</p><div class="foot"><span class="flag s-ok">Poslano</span><span class="ago">6 dni</span></div></div>
+          <div class="row teal"><b>Camp Bled</b><p>AI priporočila generirana</p><div class="foot"><span class="flag t-ok">AI ✓</span><span class="ago">3 dni</span></div></div>
+          <div class="row teal"><b>Hotel Triglav</b><p>Nov odgovor ocenjen kot HOT</p><div class="foot"><span class="flag t-ok">Ocenjen</span><span class="ago">4 dni</span></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="note">Statična maketa. Prvi zaslon ni poročilo, ampak seznam dela; števci so stisnjeni v en trak zgoraj.</div>
+
+<!-- ══════════════════ ZASLON 2 — PROCESI ══════════════════ -->
+<div class="frame-label">Smer B · Zaslon 2 — Procesi (skupine namesto ene tabele)</div>
+<div class="frame">
+<div class="app">
+
+  <aside class="rail">
+    <div class="rail-top"><div class="mark">A</div><div>Acenta baza<small>ai@acenta.si</small></div></div>
+    <nav>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/></svg>Danes<span class="b">6</span></a>
+      <a class="item on" href="#"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Procesi<span class="n">5</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M20 7h-9"/><path d="M14 17H5"/></svg>Podjetja<span class="n">47</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M9 5h9"/><path d="M9 12h9"/><path d="M9 19h9"/><path d="M4 5h1"/><path d="M4 12h1"/><path d="M4 19h1"/></svg>Vprašalniki<span class="n">6</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Iskanje</a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 4-6"/></svg>Cross-client</a>
+    </nav>
+    <div class="rail-foot"><b>Predloga</b><p>Ocena poslovnega potenciala za AI<br>51 vprašanj · 8 sklopov</p></div>
+  </aside>
+
+  <div class="main">
+    <div class="head">
+      <h1>Procesi</h1>
+      <span class="sub">5 sestankov</span>
+      <div class="spacer"></div>
+      <button class="btn">Knjižnica</button>
+      <button class="btn pri">+ Nov sestanek</button>
+    </div>
+
+    <div class="views">
+      <span class="view on">Vsi<span class="n">5</span></span>
+      <span class="view">Moji<span class="n">2</span></span>
+      <span class="view">Brez transkripta<span class="n">2</span></span>
+      <span class="view">Za pošiljanje<span class="n">2</span></span>
+      <span class="view">Arhiv<span class="n">0</span></span>
+      <span class="view" style="margin-left:auto;border-style:dashed;color:var(--muted)">+ Shrani pogled</span>
+    </div>
+
+    <div class="body">
+      <div class="group">
+        <div class="group-h"><b>V teku</b><span class="c">2 seji</span><span class="hint">Izpolnjuje se med sestankom, autosave</span></div>
+        <div class="sr">
+          <div class="who"><b>Hotel Astoria Bled</b><span>Rezervacije · Recepcija</span></div>
+          <div class="m">Maja Lesjak<i>26. 8. 2026</i></div>
+          <div class="bar"><span class="t"><i class="f" style="width:84%"></i></span><span>84 %</span></div>
+          <div class="flags"><span class="flag t-no">Brez transkripta</span></div>
+          <div class="acts"><button class="act-btn">Transkript</button><button class="act-btn pri">Nadaljuj</button></div>
+        </div>
+        <div class="sr">
+          <div class="who"><b>Kaass avto</b><span>Servisni termini · Servis</span></div>
+          <div class="m">Peter Novak<i>20. 8. 2026</i></div>
+          <div class="bar"><span class="t"><i class="f low" style="width:31%"></i></span><span>31 %</span></div>
+          <div class="flags"><span class="flag t-no">Brez transkripta</span></div>
+          <div class="acts"><button class="act-btn">Opomni</button><button class="act-btn pri">Odpri</button></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-h"><b>Zaključeno, čaka pošiljanje</b><span class="c">2 seji</span><span class="hint">Vse tu je pripravljeno za stranko</span></div>
+        <div class="sr">
+          <div class="who"><b>Terme Olimia</b><span>Jedilniki · Kuhinja</span></div>
+          <div class="m">Maja Lesjak<i>25. 8. 2026</i></div>
+          <div class="bar"><span class="t"><i class="f" style="width:100%"></i></span><span>100 %</span></div>
+          <div class="flags"><span class="flag t-ok">Transkript ✓</span><span class="flag s-no">Ni poslano</span></div>
+          <div class="acts"><button class="act-btn">PDF</button><button class="act-btn teal">Pošlji</button></div>
+        </div>
+        <div class="sr">
+          <div class="who"><b>Sportmix</b><span>Zaloge · Nabava</span></div>
+          <div class="m">Maks Zager<i>18. 8. 2026</i></div>
+          <div class="bar"><span class="t"><i class="f" style="width:96%"></i></span><span>96 %</span></div>
+          <div class="flags"><span class="flag t-ok">Transkript ✓</span><span class="flag s-no">Ni poslano</span></div>
+          <div class="acts"><button class="act-btn">PDF</button><button class="act-btn teal">Pošlji</button></div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-h"><b>Poslano stranki</b><span class="c">1 seja</span><span class="hint">Zaklenjeno, samo za branje</span></div>
+        <div class="sr">
+          <div class="who"><b>Royal Bled</b><span>Golf rezervacije · Prodaja</span></div>
+          <div class="m">Maks Zager<i>21. 8. 2026</i></div>
+          <div class="bar"><span class="t"><i class="f" style="width:100%"></i></span><span>100 %</span></div>
+          <div class="flags"><span class="flag t-ok">Transkript ✓ 2</span><span class="flag s-ok">Poslano</span></div>
+          <div class="acts"><button class="act-btn">PDF</button><button class="act-btn">Odpri</button></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="note">Namesto 10 stolpcev: skupina pove status, vrstica pa nosi samo tisto, kar loči seje med sabo, in gumb za naslednji korak.</div>
+<div style="height:40px"></div>
+
+</body>
+</html>

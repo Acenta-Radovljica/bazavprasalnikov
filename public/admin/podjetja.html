@@ -9,37 +9,52 @@
 <body class="bg-gray-50 min-h-screen">
   <header id="nav"></header>
 
-  <main class="max-w-6xl mx-auto px-6 py-8">
-    <a href="/admin/" class="text-sm text-[#00b894] hover:underline">← Nazaj na Pregled</a>
-    <div class="flex items-center justify-between mt-4 mb-6">
-      <h1 class="text-2xl font-bold text-[#1a1a2e]">Podjetja</h1>
-      <div class="flex items-center gap-4">
-        <a href="/admin/kanban.html" class="text-sm text-[#00b894] hover:underline">Kanban pogled →</a>
-        <div class="text-sm text-gray-500" id="meta">—</div>
-      </div>
-    </div>
+  <main class="flex-1 min-w-0 flex flex-col">
+    <header class="page-head">
+      <h1 class="display">Podjetja</h1>
+      <span class="sub" id="meta">—</span>
+      <div class="spacer"></div>
+      <a class="btn-secondary" href="/admin/kanban.html">Kanban pogled →</a>
+    </header>
 
-    <div class="mb-4 flex flex-col sm:flex-row gap-3">
-      <input
-        id="filter"
-        type="text"
-        placeholder="Filtriraj po nazivu..."
-        class="flex-1 px-4 py-2 border border-gray-300 rounded focus:outline-none focus:border-[#00b894]"
-      >
-      <select id="filterStatus" class="px-3 py-2 border border-gray-300 rounded bg-white text-sm focus:outline-none focus:border-[#00b894]">
-        <option value="">Vsi statusi</option>
-      </select>
-      <select id="filterKval" class="px-3 py-2 border border-gray-300 rounded bg-white text-sm focus:outline-none focus:border-[#00b894]">
-        <option value="">Vse kvalifikacije</option>
-        <option value="hot">HOT</option>
-        <option value="warm">WARM</option>
-        <option value="cold">COLD</option>
-        <option value="neocenjeno">Neocenjeno</option>
-      </select>
-    </div>
+    <div class="p-4 flex flex-col gap-4">
+      <section class="card">
+        <div class="orodna">
+          <label class="polje" style="min-width:220px;flex:1 1 220px">
+            <span>Iskanje</span>
+            <input id="filter" type="text" class="input" placeholder="filtriraj po nazivu...">
+          </label>
+          <label class="polje">
+            <span>Status</span>
+            <select id="filterStatus" class="select"><option value="">Vsi statusi</option></select>
+          </label>
+          <label class="polje">
+            <span>Kvalifikacija</span>
+            <select id="filterKval" class="select">
+              <option value="">Vse kvalifikacije</option>
+              <option value="hot">HOT</option>
+              <option value="warm">WARM</option>
+              <option value="cold">COLD</option>
+              <option value="neocenjeno">Neocenjeno</option>
+            </select>
+          </label>
+        </div>
+      </section>
 
-    <div id="content" class="bg-white rounded shadow overflow-x-auto"></div>
+      <section class="card overflow-hidden">
+        <div id="content" class="scroll-x"></div>
+      </section>
+    </div>
   </main>
+
+  <style>
+    /* Orodna vrstica filtrov — enak gradnik kot na Procesih. */
+    .orodna { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; padding: 10px 12px; }
+    .polje { display: block; min-width: 140px; }
+    .polje > span { display: block; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+                    text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+    .polje .select, .polje .input { height: 30px; padding: 0 8px; font-size: 12.5px; }
+  </style>
 
   <script src="/admin/app.js"></script>
   <script>
@@ -51,11 +66,13 @@
     const STATUSI = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen', 'izgubljen'];
 
     // Barvna znacka za kvalifikacijo (HOT rdeca / WARM oranzna / COLD modra).
+    // Znacke uporabljajo skupne razrede iz admin.css, da so kvalifikacije
+    // videti enako tu, na kanbanu in v podjetju.
     function kvalBadge(k) {
-      if (k === 'hot')  return '<span class="px-2 py-0.5 text-xs rounded bg-red-100 text-red-700 font-semibold">HOT</span>';
-      if (k === 'warm') return '<span class="px-2 py-0.5 text-xs rounded bg-orange-100 text-orange-700 font-semibold">WARM</span>';
-      if (k === 'cold') return '<span class="px-2 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-semibold">COLD</span>';
-      return '<span class="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-400" title="Še ni AI ocene">—</span>';
+      if (k === 'hot')  return '<span class="tag bad">HOT</span>';
+      if (k === 'warm') return '<span class="tag warn">WARM</span>';
+      if (k === 'cold') return '<span class="tag info">COLD</span>';
+      return '<span class="tag" title="Še ni AI ocene">—</span>';
     }
 
     // Dropdown za status. stopPropagation prepreci, da klik odpre podjetje.
@@ -65,7 +82,7 @@
       ).join('');
       return `<select onclick="event.stopPropagation()"
                 onchange="spremeniStatus(${p.id}, this.value, this)"
-                class="text-xs border border-gray-300 rounded px-2 py-1 bg-white focus:outline-none focus:border-[#00b894]">${opts}</select>`;
+                class="select" style="height:26px;font-size:11.5px;width:auto">${opts}</select>`;
     }
 
     // PATCH status na backend. Ob napaki vrne select na staro vrednost.
@@ -101,34 +118,31 @@
           && new Date(p.zadnji_odgovor) > new Date(p.ai_priporocila_updated_at);
         let aiBadge;
         if (!p.has_priporocila) {
-          aiBadge = '<span class="px-2 py-0.5 text-xs bg-gray-100 text-gray-500 rounded" title="Priporočila še niso generirana">AI —</span>';
+          aiBadge = '<span class="tag" title="Priporočila še niso generirana">AI —</span>';
         } else if (zastarela) {
-          aiBadge = '<span class="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded" title="Nov odgovor po zadnji generaciji — priporočila so zastarela">AI ⚠</span>';
+          aiBadge = '<span class="tag warn" title="Nov odgovor po zadnji generaciji — priporočila so zastarela">AI zastarela</span>';
         } else {
-          aiBadge = '<span class="px-2 py-0.5 text-xs bg-green-100 text-green-700 rounded" title="Priporočila so posodobljena">AI ✓</span>';
+          aiBadge = '<span class="tag ok" title="Priporočila so posodobljena">AI ✓</span>';
         }
         return `
-          <tr class="border-b hover:bg-gray-50 cursor-pointer" onclick="window.location.href='/admin/company.html?id=${p.id}'">
-            <td class="px-4 py-3 font-medium text-[#1a1a2e]">${esc(p.naziv_prikaz)}</td>
-            <td class="px-4 py-3">${kvalBadge(p.kvalifikacija)}</td>
-            <td class="px-4 py-3">${statusSelect(p)}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">${p.st_odgovorov}</td>
-            <td class="px-4 py-3 text-sm text-gray-600">${formatDatum(p.zadnji_odgovor)}</td>
-            <td class="px-4 py-3">${aiBadge}</td>
+          <tr class="clickable" onclick="window.location.href='/admin/company.html?id=${p.id}'">
+            <td title="${esc(p.naziv_prikaz)}"><b>${esc(p.naziv_prikaz)}</b></td>
+            <td>${kvalBadge(p.kvalifikacija)}</td>
+            <td>${statusSelect(p)}</td>
+            <td class="num">${p.st_odgovorov}</td>
+            <td class="nowrap">${formatDatum(p.zadnji_odgovor)}</td>
+            <td>${aiBadge}</td>
           </tr>
         `;
       }).join('');
 
       el.innerHTML = `
-        <table class="w-full">
-          <thead class="bg-gray-50 border-b">
+        <table class="app-table" style="min-width:820px">
+          <colgroup><col style="width:28%"><col style="width:13%"><col style="width:17%"><col style="width:10%"><col style="width:18%"><col style="width:14%"></colgroup>
+          <thead>
             <tr>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Naziv</th>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Kvalifikacija</th>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Status</th>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Odgovori</th>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">Zadnji odgovor</th>
-              <th class="px-4 py-2 text-left text-sm font-semibold text-gray-700">AI status</th>
+              <th>Naziv</th><th>Kvalifikacija</th><th>Status</th>
+              <th class="num" style="text-align:right">Odgovori</th><th>Zadnji odgovor</th><th>AI status</th>
             </tr>
           </thead>
           <tbody>${vrstice}</tbody>

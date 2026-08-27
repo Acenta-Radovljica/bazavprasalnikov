@@ -4,7 +4,7 @@
 import puppeteer from 'puppeteer-core';
 
 const CHROME = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
-const BASE = 'http://127.0.0.1:3399';
+const BASE = process.env.TEST_BASE || 'http://127.0.0.1:3399';
 const SLIKE = 'C:/screenshots';
 
 let ok = 0, fail = 0; const padli = [];
@@ -102,9 +102,9 @@ await pocakaj(600);
 
 t('naslov strani', await page.$eval('h1', e => e.textContent.trim() === 'Procesi'),
    await page.$eval('h1', e => e.textContent.trim()));
-const stVrstic = await page.$$eval('#seje tbody tr', r => r.length);
+const stVrstic = await page.$$eval('#seje tbody tr[data-odpri]', r => r.length);
 t('seznam pokaze vsaj 2 seji', stVrstic >= 2, stVrstic);
-t('napredek narisan', (await page.$$('#seje tbody tr div[style*="width"]')).length > 0);
+t('napredek narisan', (await page.$$('#seje tbody tr[data-odpri] [style*="width"]')).length > 0);
 const predlogeVrstic = await page.$$eval('#predloge tbody tr', r => r.length);
 t('knjiznica pokaze predlogo', predlogeVrstic === 1, predlogeVrstic);
 t('stranska vrstica izrisana', !!(await page.$('#sidebar nav a')));
@@ -132,8 +132,8 @@ t('Preklici zapre obrazec', await page.$eval('#novaSeja', e => e.className.inclu
 // Filter
 await vpisi(page, '#fStranka', 'UI Test Hotel');
 await pocakaj(700);
-t('filter zozi seznam', (await page.$$eval('#seje tbody tr', r => r.length)) >= 1 && (await page.$$eval('#seje tbody tr', r => r.length)) < stVrstic,
-   await page.$$eval('#seje tbody tr', r => r.length));
+t('filter zozi seznam', (await page.$$eval('#seje tbody tr[data-odpri]', r => r.length)) >= 1 && (await page.$$eval('#seje tbody tr[data-odpri]', r => r.length)) < stVrstic,
+   await page.$$eval('#seje tbody tr[data-odpri]', r => r.length));
 
 // ── Loceni stolpci (prej so bili stranka+proces+oddelek v enem) ──
 const glave = await page.$$eval('#seje thead th', e => e.map(x => x.textContent.replace(/[▲▼]/g, '').trim()));
@@ -141,7 +141,8 @@ t('10 locenih stolpcev', glave.length === 10, JSON.stringify(glave));
 t('stranka, proces in oddelek so LOCENI stolpci',
    glave.includes('Stranka') && glave.includes('Proces') && glave.includes('Oddelek'),
    JSON.stringify(glave));
-const celicVrstici = await page.$$eval('#seje tbody tr:first-child td', e => e.length);
+// Ne ":first-child" — prva vrstica v tbody je zdaj naslov skupine.
+const celicVrstici = await page.$$eval('#seje tbody tr[data-odpri]', r => r[0].querySelectorAll('td').length);
 t('vrstica ima 10 celic', celicVrstici === 10, celicVrstici);
 
 // Noben naslov stolpca ne sme biti odrezan — pri uppercase + tracking-wider
@@ -152,7 +153,7 @@ const odrezaniNaslovi = await page.$$eval('#seje thead th', e => e
 t('noben naslov stolpca ni odrezan', odrezaniNaslovi.length === 0, JSON.stringify(odrezaniNaslovi));
 
 // Vrstice morajo ostati enovrsticne (prej so bile trikrat visje).
-const visine = await page.$$eval('#seje tbody tr', e => e.map(r => Math.round(r.getBoundingClientRect().height)));
+const visine = await page.$$eval('#seje tbody tr[data-odpri]', e => e.map(r => Math.round(r.getBoundingClientRect().height)));
 t('vrstice so enovrsticne (<56px)', Math.max(...visine) < 56, JSON.stringify(visine));
 
 // Tabela se mora prilegati svojemu ovoju na obicajnem namiznem zaslonu.
@@ -165,18 +166,37 @@ t('tabela se prilega ovoju pri 1440px', prileganje.tabela <= prileganje.ovoj + 1
 
 // ── Sortiranje ──
 async function imenaStrank() {
-  return page.$$eval('#seje tbody tr td:first-child', e => e.map(x => x.textContent.trim()));
+  return page.$$eval('#seje tbody tr[data-odpri] td:first-child', e => e.map(x => x.textContent.trim()));
 }
+// Od prenove 27. 8. 2026 je seznam razdeljen na skupine po statusu (V teku /
+// Zakljuceno, caka posiljanje / Poslano / Arhiv), zato razvrscanje velja
+// ZNOTRAJ skupine, ne cez cel seznam. Trditev je zato izrazena po skupinah —
+// namen (klik na naslov res razvrsti) ostaja isti.
+async function imenaPoSkupinah() {
+  return page.$$eval('#seje tbody tr', (vrstice) => {
+    const skupine = [];
+    for (const tr of vrstice) {
+      if (tr.classList.contains('skupina')) skupine.push([]);
+      else if (skupine.length) skupine[skupine.length - 1].push(tr.querySelector('td').textContent.trim());
+    }
+    return skupine;
+  });
+}
+const jeSortirano = (arr, smer) => JSON.stringify(arr) === JSON.stringify(
+  [...arr].sort((a, b) => a.localeCompare(b, 'sl') * (smer === 'asc' ? 1 : -1)));
+
 await page.click('#seje thead th[data-sort="stranka_naziv"]');
 await pocakaj(250);
-const naras = await imenaStrank();
-t('sortiranje narascajoce', JSON.stringify(naras) === JSON.stringify([...naras].sort((a,b)=>a.localeCompare(b,'sl'))),
-   JSON.stringify(naras));
+const skupineNaras = await imenaPoSkupinah();
+t('sortiranje narascajoce znotraj skupin', skupineNaras.every(g => jeSortirano(g, 'asc')),
+   JSON.stringify(skupineNaras));
 await page.click('#seje thead th[data-sort="stranka_naziv"]');
 await pocakaj(250);
-const pada = await imenaStrank();
-t('drugi klik obrne smer', JSON.stringify(pada) === JSON.stringify([...naras].reverse()),
-   JSON.stringify(pada));
+const skupinePada = await imenaPoSkupinah();
+t('drugi klik obrne smer', skupinePada.every(g => jeSortirano(g, 'desc')),
+   JSON.stringify(skupinePada));
+t('skupine imajo naslove', (await page.$$('#seje tbody tr.skupina')).length >= 1,
+   (await page.$$('#seje tbody tr.skupina')).length);
 t('aktiven stolpec je oznacen',
    !!(await page.$('#seje thead th[data-sort="stranka_naziv"].aktiven')));
 
@@ -196,8 +216,10 @@ t('filter transkript zozi seznam', (await imenaStrank()).length <= vseh, (await 
 t('cip za aktiven filter se pojavi',
    (await page.$eval('#cipi', e => e.textContent)).includes('Transkript'),
    await page.$eval('#cipi', e => e.textContent.trim().slice(0, 60)));
+// Stevec sklanja samostalnik (1 sestanek / 2 sestanka / 3 sestanki / 5 sestankov),
+// zato je vzorec na koncnici ohlapen.
 t('stevec pokaze razmerje',
-   /\d+ od \d+ sestankov/.test(await page.$eval('#stevec', e => e.textContent)),
+   /\d+ od \d+ sestan\w*/.test(await page.$eval('#stevec', e => e.textContent)),
    await page.$eval('#stevec', e => e.textContent));
 
 // Klik na x v cipu odstrani filter

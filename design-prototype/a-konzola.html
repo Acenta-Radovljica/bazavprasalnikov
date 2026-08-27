@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smer A — Operativna konzola</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ══ Smer A — Operativna konzola ═══════════════════════════════════════
+   Gostota pred okrasjem. Nevtralna paleta, brez serifa, brez blobov.
+   Vse številke tabularne, vrstice 36px, hierarhija samo prek velikosti
+   in barve besedila. Cilj: 3x več podatka na zaslon, brez zmede.
+   ═══════════════════════════════════════════════════════════════════ */
+:root{
+  --bg:#f7f8fa; --surface:#ffffff; --surface-2:#fbfcfd;
+  --line:#e4e7ec; --line-strong:#d0d5dd;
+  --ink:#101828; --ink-2:#475467; --muted:#98a2b3;
+  --accent:#0f766e; --accent-soft:#effcf7; --accent-line:#99e6d3;
+  --warn:#b54708; --warn-soft:#fffaeb; --warn-line:#fedf89;
+  --danger:#b42318; --danger-soft:#fef3f2;
+  --r:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--ink);
+  font:400 13px/1.45 Inter,system-ui,-apple-system,'Segoe UI',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;
+}
+.frame-label{
+  max-width:1400px;margin:28px auto 8px;padding:0 20px;
+  font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);
+}
+.frame{
+  max-width:1400px;margin:0 auto;padding:0 20px 8px;
+}
+.app{
+  display:grid;grid-template-columns:208px 1fr;
+  background:var(--surface);border:1px solid var(--line);border-radius:12px;
+  overflow:hidden;height:760px;
+}
+
+/* ── Rail ─────────────────────────────────────────────────────────── */
+.rail{background:var(--surface-2);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.rail-top{padding:14px 12px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:9px}
+.mark{width:26px;height:26px;border-radius:6px;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.rail-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-name small{display:block;font-weight:400;font-size:11px;color:var(--muted)}
+.rail nav{padding:8px;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+.rail-group{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);padding:12px 10px 5px}
+.item{
+  display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:6px;
+  color:var(--ink-2);text-decoration:none;font-weight:500;white-space:nowrap;
+}
+.item:hover{background:#f1f3f6;color:var(--ink)}
+.item.on{background:#eef2f6;color:var(--ink);font-weight:600;box-shadow:inset 2px 0 0 var(--accent)}
+.item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
+.item .n{margin-left:auto;font-size:11px;color:var(--muted);font-weight:600}
+.rail-foot{margin-top:auto;padding:10px 12px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ── Head ─────────────────────────────────────────────────────────── */
+.main{display:flex;flex-direction:column;min-width:0}
+.head{
+  display:flex;align-items:center;gap:12px;padding:0 16px;height:48px;
+  border-bottom:1px solid var(--line);background:var(--surface);flex:none;
+}
+.head h1{font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap}
+.head .sub{font-size:12px;color:var(--muted);white-space:nowrap}
+.spacer{flex:1}
+.search{
+  display:flex;align-items:center;gap:7px;height:30px;padding:0 10px;width:220px;
+  border:1px solid var(--line);border-radius:6px;background:var(--surface-2);color:var(--muted);font-size:12px;
+}
+.search svg{width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;flex:none}
+.search kbd{margin-left:auto;font:600 10px/1 Inter;border:1px solid var(--line-strong);border-radius:3px;padding:2px 4px;color:var(--muted);background:#fff}
+.btn{
+  height:30px;padding:0 12px;border-radius:6px;border:1px solid var(--line-strong);background:#fff;
+  color:var(--ink);font:600 12px Inter;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px;
+}
+.btn.pri{background:var(--ink);border-color:var(--ink);color:#fff}
+.body{padding:16px;overflow:auto;flex:1}
+
+/* ── KPI strip ────────────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.kpi{background:var(--surface);padding:11px 13px;min-width:0}
+.kpi .k{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .v{font-size:25px;font-weight:600;letter-spacing:-.02em;line-height:1.25;margin-top:3px}
+.kpi .d{font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap}
+.kpi .d.up{color:var(--accent)} .kpi .d.warn{color:var(--warn)}
+.kpi.attn{background:var(--warn-soft)}
+
+/* ── Cards / grid ─────────────────────────────────────────────────── */
+.cols{display:grid;grid-template-columns:1.35fr 1fr;gap:16px;align-items:start}
+.card{border:1px solid var(--line);border-radius:var(--r);background:var(--surface);overflow:hidden}
+.card-h{display:flex;align-items:center;gap:8px;padding:9px 13px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.card-h h2{font-size:12px;font-weight:700;letter-spacing:.02em}
+.card-h .c{font-size:11px;font-weight:600;color:var(--muted);background:#eef2f6;border-radius:99px;padding:1px 7px}
+.card-h a{margin-left:auto;font-size:11px;font-weight:600;color:var(--accent);text-decoration:none;white-space:nowrap}
+
+/* ── Action list ──────────────────────────────────────────────────── */
+.act{display:flex;align-items:center;gap:11px;padding:9px 13px;border-bottom:1px solid var(--line)}
+.act:last-child{border-bottom:0}
+.act:hover{background:var(--surface-2)}
+.dot{width:6px;height:6px;border-radius:99px;flex:none;background:var(--muted)}
+.dot.warn{background:#f79009} .dot.acc{background:var(--accent)} .dot.red{background:#f04438}
+.act .t{min-width:0;flex:1}
+.act .t b{display:block;font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.act .t span{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.act .go{font-size:11px;font-weight:600;color:var(--ink-2);border:1px solid var(--line-strong);border-radius:5px;padding:3px 8px;white-space:nowrap}
+
+/* ── Chart ────────────────────────────────────────────────────────── */
+.chart{padding:13px}
+.bars{display:flex;align-items:flex-end;gap:3px;height:96px}
+.bars i{flex:1;background:#dfe4ea;border-radius:2px 2px 0 0;display:block}
+.bars i.hi{background:var(--accent)}
+.xax{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:6px}
+
+/* ── Table ────────────────────────────────────────────────────────── */
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th{
+  font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);
+  text-align:left;padding:7px 10px;background:var(--surface-2);border-bottom:1px solid var(--line);
+  white-space:nowrap;position:sticky;top:0;
+}
+th .s{color:var(--ink-2)}
+td{padding:0 10px;height:36px;border-bottom:1px solid #f1f3f6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px}
+tbody tr:hover{background:var(--accent-soft)}
+td.num{text-align:right;color:var(--ink-2)}
+td b{font-weight:600}
+td .sub{color:var(--muted);font-size:11px}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:2px 7px;border-radius:4px;text-transform:uppercase}
+.tag.draft{background:#eef2f6;color:#475467}
+.tag.done{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent-line)}
+.tag.sent{background:#eff8ff;color:#175cd3;box-shadow:inset 0 0 0 1px #b2ddff}
+.tag.arch{background:#f9fafb;color:var(--muted)}
+.meter{display:flex;align-items:center;gap:6px}
+.meter .track{width:46px;height:5px;border-radius:99px;background:#e9edf2;overflow:hidden;flex:none}
+.meter .fill{display:block;height:100%;background:var(--accent)}
+.meter .fill.low{background:#f79009}
+.meter span{font-size:11px;color:var(--ink-2);font-weight:600}
+.ok{color:var(--accent);font-weight:700}
+.no{color:var(--muted)}
+
+/* ── Filter bar ───────────────────────────────────────────────────── */
+.filters{display:flex;align-items:center;gap:6px;padding:9px 13px;border-bottom:1px solid var(--line);background:var(--surface);flex-wrap:nowrap;overflow:hidden}
+.chip{display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px;border:1px solid var(--line-strong);border-radius:99px;font-size:11.5px;font-weight:500;color:var(--ink-2);background:#fff;white-space:nowrap}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff;font-weight:600}
+.chip.act{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent);font-weight:600}
+.chip x{font-style:normal;opacity:.65;font-weight:700}
+.chip svg{width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2}
+.tabs{display:flex;gap:2px;padding:0 13px;border-bottom:1px solid var(--line);background:var(--surface-2)}
+.tab{padding:9px 11px;font-size:12px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:var(--ink);border-bottom-color:var(--accent)}
+.tab .n{font-size:10.5px;color:var(--muted);margin-left:5px}
+.note{max-width:1400px;margin:6px auto 0;padding:0 20px;font-size:11.5px;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ ZASLON 1 — PREGLED ══════════════════ -->
+<div class="frame-label">Smer A · Zaslon 1 — Pregled</div>
+<div class="frame">
+<div class="app">
+
+  <aside class="rail">
+    <div class="rail-top">
+      <div class="mark">A</div>
+      <div class="rail-name">Acenta baza<small>ai@acenta.si</small></div>
+    </div>
+    <nav>
+      <a class="item on" href="#"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Pregled</a>
+      <div class="rail-group">Delo</div>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Procesi<span class="n">5</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M20 7h-9"/><path d="M14 17H5"/></svg>Podjetja<span class="n">47</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M9 5h9"/><path d="M9 12h9"/><path d="M9 19h9"/><path d="M4 5h1"/><path d="M4 12h1"/><path d="M4 19h1"/></svg>Vprašalniki<span class="n">6</span></a>
+      <div class="rail-group">Analiza</div>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Iskanje</a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 4-6"/></svg>Cross-client</a>
+    </nav>
+    <div class="rail-foot">Zadnja oddaja pred 2 h</div>
+  </aside>
+
+  <div class="main">
+    <div class="head">
+      <h1>Pregled</h1>
+      <span class="sub">27. avgust 2026</span>
+      <div class="spacer"></div>
+      <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Išči podjetje ali odgovor<kbd>/</kbd></div>
+      <button class="btn pri">+ Nov sestanek</button>
+    </div>
+
+    <div class="body">
+      <div class="kpis">
+        <div class="kpi"><div class="k">Podjetja</div><div class="v">47</div><div class="d up">+3 ta teden</div></div>
+        <div class="kpi"><div class="k">Odgovori 7 dni</div><div class="v">12</div><div class="d up">+4 vs prejšnji</div></div>
+        <div class="kpi"><div class="k">Procesne seje</div><div class="v">5</div><div class="d">2 v teku</div></div>
+        <div class="kpi"><div class="k">Aktivni vprašalniki</div><div class="v">6</div><div class="d">1 procesni</div></div>
+        <div class="kpi attn"><div class="k">Brez priporočil</div><div class="v">8</div><div class="d warn">zahteva ukrep</div></div>
+        <div class="kpi attn"><div class="k">Zastarela priporočila</div><div class="v">3</div><div class="d warn">regeneriraj</div></div>
+      </div>
+
+      <div class="cols">
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-h"><h2>Zahteva ukrep</h2><span class="c">14</span><a href="#">Vse naloge →</a></div>
+            <div class="act"><span class="dot red"></span><div class="t"><b>Hotel Astoria Bled — seja brez transkripta</b><span>Sestanek 26. 8., vprašalnik izpolnjen 84 %</span></div><span class="go">Odpri sejo</span></div>
+            <div class="act"><span class="dot warn"></span><div class="t"><b>Terme Olimia — pripravljeno za pošiljanje</b><span>Zaključeno 25. 8., stranki še ni poslano</span></div><span class="go">Pošlji</span></div>
+            <div class="act"><span class="dot warn"></span><div class="t"><b>8 podjetij brez priporočil</b><span>Imajo odgovore, AI še ni tekel</span></div><span class="go">Poglej</span></div>
+            <div class="act"><span class="dot warn"></span><div class="t"><b>3 zastarela priporočila</b><span>Novejši odgovor je prišel po generaciji</span></div><span class="go">Regeneriraj</span></div>
+            <div class="act"><span class="dot acc"></span><div class="t"><b>Kaass avto — nov odgovor, neocenjen</b><span>Napredni AI načrt, oddan pred 2 h</span></div><span class="go">Oceni</span></div>
+          </div>
+
+          <div class="card">
+            <div class="card-h"><h2>Odgovori — zadnjih 30 dni</h2><a href="#">Izvozi CSV →</a></div>
+            <div class="chart">
+              <div class="bars">
+                <i style="height:18%"></i><i style="height:0%"></i><i style="height:36%"></i><i style="height:9%"></i><i style="height:27%"></i><i style="height:45%"></i><i style="height:18%"></i>
+                <i style="height:0%"></i><i style="height:27%"></i><i style="height:54%"></i><i style="height:36%"></i><i style="height:18%"></i><i style="height:9%"></i><i style="height:0%"></i>
+                <i style="height:45%"></i><i style="height:63%"></i><i style="height:27%"></i><i style="height:36%"></i><i style="height:18%"></i><i style="height:9%"></i><i style="height:27%"></i>
+                <i style="height:36%"></i><i style="height:72%"></i><i class="hi" style="height:100%"></i><i class="hi" style="height:54%"></i><i class="hi" style="height:63%"></i><i class="hi" style="height:36%"></i><i class="hi" style="height:45%"></i><i class="hi" style="height:27%"></i><i class="hi" style="height:18%"></i>
+              </div>
+              <div class="xax"><span>29. jul</span><span>5. avg</span><span>12. avg</span><span>19. avg</span><span>27. avg</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h"><h2>Zadnja aktivnost</h2><a href="#">Podjetja →</a></div>
+          <div class="act"><span class="dot acc"></span><div class="t"><b>Kaass avto</b><span>Nov odgovor · Napredni AI načrt · pred 2 h</span></div><span class="tag draft">Nov</span></div>
+          <div class="act"><span class="dot"></span><div class="t"><b>Hotel Astoria Bled</b><span>Seja shranjena · 84 % · pred 5 h</span></div><span class="tag draft">Osnutek</span></div>
+          <div class="act"><span class="dot acc"></span><div class="t"><b>Terme Olimia</b><span>Seja zaključena · pred 1 dnem</span></div><span class="tag done">Zaključen</span></div>
+          <div class="act"><span class="dot"></span><div class="t"><b>Royal Bled</b><span>AI priporočila · pred 2 dnevi</span></div><span class="tag sent">AI ✓</span></div>
+          <div class="act"><span class="dot"></span><div class="t"><b>Sportmix</b><span>Nov odgovor · Pred delavnico · pred 3 dnevi</span></div><span class="tag done">Ocenjen</span></div>
+          <div class="act"><span class="dot"></span><div class="t"><b>Gostilna Krpan</b><span>Odgovor · Review agent · pred 4 dnevi</span></div><span class="tag arch">Shramba</span></div>
+          <div class="act"><span class="dot"></span><div class="t"><b>Camp Bled</b><span>AI priporočila zastarela · pred 5 dnevi</span></div><span class="tag draft">⚠ Zastarelo</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="note">Statična maketa. Številke so vzorčne, postavitev in gostota sta predlog.</div>
+
+<!-- ══════════════════ ZASLON 2 — PROCESI ══════════════════ -->
+<div class="frame-label">Smer A · Zaslon 2 — Procesi (seznam sestankov)</div>
+<div class="frame">
+<div class="app">
+
+  <aside class="rail">
+    <div class="rail-top">
+      <div class="mark">A</div>
+      <div class="rail-name">Acenta baza<small>ai@acenta.si</small></div>
+    </div>
+    <nav>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Pregled</a>
+      <div class="rail-group">Delo</div>
+      <a class="item on" href="#"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Procesi<span class="n">5</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/><path d="M20 7h-9"/><path d="M14 17H5"/></svg>Podjetja<span class="n">47</span></a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M9 5h9"/><path d="M9 12h9"/><path d="M9 19h9"/><path d="M4 5h1"/><path d="M4 12h1"/><path d="M4 19h1"/></svg>Vprašalniki<span class="n">6</span></a>
+      <div class="rail-group">Analiza</div>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Iskanje</a>
+      <a class="item" href="#"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-5 4 3 4-6"/></svg>Cross-client</a>
+    </nav>
+    <div class="rail-foot">Zadnja seja pred 5 h</div>
+  </aside>
+
+  <div class="main">
+    <div class="head">
+      <h1>Procesi</h1>
+      <span class="sub">5 sestankov · 1 predloga</span>
+      <div class="spacer"></div>
+      <button class="btn">Knjižnica vprašalnikov</button>
+      <button class="btn pri">+ Nov sestanek</button>
+    </div>
+
+    <div class="tabs">
+      <div class="tab on">Aktivni<span class="n">5</span></div>
+      <div class="tab">Osnutki<span class="n">2</span></div>
+      <div class="tab">Zaključeni<span class="n">2</span></div>
+      <div class="tab">Poslani stranki<span class="n">1</span></div>
+      <div class="tab">Arhiv<span class="n">0</span></div>
+    </div>
+
+    <div class="filters">
+      <span class="chip on"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>astoria</span>
+      <span class="chip act">Vprašalnik: Ocena potenciala <x>×</x></span>
+      <span class="chip act">Transkript: manjka <x>×</x></span>
+      <span class="chip">Svetovalec: vsi</span>
+      <span class="chip">Obdobje: 30 dni</span>
+      <span class="chip">Izpolnjenost: vse</span>
+      <span class="chip">Poslano: vseeno</span>
+      <span style="margin-left:auto;font-size:11px;font-weight:600;color:var(--accent);white-space:nowrap">Počisti vse</span>
+    </div>
+
+    <div class="body" style="padding:0">
+      <table>
+        <colgroup><col style="width:19%"><col style="width:15%"><col style="width:12%"><col style="width:13%"><col style="width:11%"><col style="width:11%"><col style="width:9%"><col style="width:10%"></colgroup>
+        <thead><tr>
+          <th class="s">Stranka ↓</th><th>Proces</th><th>Oddelek</th><th>Svetovalec</th><th>Izpolnjenost</th><th>Status</th><th>Transkript</th><th>Datum</th>
+        </tr></thead>
+        <tbody>
+          <tr><td><b>Hotel Astoria Bled</b><div class="sub">Ocena potenciala</div></td><td>Rezervacije</td><td>Recepcija</td><td>Maja Lesjak</td>
+              <td><div class="meter"><span class="track"><i class="fill" style="width:84%"></i></span><span>84 %</span></div></td>
+              <td><span class="tag draft">Osnutek</span></td><td class="no">manjka</td><td>26. 8. 2026</td></tr>
+          <tr><td><b>Terme Olimia</b><div class="sub">Ocena potenciala</div></td><td>Jedilniki</td><td>Kuhinja</td><td>Maja Lesjak</td>
+              <td><div class="meter"><span class="track"><i class="fill" style="width:100%"></i></span><span>100 %</span></div></td>
+              <td><span class="tag done">Zaključen</span></td><td class="ok">✓ 1</td><td>25. 8. 2026</td></tr>
+          <tr><td><b>Royal Bled</b><div class="sub">Ocena potenciala</div></td><td>Golf rezervacije</td><td>Prodaja</td><td>Maks Zager</td>
+              <td><div class="meter"><span class="track"><i class="fill" style="width:100%"></i></span><span>100 %</span></div></td>
+              <td><span class="tag sent">Poslan</span></td><td class="ok">✓ 2</td><td>21. 8. 2026</td></tr>
+          <tr><td><b>Kaass avto</b><div class="sub">Ocena potenciala</div></td><td>Servisni termini</td><td>Servis</td><td>Peter Novak</td>
+              <td><div class="meter"><span class="track"><i class="fill low" style="width:31%"></i></span><span>31 %</span></div></td>
+              <td><span class="tag draft">Osnutek</span></td><td class="no">manjka</td><td>20. 8. 2026</td></tr>
+          <tr><td><b>Sportmix</b><div class="sub">Ocena potenciala</div></td><td>Zaloge</td><td>Nabava</td><td>Maks Zager</td>
+              <td><div class="meter"><span class="track"><i class="fill" style="width:96%"></i></span><span>96 %</span></div></td>
+              <td><span class="tag done">Zaključen</span></td><td class="ok">✓ 1</td><td>18. 8. 2026</td></tr>
+        </tbody>
+      </table>
+
+      <div style="padding:16px">
+        <div class="card">
+          <div class="card-h"><h2>Knjižnica vprašalnikov</h2><span class="c">1</span><a href="#">Uredi predlogo →</a></div>
+          <div class="act">
+            <span class="dot acc"></span>
+            <div class="t"><b>Ocena poslovnega potenciala za AI</b><span>51 vprašanj · 8 sklopov · 5 sestankov · spremenjeno 24. 8. 2026</span></div>
+            <span class="go">Začni izpolnjevati</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+<div class="note">Filtri so v eni vrstici in se ne prelivajo; 10 stolpcev je skrčenih na 8 (Poslano in Vprašalnik gresta v vrstico pod stranko).</div>
+<div style="height:40px"></div>
+
+</body>
+</html>

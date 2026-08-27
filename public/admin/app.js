@@ -75,26 +75,32 @@ function debounce(fn, ms = 300) {
 // navigacijska sistema: "Pregled" je imel premium stransko vrstico, ostale
 // strani pa temno vrhnjo — z različnima seznamoma postavk, tako da Procesov
 // v stranski vrstici sploh ni bilo. Zdaj je vir en sam.
+// Vrstni red in skupine sledita potrjeni maketi (design-prototype/, smer A+B):
+// najprej "Danes" (kaj je treba narediti), potem delo, potem analiza.
 const NAV_POSTAVKE = [
   {
-    kljuc: 'pregled', naslov: 'Pregled', href: '/admin/',
-    ikona: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>',
+    kljuc: 'pregled', naslov: 'Danes', href: '/admin/',
+    ikona: '<path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/>',
+    // Stevilo nalog v vedru "Ukrepaj"; napolni ga napolniZnackoNalog().
+    znacka: 'nav-ukrepaj',
+  },
+  {
+    skupina: 'Delo',
+    kljuc: 'procesi', naslov: 'Procesi', href: '/admin/procesi.html',
+    ikona: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
   },
   {
     kljuc: 'podjetja', naslov: 'Podjetja', href: '/admin/podjetja.html',
     ikona: '<path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>',
-    // Na strani Pregled se pod to postavko izpiše seznam podjetij.
+    // Na strani Danes se pod to postavko izpiše seznam podjetij.
     podseznam: true,
-  },
-  {
-    kljuc: 'procesi', naslov: 'Procesi', href: '/admin/procesi.html',
-    ikona: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
   },
   {
     kljuc: 'questionnaires', naslov: 'Vprašalniki', href: '/admin/questionnaires.html',
     ikona: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
   },
   {
+    skupina: 'Analiza',
     kljuc: 'search', naslov: 'Iskanje', href: '/admin/search.html',
     ikona: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
   },
@@ -120,15 +126,18 @@ function sidebarHtml(active = '') {
   const postavke = NAV_POSTAVKE.map(p => {
     const jeAktivna = p.kljuc === aktiven;
     const razred = `sidebar-item${jeAktivna ? ' active' : ''}`;
+    const naslovSkupine = p.skupina ? `<div class="sidebar-group">${esc(p.skupina)}</div>` : '';
+    const znacka = p.znacka ? `<span class="badge-count" id="${p.znacka}" hidden></span>` : '';
 
     if (p.podseznam) {
       // Razširljiva postavka: klik odpre/zapre podseznam podjetij.
       // Puščico in podseznam prikažemo samo, kadar ju stran zna napolniti
       // (Pregled) — sicer bi bila to mrtva kontrola.
       return `
+        ${naslovSkupine}
         <div>
           <a href="${p.href}" class="${razred}">
-            ${svgIkona(p.ikona)}
+            ${svgIkona(p.ikona, 16)}
             <span class="flex-1">${esc(p.naslov)}</span>
             <span id="chev-ovoj" class="hidden">
               <svg id="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -141,30 +150,38 @@ function sidebarHtml(active = '') {
     }
 
     return `
+      ${naslovSkupine}
       <a href="${p.href}" class="${razred}">
-        ${svgIkona(p.ikona)}
+        ${svgIkona(p.ikona, 16)}
         <span>${esc(p.naslov)}</span>
+        ${znacka}
       </a>`;
   }).join('');
 
   return `
-    <div class="flex items-center gap-3 mb-8 px-2">
+    <div class="flex items-center gap-2.5 mb-4 px-1">
       <div class="brand-mark">a</div>
-      <div>
-        <div class="font-semibold leading-tight" style="font-family:'Fraunces',serif; font-size:18px; letter-spacing:-0.02em;">Acenta</div>
-        <div class="text-xs text-muted">Baza vprašalnikov</div>
+      <div class="min-w-0">
+        <div class="font-semibold leading-tight ellipsis" style="font-size:13px; letter-spacing:-0.01em;">Acenta baza</div>
+        <div class="text-muted ellipsis" style="font-size:11px">ai@acenta.si</div>
       </div>
     </div>
 
-    <nav class="space-y-1 flex-1">${postavke}</nav>
+    <nav class="space-y-0.5 flex-1">${postavke}</nav>
 
-    <div class="card p-3 flex items-center gap-3">
-      <div class="w-9 h-9 rounded-full bg-[#00b894] text-white flex items-center justify-center font-semibold text-sm">AI</div>
-      <div class="min-w-0">
-        <div class="text-sm font-semibold text-[#1a1a2e] truncate">ai@acenta.si</div>
-        <div class="text-xs text-gray-500">Admin</div>
-      </div>
-    </div>`;
+    <div style="border-top:1px solid var(--hairline); padding-top:10px; font-size:11px" class="text-muted ellipsis" id="nav-noga">Admin</div>`;
+}
+
+// Napolni stevec nalog v navigaciji. Tiho odneha, ce ruta ni dosegljiva —
+// znacka je pripomocek, ne pogoj za delovanje strani.
+async function napolniZnackoNalog() {
+  const el = document.getElementById('nav-ukrepaj');
+  if (!el) return;
+  try {
+    const r = await apiFetch('/api/naloge');
+    const n = r?.skupno?.ukrepaj ?? 0;
+    if (n > 0) { el.textContent = n; el.hidden = false; }
+  } catch { /* brez znacke */ }
 }
 
 // Drsna vrstica za ozke zaslone, kjer stranske vrstice ni.
@@ -172,7 +189,7 @@ function mobilnaVrsticaHtml(active = '') {
   const aktiven = NAV_VZDEVKI[active] || active;
   return NAV_POSTAVKE.map(p => {
     const jeAktivna = p.kljuc === aktiven;
-    return `<a href="${p.href}" class="${jeAktivna ? 'text-[#00b894]' : 'hover:text-[#00b894]'} font-medium">${esc(p.naslov)}</a>`;
+    return `<a href="${p.href}" class="font-medium" style="color:${jeAktivna ? '#5eead4' : '#cbd5e1'}">${esc(p.naslov)}</a>`;
   }).join('');
 }
 
@@ -206,7 +223,9 @@ function poskrbiZaOdzivnost(aside, active) {
 
   const mobilna = document.createElement('div');
   mobilna.setAttribute('data-mobilna-nav', '');
-  mobilna.className = 'md:hidden flex gap-4 overflow-x-auto whitespace-nowrap px-4 py-3 bg-[#15151f] text-white text-sm';
+  mobilna.className = 'md:hidden flex gap-4 overflow-x-auto whitespace-nowrap px-4 py-3 text-sm';
+  mobilna.style.background = '#101828';
+  mobilna.style.color = '#fff';
   mobilna.innerHTML = mobilnaVrsticaHtml(active);
 
   vsebina.parentNode.insertBefore(desno, vsebina);
@@ -230,6 +249,7 @@ function renderSidebar(active = '') {
   }
   el.innerHTML = sidebarHtml(active);
   poskrbiZaOdzivnost(el, active);
+  napolniZnackoNalog();
 }
 
 // Poskrbi, da so nalozeni skupni stili in pisave. Stare strani nalagajo samo
@@ -245,7 +265,7 @@ function zagotoviStile() {
   if (!document.querySelector('link[href*="fonts.googleapis.com"]')) {
     const f = document.createElement('link');
     f.rel = 'stylesheet';
-    f.href = 'https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap';
+    f.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
     document.head.appendChild(f);
   }
 }
@@ -277,7 +297,7 @@ function renderNav(active = '') {
 
   const aside = document.createElement('aside');
   aside.id = 'sidebar';
-  aside.className = 'w-64 app-sidebar p-5 flex flex-col';
+  aside.className = 'w-52 app-sidebar p-3 flex flex-col';
   aside.innerHTML = sidebarHtml(active);
 
   vsebina.parentNode.insertBefore(ovoj, vsebina);
@@ -285,6 +305,7 @@ function renderNav(active = '') {
   ovoj.appendChild(vsebina);
 
   poskrbiZaOdzivnost(aside, active);
+  napolniZnackoNalog();
 
   if (glava) glava.remove();
   document.body.classList.remove('bg-gray-50');

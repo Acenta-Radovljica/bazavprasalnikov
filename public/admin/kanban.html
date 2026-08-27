@@ -9,19 +9,20 @@
 <body class="bg-gray-50 min-h-screen">
   <header id="nav"></header>
 
-  <main class="max-w-[1400px] mx-auto px-6 py-8">
-    <a href="/admin/" class="text-sm text-[#00b894] hover:underline">← Nazaj na Pregled</a>
-    <div class="flex items-center justify-between mt-4 mb-6">
-      <h1 class="text-2xl font-bold text-[#1a1a2e]">Kanban</h1>
-      <div class="flex items-center gap-4">
-        <a href="/admin/podjetja.html" class="text-sm text-[#00b894] hover:underline">Seznam pogled →</a>
-        <div class="text-sm text-gray-500" id="meta">—</div>
-      </div>
+  <main class="flex-1 min-w-0 flex flex-col">
+    <header class="page-head">
+      <h1 class="display">Kanban</h1>
+      <span class="sub" id="meta">—</span>
+      <div class="spacer"></div>
+      <a class="btn-secondary" href="/admin/podjetja.html">Seznam pogled →</a>
+    </header>
+
+    <div class="p-4">
+      <p class="text-muted mb-3" style="font-size:12px">
+        Povleci kartico v drug stolpec za spremembo statusa. Klik na kartico odpre podjetje.
+      </p>
+      <div id="board" class="flex gap-3 overflow-x-auto pb-3"></div>
     </div>
-
-    <p class="text-sm text-gray-500 mb-4">Povleci kartico v drug stolpec za spremembo statusa. Klik na kartico odpre podjetje.</p>
-
-    <div id="board" class="flex gap-4 overflow-x-auto pb-4"></div>
   </main>
 
   <script src="/admin/app.js"></script>

@@ -7,29 +7,39 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
     /* Glava tabele: klik razvrsti. Puscica se pokaze na aktivnem stolpcu. */
     th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
     th.sortable:hover { color: var(--ink); }
-    th.sortable .pusc { opacity: 0; margin-left: 4px; font-size: 10px; }
+    th.sortable .pusc { opacity: 0; margin-left: 4px; font-size: 9px; }
     th.sortable:hover .pusc { opacity: 0.35; }
-    th.sortable.aktiven { color: var(--acenta-teal-dark); }
+    th.sortable.aktiven { color: var(--ink); }
     th.sortable.aktiven .pusc { opacity: 1; }
+
+    /* Orodna vrstica filtrov: ena vrstica, ki se ovija; oznake so drobne,
+       ker so filtri pripomocek in ne glavna vsebina strani. */
+    .orodna { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; padding: 10px 12px; }
+    .polje { display: block; min-width: 132px; }
+    .polje > span { display: block; font-size: 10px; font-weight: 700; letter-spacing: .06em;
+                    text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
+    .polje .select, .polje .input { height: 30px; padding: 0 8px; font-size: 12.5px; }
+    .znacke { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+              padding: 0 12px 10px; }
 
     /* Znacka aktivnega filtra. */
     .cip {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 10px; border-radius: 999px;
-      background: var(--acenta-teal-soft); color: var(--acenta-teal-dark);
-      font-size: 12px; font-weight: 600;
+      padding: 2px 9px; border-radius: 999px;
+      background: var(--acenta-teal-soft); color: var(--acenta-teal);
+      box-shadow: inset 0 0 0 1px var(--acenta-teal-line);
+      font-size: 11.5px; font-weight: 600;
     }
-    .cip button { line-height: 1; opacity: 0.65; }
+    .cip button { line-height: 1; opacity: 0.65; font-weight: 700; }
     .cip button:hover { opacity: 1; }
 
-    tbody tr.vrstica { cursor: pointer; transition: background 0.12s var(--ease); }
-    tbody tr.vrstica:hover { background: var(--bg-sub); }
+    tbody tr.vrstica { cursor: pointer; }
     td, th { text-align: left; }
 
     /* Fiksna postavitev z odstotki: tabela se VEDNO prilega svojemu ovoju,
@@ -37,42 +47,43 @@
        Brez tega je "Ocena poslovnega potenciala za AI" ovila v tri vrstice
        pri vsaki vrstici, tabela pa je bila sirsa od zaslona, tako da je bilo
        treba do stolpca Datum drseti. */
-    table.seznam { table-layout: fixed; width: 100%; min-width: 900px; }
-    /* Naslovi stolpcev NISO v verzalkah. V verzalkah so bili "IZPOLNJENOST",
-       "TRANSKRIPT" in "SVETOVALEC" sirsi od svojih stolpcev in odrezani na
-       "TR...", okrajsave pa so slabsa resitev od male zacetnice. */
-    table.seznam { border-collapse: collapse; }
-    table.seznam th {
-      font-size: 11px; font-weight: 600; letter-spacing: 0.01em;
-      color: var(--muted);
+    table.seznam { table-layout: fixed; width: 100%; min-width: 900px; border-collapse: collapse; }
+
+    /* Vrstica z naslovom skupine. Status je zato viden brez branja stolpca,
+       hkrati pa ostane en sam sortljiv naslov tabele za vse skupine. */
+    tr.skupina td {
+      background: var(--bg-sub); height: 30px;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--ink-2); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
     }
-    table.seznam td.rez, table.seznam th {
-      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    }
+    tr.skupina .st { font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; margin-left: 8px; }
+    tr.skupina .namig { float: right; font-weight: 500; color: var(--muted); text-transform: none; letter-spacing: 0; }
   </style>
 </head>
 <body>
   <div class="flex min-h-screen">
-    <aside id="sidebar" class="w-64 app-sidebar p-5 flex flex-col"></aside>
+    <aside id="sidebar" class="w-52 app-sidebar p-3 flex flex-col"></aside>
 
-    <main class="flex-1 p-6 md:p-10 max-w-[1500px] min-w-0">
+    <main class="flex-1 min-w-0 flex flex-col">
 
       <!-- ── Glava ── -->
-      <div class="flex items-end justify-between gap-6 flex-wrap mb-8">
-        <div>
-          <h1 class="display">Procesi</h1>
-          <div class="text-sm text-muted mt-2 max-w-2xl">
-            FAZA 1 &mdash; prvi prodajni sestanek s stranko. Vprašalnik se izpolnjuje med
-            sestankom, transkript se shrani v našo bazo, izpolnjen zapis se pošlje stranki.
-          </div>
-        </div>
-        <button id="btnNova" class="btn-primary shrink-0">+ Nov sestanek</button>
-      </div>
+      <header class="page-head">
+        <h1 class="display">Procesi</h1>
+        <span class="sub" id="stevec">&mdash;</span>
+        <div class="spacer"></div>
+        <a class="btn-secondary" href="#knjiznica">Knjižnica</a>
+        <button id="btnNova" class="btn-dark">+ Nov sestanek</button>
+      </header>
+
+      <!-- ── Shranjeni pogledi ── (vsak nastavi spodnje filtre) -->
+      <nav class="tabs" id="pogledi"></nav>
+
+      <div class="p-4 flex flex-col gap-4">
 
       <!-- ── Nov sestanek ── -->
-      <section id="novaSeja" class="hidden card p-6 mb-8">
-        <div class="text-xs font-semibold uppercase tracking-[0.18em] text-muted mb-5">Nov sestanek</div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+      <section id="novaSeja" class="hidden card p-4">
+        <div class="text-xs font-semibold uppercase tracking-[0.07em] text-muted mb-3">Nov sestanek</div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <label class="block">
             <span class="text-xs text-muted block mb-1.5 font-medium">Vprašalnik <span class="text-red-500">*</span></span>
             <select id="nsPredloga" class="select"></select>
@@ -98,35 +109,30 @@
             <input id="nsDatum" type="date" class="input">
           </label>
         </div>
-        <div class="flex items-center gap-4 mt-6 flex-wrap">
+        <div class="flex items-center gap-3 mt-4 flex-wrap">
           <button id="nsShrani" class="btn-primary">Začni izpolnjevati &rarr;</button>
-          <button id="nsPreklici" class="text-sm text-muted hover:text-[#15151f]">Prekliči</button>
-          <span id="nsNapaka" class="text-sm text-red-600"></span>
+          <button id="nsPreklici" class="btn-secondary">Prekliči</button>
+          <span id="nsNapaka" class="text-sm" style="color:var(--danger)"></span>
         </div>
       </section>
 
-      <!-- ── Filtri ── -->
-      <section class="card p-6 mb-6">
-        <div class="flex items-center justify-between gap-4 mb-5 flex-wrap">
-          <div class="text-xs font-semibold uppercase tracking-[0.18em] text-muted">Filtri</div>
-          <div id="stevec" class="text-sm text-muted tabular-nums">&mdash;</div>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-          <label class="block xl:col-span-2">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Iskanje</span>
+      <!-- ── Filtri ── (ena vrstica, ki se ovija; podrobnosti v znackah spodaj) -->
+      <section class="card">
+        <div class="orodna">
+          <label class="polje" style="min-width:190px;flex:1 1 190px">
+            <span>Iskanje</span>
             <input id="fStranka" type="text" class="input" placeholder="stranka, proces, oddelek...">
           </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Vprašalnik</span>
+          <label class="polje">
+            <span>Vprašalnik</span>
             <select id="fPredloga" class="select"><option value="">Vsi</option></select>
           </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Svetovalec</span>
+          <label class="polje">
+            <span>Svetovalec</span>
             <select id="fSvetovalec" class="select"><option value="">Vsi</option></select>
           </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Status</span>
+          <label class="polje">
+            <span>Status</span>
             <select id="fStatus" class="select">
               <option value="">Aktivni (brez arhiva)</option>
               <option value="osnutek">Osnutki</option>
@@ -136,8 +142,8 @@
               <option value="vse">Vsi, tudi arhiv</option>
             </select>
           </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Obdobje</span>
+          <label class="polje">
+            <span>Obdobje</span>
             <select id="fObdobje" class="select">
               <option value="">Kadarkoli</option>
               <option value="7">Zadnjih 7 dni</option>
@@ -145,8 +151,8 @@
               <option value="90">Zadnjih 90 dni</option>
             </select>
           </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Izpolnjenost</span>
+          <label class="polje">
+            <span>Izpolnjenost</span>
             <select id="fNapredek" class="select">
               <option value="">Vse</option>
               <option value="prazno">Še ni začeto</option>
@@ -154,16 +160,16 @@
               <option value="polno">Skoraj polno (80 %+)</option>
             </select>
           </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Transkript</span>
+          <label class="polje">
+            <span>Transkript</span>
             <select id="fTranskript" class="select">
               <option value="">Vseeno</option>
               <option value="da">Shranjen</option>
               <option value="ne">Manjka</option>
             </select>
           </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Poslano stranki</span>
+          <label class="polje">
+            <span>Poslano stranki</span>
             <select id="fPoslano" class="select">
               <option value="">Vseeno</option>
               <option value="da">Poslano</option>
@@ -172,28 +178,27 @@
           </label>
         </div>
 
-        <div id="cipi" class="flex items-center gap-2 flex-wrap mt-5"></div>
+        <div id="cipi" class="znacke"></div>
       </section>
 
-      <!-- ── Seznam sej ── -->
-      <section class="card overflow-hidden mb-10">
-        <div id="seje" class="overflow-x-auto"></div>
+      <!-- ── Seznam sej ── (skupine po statusu, en skupen sortljiv naslov) -->
+      <section class="card overflow-hidden">
+        <div id="seje" class="scroll-x"></div>
       </section>
 
       <!-- ── Knjiznica ── -->
-      <div class="flex items-end justify-between gap-4 flex-wrap mb-3">
-        <div>
-          <h2 class="display-serif" style="font-size:26px;">Knjižnica vprašalnikov</h2>
-          <div class="text-sm text-muted mt-1.5 max-w-2xl">
-            Urejanje vprašalnika velja za <strong>prihodnje</strong> sestanke.
-            Že začeti sestanki obdržijo vprašanja, kakršna so bila ob začetku.
-          </div>
+      <section class="card overflow-hidden" id="knjiznica">
+        <div class="card-head">
+          <h2>Knjižnica vprašalnikov</h2>
+          <span class="count" id="stPredlog">&mdash;</span>
+          <span style="margin-left:auto;font-size:11px;color:var(--muted)">
+            Urejanje velja za prihodnje sestanke; že začeti obdržijo svoja vprašanja.
+          </span>
         </div>
-      </div>
-      <section class="card overflow-hidden mb-10">
-        <div id="predloge" class="overflow-x-auto"></div>
+        <div id="predloge" class="scroll-x"></div>
       </section>
 
+      </div>
     </main>
   </div>
 
@@ -206,33 +211,59 @@
     let predlogeCache = [];
     let razvrsti = { stolpec: 'updated_at', smer: 'desc' };
 
+    // Znacke statusov uporabljajo skupne razrede iz admin.css, da so enake
+    // kot na strani Danes in v podjetjih.
     const STATUS_OZNAKA = {
-      osnutek:   ['Osnutek', 'background:#fef3c7;color:#92400e'],
-      zakljucen: ['Zaključen', 'background:#dbeafe;color:#1e40af'],
-      poslan:    ['Poslan stranki', 'background:#d1fae5;color:#065f46'],
-      arhiv:     ['Arhiv', 'background:#f3f4f6;color:#6b7280'],
+      osnutek:   ['Osnutek', 'tag'],
+      zakljucen: ['Zaključen', 'tag ok'],
+      poslan:    ['Poslan', 'tag info'],
+      arhiv:     ['Arhiv', 'tag'],
     };
 
+    // Skupine v seznamu. Vrstni red je vrstni red dela: kar je v teku, je
+    // zgoraj; arhiv na dnu.
+    const SKUPINE = [
+      { status: 'osnutek',   naslov: 'V teku',                       namig: 'Izpolnjuje se med sestankom, autosave' },
+      { status: 'zakljucen', naslov: 'Zaključeno, čaka pošiljanje',   namig: 'Pripravljeno za stranko' },
+      { status: 'poslan',    naslov: 'Poslano stranki',               namig: 'Zapis je pri stranki' },
+      { status: 'arhiv',     naslov: 'Arhiv',                         namig: '' },
+    ];
+
     function statusBadge(s) {
-      const [besedilo, stil] = STATUS_OZNAKA[s] || [s, 'background:#f3f4f6;color:#6b7280'];
-      return `<span style="${stil};padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap">${esc(besedilo)}</span>`;
+      const [besedilo, razred] = STATUS_OZNAKA[s] || [s, 'tag'];
+      return `<span class="${razred}">${esc(besedilo)}</span>`;
+    }
+
+    // Slovenska dvojina: 1 seja, 2 seji, 3-4 seje, 5+ sej.
+    function steviloSej(n) {
+      const zadnji = n % 100;
+      if (zadnji === 1) return `${n} seja`;
+      if (zadnji === 2) return `${n} seji`;
+      if (zadnji === 3 || zadnji === 4) return `${n} seje`;
+      return `${n} sej`;
+    }
+
+    function steviloSestankov(n) {
+      const zadnji = n % 100;
+      if (zadnji === 1) return `${n} sestanek`;
+      if (zadnji === 2) return `${n} sestanka`;
+      if (zadnji === 3 || zadnji === 4) return `${n} sestanki`;
+      return `${n} sestankov`;
     }
 
     function napredekBar(n) {
-      if (!n || !n.skupaj) return '<span class="text-muted-2 text-xs">&mdash;</span>';
-      const barva = n.odstotek >= 80 ? 'var(--acenta-teal)' : n.odstotek >= 40 ? '#f0932b' : '#c4c4cc';
+      if (!n || !n.skupaj) return '<span class="text-muted-2">&mdash;</span>';
+      const nizko = n.odstotek < 40 ? ' low' : '';
       return `
-        <div class="flex items-center gap-2 min-w-[104px]">
-          <div style="flex:1;height:5px;background:#eeece7;border-radius:999px;overflow:hidden">
-            <div style="width:${n.odstotek}%;background:${barva};height:100%;border-radius:999px"></div>
-          </div>
-          <span class="text-xs text-muted tabular-nums shrink-0">${n.izpolnjenih}/${n.skupaj}</span>
+        <div class="meter">
+          <span class="track"><i class="fill${nizko}" style="width:${n.odstotek}%;display:block;height:100%"></i></span>
+          <span>${n.odstotek} %</span>
         </div>`;
     }
 
     function kljukica(jeTam, besedilo) {
       return jeTam
-        ? `<span style="color:var(--acenta-teal);font-weight:700">${esc(besedilo || '✓')}</span>`
+        ? `<span class="ok" style="color:var(--acenta-teal);font-weight:700">${esc(besedilo || '✓')}</span>`
         : '<span class="text-muted-2">&mdash;</span>';
     }
 
@@ -372,7 +403,7 @@
       const seje = razvrstiSeje(filtrirane);
 
       document.getElementById('stevec').textContent =
-        `${seje.length} od ${vseSeje.length} sestankov`;
+        `${seje.length} od ${steviloSestankov(vseSeje.length)}`;
       izrisiCipe();
 
       if (!vseSeje.length) {
@@ -393,28 +424,41 @@
       }
 
       const glava = STOLPCI.map(c => {
-        if (!c.sort) return `<th class="px-3 py-3">${esc(c.naslov)}</th>`;
+        if (!c.sort) return `<th>${esc(c.naslov)}</th>`;
         const jeAktiven = razvrsti.stolpec === c.kljuc;
         const pusc = jeAktiven ? (razvrsti.smer === 'asc' ? '▲' : '▼') : '▼';
-        return `<th class="sortable px-3 py-3 ${jeAktiven ? 'aktiven' : ''}"
+        return `<th class="sortable ${jeAktiven ? 'aktiven sorted' : ''}"
                     data-sort="${c.kljuc}" title="Razvrsti po: ${esc(c.naslov)}">${esc(c.naslov)}<span class="pusc">${pusc}</span></th>`;
       }).join('');
 
       const prazno = '<span class="text-muted-2">&mdash;</span>';
 
-      const vrstice = seje.map(s => `
-        <tr class="vrstica" data-odpri="${s.id}" style="border-top:1px solid var(--hairline)">
-          <td class="rez px-3 py-3 font-medium text-[#15151f]" title="${esc(s.stranka_naziv)}">${esc(s.stranka_naziv)}</td>
-          <td class="rez px-3 py-3 text-sm" title="${esc(s.proces || '')}">${esc(s.proces) || prazno}</td>
-          <td class="rez px-3 py-3 text-sm text-muted" title="${esc(s.oddelek || '')}">${esc(s.oddelek) || prazno}</td>
-          <td class="rez px-3 py-3 text-sm text-muted" title="${esc(s.naziv_prikaz)}">${esc(s.naziv_prikaz)}</td>
-          <td class="rez px-3 py-3 text-sm text-muted" title="${esc(s.svetovalec || '')}">${esc(s.svetovalec) || prazno}</td>
-          <td class="px-3 py-3">${napredekBar(s.napredek)}</td>
-          <td class="px-3 py-3">${statusBadge(s.status)}</td>
-          <td class="px-3 py-3 text-sm text-center">${kljukica(s.st_transkriptov)}</td>
-          <td class="px-3 py-3 text-sm text-center">${kljukica(s.st_poslanih, s.st_poslanih ? s.st_poslanih + '×' : '')}</td>
-          <td class="px-3 py-3 text-sm text-muted whitespace-nowrap">${formatDan(s.datum_sestanka || s.created_at)}</td>
-        </tr>`).join('');
+      const vrstica = (s) => `
+        <tr class="vrstica" data-odpri="${s.id}">
+          <td title="${esc(s.stranka_naziv)}"><b>${esc(s.stranka_naziv)}</b></td>
+          <td title="${esc(s.proces || '')}">${esc(s.proces) || prazno}</td>
+          <td title="${esc(s.oddelek || '')}">${esc(s.oddelek) || prazno}</td>
+          <td title="${esc(s.naziv_prikaz)}">${esc(s.naziv_prikaz)}</td>
+          <td title="${esc(s.svetovalec || '')}">${esc(s.svetovalec) || prazno}</td>
+          <td>${napredekBar(s.napredek)}</td>
+          <td>${statusBadge(s.status)}</td>
+          <td>${kljukica(s.st_transkriptov)}</td>
+          <td>${kljukica(s.st_poslanih, s.st_poslanih ? s.st_poslanih + '×' : '')}</td>
+          <td class="nowrap">${formatDan(s.datum_sestanka || s.created_at)}</td>
+        </tr>`;
+
+      // Skupine se izpisejo samo, kadar imajo vrstice. Razvrscanje znotraj
+      // skupine ostane po izbranem stolpcu — naslovi tabele so skupni.
+      const vrstice = SKUPINE.map(g => {
+        const vGrupi = seje.filter(s => s.status === g.status);
+        if (!vGrupi.length) return '';
+        const namig = g.namig ? `<span class="namig">${esc(g.namig)}</span>` : '';
+        return `
+          <tr class="skupina"><td colspan="${STOLPCI.length}">
+            ${esc(g.naslov)}<span class="st">${steviloSej(vGrupi.length)}</span>${namig}
+          </td></tr>
+          ${vGrupi.map(vrstica).join('')}`;
+      }).join('');
 
       // Sirine (v %) so IZMERJENE, ne ocenjene. Pri ovoju 1104px so naslovi
       // stolpcev potrebovali: Transkript 92px, Poslano 80px, Datum 88px —
@@ -425,11 +469,57 @@
       const colgroup = `<colgroup>${sirine.map(w => `<col style="width:${w}%">`).join('')}</colgroup>`;
 
       document.getElementById('seje').innerHTML = `
-        <table class="seznam text-sm">
+        <table class="seznam app-table">
           ${colgroup}
-          <thead style="background:var(--bg-sub)"><tr>${glava}</tr></thead>
+          <thead><tr>${glava}</tr></thead>
           <tbody>${vrstice}</tbody>
         </table>`;
+    }
+
+    // ── Shranjeni pogledi ─────────────────────────────────────────────────
+    // Vsak pogled je samo prednastavljen nabor filtrov — nobene skrite
+    // logike, zato se v znackah spodaj vedno vidi, kaj pogled dejansko dela.
+    const POGLEDI = [
+      { kljuc: 'vsi',        naslov: 'Vsi',              filtri: {} },
+      { kljuc: 'vteku',      naslov: 'V teku',           filtri: { fStatus: 'osnutek' } },
+      { kljuc: 'transkript', naslov: 'Brez transkripta', filtri: { fTranskript: 'ne' } },
+      { kljuc: 'poslati',    naslov: 'Za pošiljanje',    filtri: { fStatus: 'zakljucen', fPoslano: 'ne' } },
+      { kljuc: 'poslani',    naslov: 'Poslani stranki',  filtri: { fStatus: 'poslan' } },
+      { kljuc: 'arhiv',      naslov: 'Arhiv',            filtri: { fStatus: 'arhiv' } },
+    ];
+    let aktivenPogled = 'vsi';
+
+    // Koliko sej bi pogled pokazal — stevec na zavihku. Racuna se iz ze
+    // nalozenega seznama, brez dodatnega obhoda do streznika.
+    function stejZaPogled(p) {
+      return vseSeje.filter(s => {
+        const st = p.filtri.fStatus;
+        if (st) { if (s.status !== st) return false; }
+        else if (s.status === 'arhiv') return false;
+        if (p.filtri.fTranskript === 'ne' && s.st_transkriptov) return false;
+        if (p.filtri.fPoslano === 'ne' && s.st_poslanih) return false;
+        return true;
+      }).length;
+    }
+
+    function izrisiPoglede() {
+      document.getElementById('pogledi').innerHTML = POGLEDI.map(p => `
+        <button type="button" class="tab ${p.kljuc === aktivenPogled ? 'active' : ''}" data-pogled="${p.kljuc}">
+          ${esc(p.naslov)}<span class="num">${stejZaPogled(p)}</span>
+        </button>`).join('');
+    }
+
+    function uporabiPogled(kljuc) {
+      const p = POGLEDI.find(x => x.kljuc === kljuc);
+      if (!p) return;
+      aktivenPogled = kljuc;
+      // Pogled prepise SAMO svoje filtre; iskanje in ostalo ostane.
+      ['fStatus', 'fTranskript', 'fPoslano'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = p.filtri[id] ?? '';
+      });
+      izrisiPoglede();
+      izrisiSeje();
     }
 
     // ── Knjiznica predlog ─────────────────────────────────────────────────
@@ -442,31 +532,28 @@
            </div>`;
         return;
       }
+      document.getElementById('stPredlog').textContent = predlogeCache.length;
       document.getElementById('predloge').innerHTML = `
-        <table class="w-full text-sm" style="min-width:720px">
-          <thead style="background:var(--bg-sub)">
+        <table class="app-table" style="min-width:720px">
+          <colgroup><col style="width:38%"><col style="width:11%"><col style="width:12%"><col style="width:19%"><col style="width:20%"></colgroup>
+          <thead>
             <tr>
-              <th class="px-3 py-3 text-xs uppercase tracking-wider text-muted font-semibold">Vprašalnik</th>
-              <th class="px-3 py-3 text-xs uppercase tracking-wider text-muted font-semibold">Vprašanj</th>
-              <th class="px-3 py-3 text-xs uppercase tracking-wider text-muted font-semibold">Sestankov</th>
-              <th class="px-3 py-3 text-xs uppercase tracking-wider text-muted font-semibold">Zadnja sprememba</th>
-              <th class="px-3 py-3"></th>
+              <th>Vprašalnik</th><th>Vprašanj</th><th>Sestankov</th><th>Zadnja sprememba</th><th></th>
             </tr>
           </thead>
           <tbody>
             ${predlogeCache.map(p => `
-              <tr style="border-top:1px solid var(--hairline)" class="${p.aktivna ? '' : 'opacity-50'}">
-                <td class="px-3 py-3">
-                  <div class="font-medium text-[#15151f]">${esc(p.naziv_prikaz)}
-                    ${p.aktivna ? '' : '<span class="text-xs text-muted">(ugasnjen)</span>'}</div>
-                  <div class="text-xs text-muted-2" style="font-family:ui-monospace,monospace">${esc(p.slug)}</div>
+              <tr class="${p.aktivna ? '' : 'opacity-50'}" style="height:44px">
+                <td title="${esc(p.naziv_prikaz)}">
+                  <b>${esc(p.naziv_prikaz)}</b>${p.aktivna ? '' : ' <span class="text-muted">(ugasnjen)</span>'}
+                  <span class="sub" style="font-family:ui-monospace,monospace">${esc(p.slug)}</span>
                 </td>
-                <td class="px-3 py-3 tabular-nums">${p.st_vprasanj}</td>
-                <td class="px-3 py-3 tabular-nums">${p.st_sej}</td>
-                <td class="px-3 py-3 text-muted">${formatDan(p.updated_at)}</td>
-                <td class="px-3 py-3 text-right">
+                <td>${p.st_vprasanj}</td>
+                <td>${p.st_sej}</td>
+                <td>${formatDan(p.updated_at)}</td>
+                <td style="text-align:right">
                   <a href="/admin/questionnaires.html?id=${p.id}"
-                     class="text-sm font-medium" style="color:var(--acenta-teal-dark)">Uredi vprašanja &rarr;</a>
+                     style="color:var(--acenta-teal);font-weight:600">Uredi vprašanja &rarr;</a>
                 </td>
               </tr>`).join('')}
           </tbody>
@@ -483,6 +570,7 @@
 
       vseSeje = d.seje;
       napolniSvetovalce();
+      izrisiPoglede();
       izrisiSeje();
     }
 
@@ -548,11 +636,32 @@
       }
     });
 
+    document.getElementById('pogledi').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-pogled]');
+      if (b) uporabiPogled(b.dataset.pogled);
+    });
+
+    // Kateri shranjeni pogled ustreza trenutnim filtrom (ce sploh kateri).
+    // Brez tega bi zavihek ostal poudarjen, ko uporabnik rocno spremeni
+    // status ali transkript — in bi lagal, kaj je prikazano.
+    function osveziAktivenPogled() {
+      const trenutno = {
+        fStatus: vrednostFiltra('fStatus'),
+        fTranskript: vrednostFiltra('fTranskript'),
+        fPoslano: vrednostFiltra('fPoslano'),
+      };
+      const ujemanje = POGLEDI.find(p => ['fStatus', 'fTranskript', 'fPoslano']
+        .every(k => (p.filtri[k] ?? '') === trenutno[k]));
+      aktivenPogled = ujemanje ? ujemanje.kljuc : null;
+      izrisiPoglede();
+    }
+
     // Spustni seznami takoj, iskalno polje z zamikom.
     FILTRI.forEach(f => {
       const el = document.getElementById(f.id);
       if (!el) return;
-      if (el.tagName === 'SELECT') el.addEventListener('change', izrisiSeje);
+      const osvezi = () => { osveziAktivenPogled(); izrisiSeje(); };
+      if (el.tagName === 'SELECT') el.addEventListener('change', osvezi);
       else el.addEventListener('input', debounce(izrisiSeje, 220));
     });
 
@@ -560,16 +669,23 @@
     const panel = document.getElementById('novaSeja');
     const napakaEl = document.getElementById('nsNapaka');
 
+    function odpriNovSestanek() {
+      panel.classList.remove('hidden');
+      const d = new Date();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      document.getElementById('nsDatum').value = `${d.getFullYear()}-${mm}-${dd}`;
+      document.getElementById('nsStranka').focus();
+    }
+
     document.getElementById('btnNova').addEventListener('click', () => {
-      panel.classList.toggle('hidden');
-      if (!panel.classList.contains('hidden')) {
-        const d = new Date();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        document.getElementById('nsDatum').value = `${d.getFullYear()}-${mm}-${dd}`;
-        document.getElementById('nsStranka').focus();
-      }
+      if (panel.classList.contains('hidden')) odpriNovSestanek();
+      else panel.classList.add('hidden');
     });
+
+    // Gumb "+ Nov sestanek" na strani Danes pripelje sem s #nov, zato mora
+    // panel biti odprt takoj — sicer bi klik izgledal, kot da ni naredil nic.
+    if (window.location.hash === '#nov') odpriNovSestanek();
 
     document.getElementById('nsPreklici').addEventListener('click', () => {
       panel.classList.add('hidden');
