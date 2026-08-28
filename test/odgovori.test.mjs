@@ -113,12 +113,36 @@ t('odgovori se niso spremenili',
 
 // ── 4. custom_html obrazec: shrani se cel HTML ───────────────────────────
 console.log('\n=== 4. custom_html obrazec ===');
+// Struktura posnema prava obrazca (review-agent-intake in -avto-intake):
+// sklop v .section > h2, vprasanje v .q > label.qlabel, skupina radiov s
+// skupnim .qlabel in oznakami posameznih izbir, ter honeypot v aria-hidden.
 const HTML = `<!DOCTYPE html><html lang="sl"><head><meta charset="UTF-8"><title>Custom</title></head>
 <body><form method="post" action="/f/${slug}-html">
-<label>Ime objekta<input name="objekt"></label>
-<label>Koliko sob<input name="sobe"></label>
+<div class="hp" aria-hidden="true"><label>Ne izpolnjujte tega polja
+  <input type="text" name="company_url" tabindex="-1"></label></div>
+<div class="section"><h2>1. Osnovni podatki</h2>
+  <div class="q"><label class="qlabel" for="objekt">Ime objekta</label>
+    <input type="text" id="objekt" name="objekt" placeholder="npr. Vila Primer"></div>
+  <div class="q"><label class="qlabel" for="sobe">Koliko sob oddajate?</label>
+    <input type="text" id="sobe" name="sobe"></div>
+</div>
+<div class="section"><h2>2. Portali</h2>
+  <div class="q"><div class="qlabel">Ali že odgovarjate na mnenja?</div>
+    <label for="o1"><input type="radio" id="o1" name="odgovarjate" value="da">da</label>
+    <label for="o2"><input type="radio" id="o2" name="odgovarjate" value="ne">ne</label></div>
+  <div class="q"><label class="qlabel" for="opomba">Kaj naj izpostavimo?
+    <span class="sublabel">Namig, ki ne sme v naslov vprašanja.</span></label>
+    <textarea id="opomba" name="opomba"></textarea></div>
+  <div class="platform-row">
+    <label><input type="checkbox" name="portal_booking" value="da">Booking</label></div>
+</div>
+<div class="section"><h2>3. Dostopi</h2>
+  <div class="platform-row"><div class="pname">Booking</div>
+    <label><input type="radio" name="dostop_booking" value="Imamo dostop">Imamo dostop</label>
+    <label><input type="radio" name="dostop_booking" value="Nimamo">Nimamo</label></div>
+</div>
 <input type="hidden" name="gdpr_consent" value="on">
-<button>Pošlji</button></form></body></html>`;
+<button type="submit">Pošlji</button></form></body></html>`;
 r = await api('/api/questionnaires', {
   method: 'POST',
   body: JSON.stringify({
@@ -131,7 +155,11 @@ t('custom_html vprasalnik ustvarjen', Number.isInteger(qHtmlId), `${r.status}`);
 
 const oddaja2 = await fetch(`${BASE}/f/${slug}-html`, {
   method: 'POST', headers: { 'content-type': 'application/json' },
-  body: JSON.stringify({ gdpr_consent: true, podjetje: 'Hotel Testni', objekt: 'Vila Test', sobe: '24' }),
+  body: JSON.stringify({
+    gdpr_consent: true, podjetje: 'Hotel Testni', objekt: 'Vila Test', sobe: '24',
+    odgovarjate: 'ne', opomba: 'Bazen in zajtrk.',
+    portal_booking: 'da', dostop_booking: 'Imamo dostop',
+  }),
 });
 const telo2 = await oddaja2.json();
 t('oddaja na custom_html = 200', oddaja2.status === 200, oddaja2.status);
@@ -189,9 +217,59 @@ t('stran NE pokaze preimenovanega besedila', !besedilo.includes('PREIMENOVANO'),
 t('odgovor na izbrisano vprasanje je se vedno viden',
   besedilo.includes('Ta odgovor mora preživeti brisanje vprašanja.'));
 
-// Stran s custom_html kopijo mora ponuditi ogled obrazca in ga res odpreti.
+// custom_html obrazec: odgovori morajo stati pod PRAVIMI vprasanji, ne pod
+// surovimi kljuci. To je Maksova pripomba, zaradi katere je nastal ta korak.
 await page.goto(`${BASE}/admin/response.html?id=${telo2.responseId}`, { waitUntil: 'networkidle0' });
 await pocakaj(600);
+const vsebina = await page.$eval('#content', (e) => e.textContent);
+// Stran pokaze besedilo vprasanja kot glavno, surov kljuc pa kot droben namig
+// pod njim. Trditev zato bere zgradbo vrstice, ne celotnega besedila strani.
+const vrsticeTabele = await page.$$eval('#content table tr', (trs) => trs.map((tr) => {
+  const celica = tr.querySelector('td');
+  // Namig odstranimo kot VOZLISCE. Brisanje po besedilu je "objekt" pobrisalo
+  // tudi znotraj besede "objekta" in oznaka je postala "Ime a".
+  const kopija = celica?.cloneNode(true);
+  const namig = kopija?.querySelector('div');
+  const kljuc = (namig?.textContent || '').trim();
+  namig?.remove();
+  return {
+    kljuc,
+    oznaka: (kopija?.textContent || '').replace(/\s+/g, ' ').trim(),
+    vrednost: (tr.querySelectorAll('td')[1]?.textContent || '').trim(),
+  };
+}));
+const vrsticaObjekt = vrsticeTabele.find((v) => v.kljuc === 'objekt');
+t('odgovor stoji pod besedilom vprasanja, ne pod kljucem',
+  vrsticaObjekt?.oznaka === 'Ime objekta' && vrsticaObjekt?.vrednost === 'Vila Test',
+  JSON.stringify(vrsticaObjekt));
+t('surov kljuc ostane viden kot namig', vrsticaObjekt?.kljuc === 'objekt',
+  JSON.stringify(vrsticaObjekt?.kljuc));
+t('besedilo drugega polja je izlusceno', vsebina.includes('Koliko sob oddajate?'));
+t('textarea dobi svoje besedilo', vsebina.includes('Kaj naj izpostavimo?'));
+t('skupina radiov dobi VPRASANJE, ne besedila izbire',
+  vsebina.includes('Ali že odgovarjate na mnenja?'));
+t('vrednost izbire je se vedno vidna', vsebina.includes('ne'));
+t('honeypot ni prikazan kot vprasanje', !vsebina.includes('Ne izpolnjujte tega polja'));
+t('namig se ne prilepi v naslov vprasanja',
+  !vsebina.includes('Namig, ki ne sme v naslov'), '');
+// Vprasanje, zapisano brez <label> (samo .pname nad skupino), mora vseeno dobiti besedilo.
+const vrsticaPortal = vrsticeTabele.find((v) => v.kljuc === 'portal_booking');
+const vrsticaDostop = vrsticeTabele.find((v) => v.kljuc === 'dostop_booking');
+// Samostojen checkbox: polje IN izbira sta ista stvar, zato je njegova oznaka
+// tudi vprasanje. Skupina radiov pa dobi besedilo iz napisa nad vrstico.
+t('samostojen checkbox obdrzi svojo oznako',
+  !!vrsticaPortal && vrsticaPortal.oznaka.includes('Booking'), JSON.stringify(vrsticaPortal));
+t('skupina radiov brez <label> dobi napis iz vrstice',
+  !!vrsticaDostop && vrsticaDostop.oznaka.includes('Booking'), JSON.stringify(vrsticaDostop));
+t('podvojeni oznaki se locita po sklopu',
+  vrsticaPortal?.oznaka !== vrsticaDostop?.oznaka
+  && vrsticaPortal?.oznaka.includes('Portali') && vrsticaDostop?.oznaka.includes('Dostopi'),
+  JSON.stringify([vrsticaPortal?.oznaka, vrsticaDostop?.oznaka]));
+t('vrstni red sledi obrazcu, ne abecedi kljucev',
+  vsebina.indexOf('Ime objekta') < vsebina.indexOf('Koliko sob oddajate?')
+  && vsebina.indexOf('Koliko sob oddajate?') < vsebina.indexOf('Kaj naj izpostavimo?'),
+  `${vsebina.indexOf('Ime objekta')}, ${vsebina.indexOf('Koliko sob oddajate?')}, ${vsebina.indexOf('Kaj naj izpostavimo?')}`);
+
 t('gumb za ogled obrazca obstaja', !!(await page.$('#btn-obrazec')));
 t('okvir je privzeto skrit',
   await page.$eval('#obrazec-ovoj', (e) => e.className.includes('hidden')));

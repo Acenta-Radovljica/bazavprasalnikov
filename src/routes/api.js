@@ -151,6 +151,11 @@ router.get('/responses/:id', async (req, res) => {
     SELECT r.*, c.naziv_prikaz, c.id AS company_id_full,
            q.slug AS q_slug, q.naziv_prikaz AS q_naziv,
            q.questions AS q_questions,
+           -- Danasnji obrazec je tu zato, da tudi stare vrstice brez kopije
+           -- pokazejo odgovore pod besedili vprasanj in ne pod surovimi kljuci.
+           -- Da so to DANASNJA besedila in ne tista iz casa oddaje, pove
+           -- opozorilo na strani (zastavici spodaj).
+           q.custom_html AS q_custom_html,
            (jsonb_array_length(r.questions_snapshot) > 0
              OR r.custom_html_snapshot IS NOT NULL) AS ima_snapshot,
            (q.updated_at > r.submitted_at)          AS vprasalnik_urejen_po_oddaji

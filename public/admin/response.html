@@ -128,10 +128,145 @@
         .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'podjetje';
     }
 
-    // Vprašanja za prikaz. Strežnik jih izbere sam (kopija ob oddaji, sicer
-    // današnja), tu je le zaščita za primer starejšega odziva brez tega polja.
+    // Polje honeypota ni vprašanje, ampak past za robote. Pri pravi oddaji je
+    // prazno; če ni, je to podatek o botu in ne odgovor stranke.
+    const HONEYPOT = 'company_url';
+
+    // Vprašanja za prikaz, po vrsti:
+    //   1. kopija vprašanj ob oddaji (navadni obrazci),
+    //   2. besedila, izluščena iz shranjenega HTML obrazca (custom_html),
+    //   3. besedila iz DANAŠNJEGA HTML obrazca (stare vrstice brez kopije),
+    //   4. današnja vprašanja vprašalnika.
+    // Brez 2. in 3. se pri custom_html obrazcih odgovori prikažejo pod surovimi
+    // ključi (`podrocje_karoserija`), ker ti obrazci nimajo polja `questions` —
+    // vprašalnik je pri njih prav ta HTML.
     function vprasanjaZaPrikaz(r) {
-      return Array.isArray(r.vprasanja_za_prikaz) ? r.vprasanja_za_prikaz : r.q_questions;
+      if (Array.isArray(r.vprasanja_za_prikaz) && r.vprasanja_za_prikaz.length) {
+        return r.vprasanja_za_prikaz;
+      }
+      const html = r.custom_html_snapshot || r.q_custom_html;
+      if (html) {
+        const izHtml = vprasanjaIzObrazca(html);
+        if (izHtml.length) return izHtml;
+      }
+      return r.q_questions || [];
+    }
+
+    // Iz HTML obrazca izlušči vprašanja v vrstnem redu, v katerem so bila na
+    // zaslonu. Vrstni red je sam po sebi podatek: ključi v raw_data so v
+    // poljubnem zaporedju, obrazec pa ima svojega.
+    //
+    // Bere se samo besedilo. DOMParser skript ne izvaja, zato je razčlenjevanje
+    // shranjenega tujega HTML varno.
+    function vprasanjaIzObrazca(html) {
+      let doc;
+      try { doc = new DOMParser().parseFromString(html, 'text/html'); }
+      catch { return []; }
+
+      const najdena = [];
+      const videni = new Set();
+
+      for (const polje of doc.querySelectorAll('input[name], textarea[name], select[name]')) {
+        const ime = polje.getAttribute('name');
+        if (!ime || videni.has(ime)) continue;
+        const tip = (polje.getAttribute('type') || polje.tagName.toLowerCase()).toLowerCase();
+        if (tip === 'hidden' || tip === 'submit' || tip === 'button') continue;
+        // Skrito polje (honeypot) ni vprašanje.
+        if (ime === HONEYPOT || polje.closest('[aria-hidden="true"]')) continue;
+        videni.add(ime);
+        najdena.push({
+          id: ime, tip,
+          label: besediloVprasanja(doc, polje, ime),
+          sklop: naslovPred(doc, polje),
+        });
+      }
+
+      // Ista oznaka pri dveh poljih je za bralca neuporabna: obrazec ima
+      // "car.advisor" enkrat v seznamu portalov in enkrat pri dostopih.
+      // Podvojene zato ločimo s sklopom, ostale pustimo kratke.
+      const stevec = new Map();
+      for (const q of najdena) stevec.set(q.label, (stevec.get(q.label) || 0) + 1);
+      for (const q of najdena) {
+        if (stevec.get(q.label) > 1 && q.sklop) q.label = `${q.sklop}: ${q.label}`;
+      }
+
+      return najdena;
+    }
+
+    // Naslov sklopa, pod katerega polje spada: zadnji naslov pred njim.
+    function naslovPred(doc, polje) {
+      let zadnji = '';
+      for (const naslov of doc.querySelectorAll('h1, h2, h3, h4, legend')) {
+        const jePred = naslov.compareDocumentPosition(polje) & Node.DOCUMENT_POSITION_FOLLOWING;
+        if (!jePred) break;
+        zadnji = cistoBesedilo(naslov);
+      }
+      return zadnji;
+    }
+
+    // Poišče besedilo vprašanja za dano polje. Zaporedje poskusov je pomembno:
+    // pri skupinah (radio, checkbox) je `label for=` besedilo POSAMEZNE izbire
+    // ("Imamo dostop"), ne vprašanja, zato se pri njih najprej pogleda ovoj.
+    function besediloVprasanja(doc, polje, ime) {
+      const jeSkupina = doc.querySelectorAll(`[name="${CSS.escape(ime)}"]`).length > 1;
+      const ovoj = polje.closest('.q, .field, .form-group, fieldset');
+
+      // Locnica je SKUPINA, ne tip polja. Kadar si ime deli vec kontrol
+      // (radio "da/ne"), je oznaka ob posamezni kontroli besedilo izbire in
+      // vprasanje je nad njimi. Kadar je ime svoje (samostojen checkbox
+      // "Prodaja novih vozil", "Google"), pa je prav ta oznaka vprasanje —
+      // polje in izbira sta takrat ista stvar.
+      const kandidati = jeSkupina
+        ? [
+            () => ovoj?.querySelector('legend, .qlabel'),
+            // Cez vec ravni: napis vrstice je pogosto SESTRA ovoja z izbirami
+            // (`<div class="pname">Google Business Profile</div>` poleg `.opts`),
+            // ne njegov otrok.
+            () => napisVOvoju(polje),
+          ]
+        : [
+            () => (polje.id ? doc.querySelector(`label[for="${CSS.escape(polje.id)}"]`) : null),
+            () => polje.closest('label'),
+            () => ovoj?.querySelector('legend, .qlabel, label'),
+            () => napisVOvoju(polje),
+          ];
+
+      for (const najdi of kandidati) {
+        const el = najdi();
+        if (!el) continue;
+        const besedilo = cistoBesedilo(el);
+        if (besedilo) return besedilo;
+      }
+
+      const nadomestno = polje.getAttribute('aria-label') || polje.getAttribute('placeholder');
+      return (nadomestno || '').trim() || ime;
+    }
+
+    // Besedilo elementa brez vsebine kontrol in brez drobnih pojasnil.
+    // Pojasnilo je pogosto znotraj oznake (`<span class="sublabel">`); če ga
+    // pustimo notri, se vprašanje razvleče čez tri vrstice.
+    function cistoBesedilo(el) {
+      const kopija = el.cloneNode(true);
+      kopija.querySelectorAll('input, textarea, select, button').forEach((x) => x.remove());
+      kopija.querySelectorAll('.sublabel, .hint, .help, small').forEach((x) => x.remove());
+      return (kopija.textContent || '').replace(/\s+/g, ' ').trim();
+    }
+
+    // Zadnja pot: nekateri obrazci vprašanja ne zapišejo v <label>, ampak v
+    // navaden element ob poljih (`<div class="pname">Google Business Profile</div>`
+    // nad skupino radiov). Zato se povzpnemo največ štiri ravni navzgor in na
+    // vsaki poiščemo prvi element z besedilom, ki sam ne vsebuje nobene kontrole.
+    function napisVOvoju(polje, maxRavni = 4) {
+      let ovoj = polje.parentElement;
+      for (let raven = 0; raven < maxRavni && ovoj && ovoj.tagName !== 'FORM'; raven++) {
+        for (const kandidat of ovoj.children) {
+          if (kandidat.querySelector?.('input, textarea, select, button')) continue;
+          if (kandidat.matches?.('input, textarea, select, button')) continue;
+          if (cistoBesedilo(kandidat)) return kandidat;
+        }
+        ovoj = ovoj.parentElement;
+      }
+      return null;
     }
 
     // Pove, od kod so vprašanja nad odgovori. Molk bi pomenil, da bralec misli,

@@ -30,10 +30,10 @@ node test/procesi-ui.test.mjs        # 86 trditev (pravi Chrome)
 node test/navigacija.test.mjs        # 96 trditev (vseh 8 admin strani)
 node test/naloge.test.mjs            # 39 trditev (/api/naloge + stran Danes)
 node test/analiza.test.mjs           # 103 trditve (/api/procesi/analiza + stran Primerjava)
-node test/odgovori.test.mjs          # 35 trditev (kopija vprašalnika ob oddaji)
+node test/odgovori.test.mjs          # 47 trditev (kopija vprašalnika ob oddaji + besedila iz HTML)
 ```
 
-Skupaj 456 trditev. Zadnji zeleni zagon: 28. 8. 2026.
+Skupaj 468 trditev. Zadnji zeleni zagon: 28. 8. 2026.
 
 `TEST_BASE` prepiše naslov strežnika (privzeto `http://127.0.0.1:3399`) — uporabno,
 kadar teče sveža koda na drugem portu.
