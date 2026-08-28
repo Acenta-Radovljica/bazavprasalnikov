@@ -5,6 +5,7 @@ import { hashIp } from '../utils/normalize.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
 import { sproziPovzetek, sproziKvalifikacija } from '../ai/queue.js';
 import { basicAuth } from '../middleware/auth.js';
+import { snapshotPoId } from '../lib/snapshot.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -61,11 +62,18 @@ async function obdelajSubmission({ payload, ip, questionnaireId }) {
     }
   }
 
+  // Kopija vprasalnika ob oddaji (migracija 010). Webhook vprasalnika ne
+  // nalozi sam, zato ga prebere snapshotPoId; ce branje ne uspe, se odgovor
+  // vseeno shrani — glej razlago v src/lib/snapshot.js.
+  const snap = await snapshotPoId(questionnaireId);
+
   const inserted = await dbQuery(
-    `INSERT INTO responses (company_id, questionnaire_id, raw_data, ip_hash, consent_gdpr)
-     VALUES ($1, $2, $3, $4, $5)
+    `INSERT INTO responses (company_id, questionnaire_id, raw_data, ip_hash, consent_gdpr,
+                            questions_snapshot, custom_html_snapshot)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING id`,
-    [companyId, questionnaireId, JSON.stringify(payload), ipHash, consent]
+    [companyId, questionnaireId, JSON.stringify(payload), ipHash, consent,
+     snap.questions, snap.customHtml]
   );
 
   // Posodobi last_response_at na podjetju

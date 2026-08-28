@@ -128,9 +128,34 @@
         .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'podjetje';
     }
 
+    // Vprašanja za prikaz. Strežnik jih izbere sam (kopija ob oddaji, sicer
+    // današnja), tu je le zaščita za primer starejšega odziva brez tega polja.
+    function vprasanjaZaPrikaz(r) {
+      return Array.isArray(r.vprasanja_za_prikaz) ? r.vprasanja_za_prikaz : r.q_questions;
+    }
+
+    // Pove, od kod so vprašanja nad odgovori. Molk bi pomenil, da bralec misli,
+    // da bere vprašalnik iz časa oddaje, čeprav bere današnjega.
+    function opozoriloOIzvoru(r) {
+      if (r.ima_snapshot) return '';
+      const hudo = r.vprasalnik_urejen_po_oddaji;
+      const barva = hudo
+        ? 'background:#fef4f2; border:1px solid #f8c9c2; color:#b42318'
+        : 'background:#fff8ea; border:1px solid #fbdba7; color:#b45309';
+      const besedilo = hudo
+        ? 'Ta odgovor je bil oddan, <b>preden je bil vprašalnik nazadnje urejen</b>. ' +
+          'Kopija vprašanj iz časa oddaje ne obstaja, zato so spodaj današnja vprašanja — ' +
+          'nekatera se od tistih, ki jih je stranka videla, lahko razlikujejo.'
+        : 'Ta odgovor je iz časa pred shranjevanjem kopije vprašalnika, zato so spodaj ' +
+          'današnja vprašanja. Vprašalnik od oddaje ni bil urejen, zato se najverjetneje ujemajo.';
+      return `<div style="${barva}; border-radius:10px; padding:10px 13px; font-size:13px; margin-bottom:14px">
+        ${besedilo}
+      </div>`;
+    }
+
     // Sestavi CSV in sproži prenos. Doda UTF-8 BOM, da Excel pravilno pokaže šumnike.
     function prenesiCsv(r) {
-      const vrstice = zberiVrstice(r.raw_data, r.q_questions);
+      const vrstice = zberiVrstice(r.raw_data, vprasanjaZaPrikaz(r));
       const lines = [
         ['Podjetje', r.naziv_prikaz || ''],
         ['Vprašalnik', r.q_naziv || ''],
@@ -187,11 +212,41 @@
 
         <div>
           <h2 class="text-lg font-bold text-[#1a1a2e] mb-3">Surovi odgovori</h2>
-          ${renderRawData(r.raw_data, r.q_questions)}
+          ${opozoriloOIzvoru(r)}
+          ${renderRawData(r.raw_data, vprasanjaZaPrikaz(r))}
         </div>
+
+        ${r.custom_html_snapshot ? `
+        <div class="mt-6">
+          <h2 class="text-lg font-bold text-[#1a1a2e] mb-3">Obrazec, kot ga je videla stranka</h2>
+          <div class="text-sm text-gray-500 mb-3">
+            Shranjena kopija obrazca ob oddaji (${r.custom_html_snapshot.length.toLocaleString('sl-SI')} znakov).
+            Prikaz je samo za branje.
+          </div>
+          <button id="btn-obrazec" class="px-4 py-2 rounded-lg bg-white border border-gray-300 text-sm font-semibold hover:bg-gray-50 transition">
+            Pokaži obrazec
+          </button>
+          <div id="obrazec-ovoj" class="hidden mt-3">
+            <iframe id="obrazec" sandbox="" class="w-full rounded-lg border border-gray-300 bg-white"
+                    style="height:70vh"></iframe>
+          </div>
+        </div>` : ''}
       `;
 
       document.getElementById('btn-csv')?.addEventListener('click', () => prenesiCsv(r));
+
+      // Kopijo obrazca prikažemo v peskovniku (sandbox="" ugasne skripte in
+      // oddajo), ker je to tuj HTML, shranjen kot podatek.
+      document.getElementById('btn-obrazec')?.addEventListener('click', (e) => {
+        const ovoj = document.getElementById('obrazec-ovoj');
+        const okvir = document.getElementById('obrazec');
+        const odpiramo = ovoj.classList.contains('hidden');
+        if (odpiramo && !okvir.getAttribute('srcdoc')) {
+          okvir.setAttribute('srcdoc', r.custom_html_snapshot);
+        }
+        ovoj.classList.toggle('hidden');
+        e.currentTarget.textContent = odpiramo ? 'Skrij obrazec' : 'Pokaži obrazec';
+      });
     })();
   </script>
 </body>

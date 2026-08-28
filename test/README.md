@@ -30,9 +30,10 @@ node test/procesi-ui.test.mjs        # 86 trditev (pravi Chrome)
 node test/navigacija.test.mjs        # 96 trditev (vseh 8 admin strani)
 node test/naloge.test.mjs            # 39 trditev (/api/naloge + stran Danes)
 node test/analiza.test.mjs           # 103 trditve (/api/procesi/analiza + stran Primerjava)
+node test/odgovori.test.mjs          # 35 trditev (kopija vprašalnika ob oddaji)
 ```
 
-Skupaj 421 trditev. Zadnji zeleni zagon: 27. 8. 2026.
+Skupaj 456 trditev. Zadnji zeleni zagon: 28. 8. 2026.
 
 `TEST_BASE` prepiše naslov strežnika (privzeto `http://127.0.0.1:3399`) — uporabno,
 kadar teče sveža koda na drugem portu.
@@ -71,6 +72,12 @@ startal z 52 namesto 51).
   snapshotov, ima pokritost „1 od 2", nikoli „1 od 3". Deljenje s številom vseh
   sej bi tiho izumilo manjkajoče odgovore, trditev iz takih številk pa bi šla
   na sestanek. Test to pokrije s sejo, ki ji je vprašanje odstranjeno.
+- **Odgovor nosi kopijo vprašalnika iz časa oddaje.** Urejanje vprašalnika ne sme
+  spremeniti prikaza starega odgovora: preimenovano vprašanje mora nad starim
+  odgovorom ostati staro, izbrisano mora ostati vidno, novega tam ne sme biti.
+  To je edina stvar v aplikaciji, ki je ni mogoče popraviti za nazaj — ko je
+  odgovor shranjen brez kopije in nekdo uredi vprašalnik, prava vprašanja iz
+  tistega dne ne obstajajo več nikjer.
 - **Večizbirno vprašanje ni odstotek stotih.** Pri `checkbox_multi` je vsota
   izbir lahko večja od števila sej; odstotek je delež sej z odgovorom, ne delež
   izbir. Vpisano pod „drugo" se nikoli ne šteje kot možnost.

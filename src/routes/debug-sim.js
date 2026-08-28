@@ -8,6 +8,7 @@ import { najdiPodjetjeAI } from '../ai/match_company.js';
 import { sproziPovzetek } from '../ai/queue.js';
 import { hashIp } from '../utils/normalize.js';
 import { posljiObvestiloOdgovor } from '../lib/mailer.js';
+import { snapshotPoId } from '../lib/snapshot.js';
 
 const router = express.Router();
 
@@ -79,12 +80,19 @@ router.post('/import', async (req, res) => {
   const consent = payload.gdpr_consent === 'on' || payload.gdpr_consent === true;
   const ipHash = hashIp('import-script');
 
+  // Tudi uvozene vrstice dobijo kopijo vprasalnika (migracija 010), sicer bi
+  // se v bazi mesale vrstice s snapshotom in brez njega glede na to, po kateri
+  // poti so prisle.
+  const snap = await snapshotPoId(questionnaireId);
+
   // INSERT z eksplicitnim submitted_at (override DB default)
   const inserted = await dbQuery(
-    `INSERT INTO responses (company_id, questionnaire_id, raw_data, ip_hash, consent_gdpr, submitted_at)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO responses (company_id, questionnaire_id, raw_data, ip_hash, consent_gdpr, submitted_at,
+                            questions_snapshot, custom_html_snapshot)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
      RETURNING id`,
-    [companyId, questionnaireId, JSON.stringify(payload), ipHash, consent, submitted_at]
+    [companyId, questionnaireId, JSON.stringify(payload), ipHash, consent, submitted_at,
+     snap.questions, snap.customHtml]
   );
   const responseId = inserted?.rows?.[0]?.id;
 

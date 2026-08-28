@@ -139,10 +139,21 @@ router.get('/responses/:id', async (req, res) => {
   const id = parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
 
+  // Vprasanja se berejo iz KOPIJE, zajete ob oddaji (migracija 010). Ce je
+  // kdo vprasalnik pozneje uredil, se odgovor tako se vedno prikaze pod
+  // besedili, ki jih je clovek takrat res videl.
+  //
+  // Stare vrstice (pred 010) kopije nimajo. Zanje se vrnejo danasnja
+  // vprasanja, a z zastavicama, da vmesnik to pove naglas — molce prikazati
+  // danasnja vprasanja nad starim odgovorom je natanko napaka, ki jo ta
+  // migracija odpravlja.
   const r = await dbQuery(`
     SELECT r.*, c.naziv_prikaz, c.id AS company_id_full,
            q.slug AS q_slug, q.naziv_prikaz AS q_naziv,
-           q.questions AS q_questions
+           q.questions AS q_questions,
+           (jsonb_array_length(r.questions_snapshot) > 0
+             OR r.custom_html_snapshot IS NOT NULL) AS ima_snapshot,
+           (q.updated_at > r.submitted_at)          AS vprasalnik_urejen_po_oddaji
       FROM responses r
       JOIN companies c ON c.id = r.company_id
       JOIN questionnaires q ON q.id = r.questionnaire_id
@@ -150,7 +161,13 @@ router.get('/responses/:id', async (req, res) => {
   `, [id]);
   if (!r?.rows?.length) return res.status(404).json({ error: 'not_found' });
 
-  res.json({ response: r.rows[0] });
+  const vrstica = r.rows[0];
+  // Vprasanja za prikaz na enem mestu, da jih vsak odjemalec ne izbira po svoje.
+  vrstica.vprasanja_za_prikaz = vrstica.ima_snapshot
+    ? vrstica.questions_snapshot
+    : vrstica.q_questions;
+
+  res.json({ response: vrstica });
 });
 
 // POST /api/companies/:id/regenerate-ai — rocno sprozi AI priporocila za en vprasalnik.

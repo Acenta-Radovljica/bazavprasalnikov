@@ -17,6 +17,14 @@ await pool.query('TRUNCATE process_sessions RESTART IDENTITY CASCADE');
 await pool.query(`DELETE FROM questionnaires WHERE namen = 'proces'`);
 await pool.query(readFileSync(SQL_009, 'utf-8'));
 
+// 3. Pobrisi vprasalnike, ki jih ustvarijo testi (test/odgovori.test.mjs).
+//    Brez tega procesi-api.test.mjs pade na trditvi "vseh vprasalnikov 5",
+//    ker jih po vsakem zagonu ostane dva vec. Odgovore je treba pobrisati
+//    prve zaradi tujega kljuca.
+await pool.query(`DELETE FROM responses WHERE questionnaire_id IN
+  (SELECT id FROM questionnaires WHERE slug LIKE 'test-snapshot-%')`);
+await pool.query(`DELETE FROM questionnaires WHERE slug LIKE 'test-snapshot-%'`);
+
 const r = await pool.query(`
   SELECT (SELECT count(*) FROM process_sessions)::int AS sej,
          (SELECT count(*) FROM process_transcripts)::int AS transkriptov,

@@ -4,6 +4,7 @@ import { dbQuery } from '../db.js';
 import { hashIp } from '../utils/normalize.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
 import { sproziPovzetek } from '../ai/queue.js';
+import { snapshotIzVrstice } from '../lib/snapshot.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -475,7 +476,10 @@ router.post('/:slug', async (req, res) => {
 
   // Najdi vprasalnik (mora biti aktiven)
   const r = await dbQuery(
-    'SELECT id, questions, aktivna, namen FROM questionnaires WHERE slug = $1',
+    // custom_html je tu zato, da se v odgovor shrani kopija vprasalnika,
+    // kakrsen je bil ob oddaji (migracija 010). Pri custom_html obrazcih je
+    // vprasalnik prav ta HTML in ne questions polje.
+    'SELECT id, questions, custom_html, aktivna, namen FROM questionnaires WHERE slug = $1',
     [slug]
   );
   if (!r?.rows?.length) return res.status(404).json({ ok: false, error: 'not_found' });
@@ -543,10 +547,17 @@ router.post('/:slug', async (req, res) => {
     }
   }
 
+  // Kopija vprasalnika gre v isto vrstico kot odgovori — iz ze prebrane
+  // vrstice, torej natanko tista razlicica, proti kateri je bil odgovor
+  // zgoraj preverjen.
+  const snap = snapshotIzVrstice(r.rows[0]);
+
   const inserted = await dbQuery(
-    `INSERT INTO responses (company_id, questionnaire_id, raw_data, ip_hash, consent_gdpr)
-     VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-    [companyId, questionnaireId, JSON.stringify(payload), ipHash, consent]
+    `INSERT INTO responses (company_id, questionnaire_id, raw_data, ip_hash, consent_gdpr,
+                            questions_snapshot, custom_html_snapshot)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+    [companyId, questionnaireId, JSON.stringify(payload), ipHash, consent,
+     snap.questions, snap.customHtml]
   );
 
   await dbQuery('UPDATE companies SET last_response_at = NOW() WHERE id = $1', [companyId]);
