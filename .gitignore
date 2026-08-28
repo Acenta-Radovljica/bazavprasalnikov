@@ -7,3 +7,18 @@ dist/
 build/
 output/
 .env.test
+
+# ── Namerno zunaj repozitorija ─────────────────────────────────────────────
+# Ta repozitorij je JAVEN. Spodnje mape zato niso pozabljene, ampak izpuscene
+# z namenom. Ce jih kdaj dodas, najprej preveri, kaj je v njih.
+
+# Interni prompti za AI analizo (Faza 2 cross-analize). Klientskih podatkov v
+# njih ni, so pa nasa metoda dela — v javen repozitorij ne sodijo.
+# Datoteke zivijo v projektni mapi, ki je v OneDrivu, torej so varovane.
+docs/
+
+# Kopije custom_html obrazcev. VIR RESNICE JE BAZA (questionnaires.custom_html),
+# ne te datoteke. 12. 6. 2026 je ponovni upload lokalne kopije povozil novejse
+# vsebinske spremembe, ki so obstajale samo v bazi. Pred vsakim uploadom najprej
+# potegni zivo verzijo (curl /f/<slug>) in jo vsebinsko diffaj.
+public/intake/

@@ -5,9 +5,12 @@
 // mogoce odgovoriti brez modela: KAJ SO STRANKE DEJANSKO ODGOVORILE.
 //
 // Zato tu ni nobenega AI klica in nobene ocene. Vsaka stevilka je prestevek
-// nad `answers` in `questions_snapshot`. Faza 2 (docs/prompti-cross-analiza.md)
-// bo prav ta izpis podala modelu kot `<stevilke vir="sql">` — model jih sme
-// citirati, ne izracunati. Ce bi stevilke racunal model, bi jih tudi izmisljal.
+// nad `answers` in `questions_snapshot`. Faza 2 bo prav ta izpis podala modelu
+// kot `<stevilke vir="sql">` — model jih sme citirati, ne izracunati. Ce bi
+// stevilke racunal model, bi jih tudi izmisljal.
+//
+// Prompti za Fazo 2 so v `docs/prompti-cross-analiza.md`, ki je namenoma zunaj
+// tega (javnega) repozitorija — glej .gitignore.
 //
 // Racunamo v Node in ne v SQL, ceprav dokument govori o SQL: definicija
 // "izpolnjenega odgovora" ze zivi v schema.js (jeIzpolnjen) in jo uporabljajo
