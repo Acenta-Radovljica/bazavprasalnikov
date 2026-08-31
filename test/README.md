@@ -28,14 +28,14 @@ node test/reset-testne-baze.mjs      # VEDNO pred zagonom (tudi med nabori)
 node test/procesi-api.test.mjs       # 97 trditev
 node test/procesi-ui.test.mjs        # 87 trditev (pravi Chrome)
 node test/navigacija.test.mjs        # 126 trditev (vseh 9 admin strani, skupina Napredno)
-node test/naloge.test.mjs            # 39 trditev (/api/naloge + stran Danes)
-node test/analiza.test.mjs           # 103 trditve (/api/procesi/analiza + stran Primerjava)
+node test/naloge.test.mjs            # 44 trditev (/api/naloge + stran Danes + hash skok na kartico)
+node test/analiza.test.mjs           # 106 trditev (/api/procesi/analiza + stran Primerjava)
 node test/odgovori.test.mjs          # 47 trditev (kopija vprašalnika ob oddaji + besedila iz HTML)
 node test/answers-rev.test.mjs       # 18 trditev (CAS zascita answers_rev, posiljanje_vklopljeno)
 node test/save-guard.test.mjs        # 14 trditev (splakniVse pred Zaključi/Pošlji, veriga PATCH-ev)
 ```
 
-Skupaj 531 trditev. Zadnji zeleni zagon: 31. 8. 2026.
+Skupaj 539 trditev. Zadnji zeleni zagon: 31. 8. 2026.
 
 `TEST_BASE` prepiše naslov strežnika (privzeto `http://127.0.0.1:3399`) — uporabno,
 kadar teče sveža koda na drugem portu.

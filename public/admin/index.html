@@ -300,10 +300,10 @@
                    gumbi: [['Odpri sejo', `/admin/proces-seja.html?id=${n.session_id}`, true]], kdaj: starost(n.updated_at) };
         case 'za_poslati':
           return { ton: 'nujno', naslov: esc(n.stranka_naziv), opis: `Zaključeno${proces} · stranki še ni poslano`,
-                   gumbi: [['Odpri in pošlji', `/admin/proces-seja.html?id=${n.session_id}#posiljanje`, true]], kdaj: starost(n.zakljucen_at) };
+                   gumbi: [['Odpri in pošlji', `/admin/proces-seja.html?id=${n.session_id}#kartaPosiljanje`, true]], kdaj: starost(n.zakljucen_at) };
         case 'brez_transkripta':
           return { ton: 'nujno', naslov: esc(n.stranka_naziv), opis: `Brez transkripta${proces}${odst != null ? ` · izpolnjeno ${odst} %` : ''}`,
-                   gumbi: [['Dodaj transkript', `/admin/proces-seja.html?id=${n.session_id}#transkript`, true],
+                   gumbi: [['Dodaj transkript', `/admin/proces-seja.html?id=${n.session_id}#kartaTranskript`, true],
                            ['Odpri', `/admin/proces-seja.html?id=${n.session_id}`, false]], kdaj: starost(n.updated_at) };
         case 'za_zakljucit':
           return { ton: 'opozorilo', naslov: esc(n.stranka_naziv), opis: `Osnutek${proces}${odst != null ? ` · izpolnjeno ${odst} %` : ''}`,

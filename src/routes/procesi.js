@@ -11,7 +11,7 @@ import { renderirajIzpolnjen } from '../procesi/render.js';
 import { renderirajHtml } from '../pdf/render.js';
 import { dodajIzPovezave, shraniTranskript, najnovejsiTranskript, jeUrl } from '../procesi/transcript.js';
 import { posljiStranki, privzetoSporocilo, veljavenEmail, jePosiljanjeVklopljeno } from '../procesi/mail.js';
-import { izracunajAnalizo } from '../procesi/analiza.js';
+import { izracunajAnalizo, MAX_SEJ } from '../procesi/analiza.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -759,21 +759,33 @@ router.get('/analiza', async (req, res) => {
 
   const where = pogoji.length ? `WHERE ${pogoji.join(' AND ')}` : '';
 
-  const r = await dbQuery(`
-    SELECT s.id, s.stranka_naziv, s.proces, s.oddelek, s.svetovalec,
-           s.datum_sestanka, s.status, s.questionnaire_id,
-           s.questions_snapshot, s.answers,
-           q.naziv_prikaz
-      FROM process_sessions s
-      JOIN questionnaires q ON q.id = s.questionnaire_id
-      ${where}
-     ORDER BY s.datum_sestanka DESC NULLS LAST, s.id DESC
-     LIMIT 200
-  `, params);
+  // Locen COUNT z ISTIM filtrom: opozorilo "X sej ni vkljucenih" mora steti
+  // vse ujemajoce seje v bazi, ne le tiste, ki jih je LIMIT prinesel. LIMIT
+  // je enak MAX_SEJ — analiza jih vec tako ali tako ne obdela, prenasati 200
+  // snapshotov za 100 obdelanih je bilo cisto zapravljanje.
+  const [r, stevec] = await Promise.all([
+    dbQuery(`
+      SELECT s.id, s.stranka_naziv, s.proces, s.oddelek, s.svetovalec,
+             s.datum_sestanka, s.status, s.questionnaire_id,
+             s.questions_snapshot, s.answers,
+             q.naziv_prikaz
+        FROM process_sessions s
+        JOIN questionnaires q ON q.id = s.questionnaire_id
+        ${where}
+       ORDER BY s.datum_sestanka DESC NULLS LAST, s.id DESC
+       LIMIT ${MAX_SEJ}
+    `, params),
+    dbQuery(`
+      SELECT count(*)::int AS skupno
+        FROM process_sessions s
+        JOIN questionnaires q ON q.id = s.questionnaire_id
+        ${where}
+    `, params),
+  ]);
 
-  if (!r) return res.status(500).json({ error: 'db_error' });
+  if (!r || !stevec) return res.status(500).json({ error: 'db_error' });
 
-  const analiza = izracunajAnalizo(r.rows);
+  const analiza = izracunajAnalizo(r.rows, stevec.rows[0]?.skupno);
   res.json({
     ...analiza,
     filtri: {

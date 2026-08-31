@@ -104,7 +104,7 @@
         <form id="obrazec" onsubmit="return false;"></form>
 
         <!-- Transkript -->
-        <section id="kartaTranskript" class="bg-white rounded shadow p-5 mt-8">
+        <section id="kartaTranskript" class="bg-white rounded shadow p-5 mt-8 scroll-mt-24">
           <h2 class="font-semibold text-[#1a1a2e] mb-1">Transkript sestanka</h2>
           <p class="text-sm text-gray-500 mb-4">
             Besedilo se shrani <strong>v našo bazo</strong>, ne le kot povezava — Soniox povezava lahko poteče.
@@ -136,7 +136,7 @@
         </section>
 
         <!-- Posiljanje -->
-        <section id="kartaPosiljanje" class="bg-white rounded shadow p-5 mt-6 mb-10">
+        <section id="kartaPosiljanje" class="bg-white rounded shadow p-5 mt-6 mb-10 scroll-mt-24">
           <h2 class="font-semibold text-[#1a1a2e] mb-1">Pošiljanje stranki</h2>
           <p class="text-sm text-gray-500 mb-4">
             Stranka prejme izpolnjen zapis v telesu e-pošte in kot PDF prilogo.
@@ -1023,6 +1023,36 @@
       el('pPdfLink').href = `/api/procesi/seje/${SEJA_ID}/pdf?namen=stranka`;
 
       nastaviShranjeno(`Naloženo ${new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' })}`);
+      skociNaHash();
+    }
+
+    // Vsebina se izrise sele po fetchu, zato brskalnikov samodejni skok na
+    // #hash zgresi (cilja se ni). Po prvem izrisu skocimo sami in fokusiramo
+    // prvo polje kartice — gumba "Odpri in poslji" / "Dodaj transkript" s
+    // strani Danes pripeljeta naravnost na pravo mesto, ne na vrh strani.
+    let hashObravnavan = false;
+    const HASH_VZDEVKI = { posiljanje: 'kartaPosiljanje', transkript: 'kartaTranskript' };
+    function skociNaHash() {
+      if (hashObravnavan) return;   // refresh po posiljanju ne sme spet skociti
+      hashObravnavan = true;
+      const surov = (location.hash || '').replace(/^#/, '');
+      if (!surov) return;
+      const cilj = document.getElementById(HASH_VZDEVKI[surov] || surov);
+      if (!cilj) return;
+      // Brez animacije: stran se je ravnokar nalozila, drsenje od vrha nima
+      // orientacijske vrednosti, uporabnik naj takoj stoji na cilju.
+      cilj.scrollIntoView({ block: 'start' });
+      cilj.querySelector('input, textarea')?.focus({ preventScroll: true });
+      // Tailwind CDN in pisave se nalozijo PO izrisu in rastejo layout —
+      // vsebina nad kartico se raztegne in cilj odplava tudi za vec tisoc px.
+      // Zato skok ponovimo, ko se pisave umirijo, a SAMO ce je cilj medtem
+      // res odplaval (ce uporabnik ze stoji na njem, ga ne premikamo).
+      const poravnaj = () => {
+        const r = cilj.getBoundingClientRect();
+        if (r.top < -10 || r.top > window.innerHeight / 2) cilj.scrollIntoView({ block: 'start' });
+      };
+      document.fonts?.ready?.then(() => setTimeout(poravnaj, 50));
+      setTimeout(poravnaj, 700);
     }
 
     if (!Number.isInteger(SEJA_ID)) {

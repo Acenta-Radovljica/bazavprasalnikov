@@ -167,6 +167,40 @@ for (const h of [...new Set(povezave)]) {
 }
 t('vse ciljne strani obstajajo', preverjene.every((p) => p.endsWith('=200')), JSON.stringify(preverjene));
 
+// Hash mora kazati na id, ki na ciljni strani OBSTAJA. Prejsnja razlicica
+// testa je hash odrezala in luknje ni ujela: Danes je generiral #posiljanje
+// in #transkript, seja pa ima id-ja kartaPosiljanje in kartaTranskript.
+const hashi = [...new Set(povezave.filter((h) => h.includes('#')).map((h) => h.split('#')[1]))];
+t('vsaj ena naloga vodi na hash', hashi.length > 0, JSON.stringify(povezave));
+t('hashi so pravi id-ji kartic',
+   hashi.every((h) => ['kartaPosiljanje', 'kartaTranskript'].includes(h)), JSON.stringify(hashi));
+
+// In stran mora do kartice DEJANSKO priti: vsebina se izrise po fetchu, zato
+// skok izvede skociNaHash() po izrisu — kartica v vidnem polju, polje v njej
+// fokusirano (gumb "Dodaj transkript" pripelje naravnost v vnos povezave).
+const sHash = povezave.find((h) => h.includes('#kartaTranskript')) || povezave.find((h) => h.includes('#'));
+if (sHash) {
+  await page.goto(BASE + sHash, { waitUntil: 'networkidle0' });
+  await pocakaj(1200);   // smooth scroll + fokus po izrisu
+  const skok = await page.evaluate(() => {
+    const k = document.getElementById(location.hash.slice(1));
+    if (!k) return { obstaja: false };
+    const r = k.getBoundingClientRect();
+    return {
+      obstaja: true,
+      vidna: r.top >= -10 && r.top < window.innerHeight,
+      fokus: k.contains(document.activeElement),
+      aktivno: document.activeElement?.id || document.activeElement?.tagName,
+      top: Math.round(r.top), scrollY: Math.round(window.scrollY), inner: window.innerHeight,
+    };
+  });
+  t('ciljna kartica hasha obstaja na seji', skok.obstaja === true, JSON.stringify(skok));
+  t('kartica je po nalaganju v vidnem polju', skok.vidna === true, JSON.stringify(skok));
+  t('prvo polje kartice je fokusirano', skok.fokus === true, JSON.stringify(skok));
+  await page.goto(BASE + '/admin/index.html', { waitUntil: 'networkidle0' });
+  await pocakaj(600);
+}
+
 // Statistika: gumb mora dejansko odpreti panel in narisati graf.
 t('statistika je privzeto skrita', await page.$eval('#statistika', (e) => e.className.includes('hidden')));
 await page.click('#btn-statistika');

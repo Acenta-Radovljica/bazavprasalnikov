@@ -429,10 +429,17 @@ function izracunajObseg(seje, odrezanih) {
 //
 // Funkcija je cista: nima dostopa do baze in ne vrze. Zato jo je mogoce
 // testirati brez Postgresa in bo v Fazi 2 njen izpis sel neposredno v prompt.
-function izracunajAnalizo(vhodneSeje) {
+//
+// skupnoVsehSej (neobvezno) = pravi COUNT iz baze z istim filtrom. Klicatelj
+// (ruta) vhod tipicno ze omeji s SQL LIMIT, zato "odrezanih" iz dolzine vhoda
+// NI posteno stevilo — pri 500 sejah bi opozorilo reklo "100 ni vkljucenih",
+// v resnici 400. Brez podanega stevila ostane stari izracun (cisti testi).
+function izracunajAnalizo(vhodneSeje, skupnoVsehSej) {
   const vse = Array.isArray(vhodneSeje) ? vhodneSeje : [];
   const seje = vse.slice(0, MAX_SEJ);
-  const odrezanih = vse.length - seje.length;
+  const skupno = Number.isInteger(skupnoVsehSej) && skupnoVsehSej >= vse.length
+    ? skupnoVsehSej : vse.length;
+  const odrezanih = skupno - seje.length;
 
   const { vprasanja, neskladja } = zgradiUniverzum(seje);
 

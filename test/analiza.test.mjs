@@ -236,6 +236,21 @@ t('odrezane seje niso odrezane tiho',
   odrezana.obseg.odrezanih === 5 && odrezana.obseg.opozorila.some((o) => o.includes('omejen')),
   JSON.stringify(odrezana.obseg));
 
+// Ruta vhod ze omeji s SQL LIMIT, zato dolzina vhoda NI posteno stevilo vseh
+// sej — pravi COUNT pride kot drugi parameter. Pri 500 ujemajocih sejah mora
+// opozorilo reci "400 ni vkljucenih", ne "0" (vhod dolzine MAX_SEJ) ali "100".
+const sPravimStevcem = izracunajAnalizo(izmisljene.slice(0, MAX_SEJ), 500);
+t('odrezanih se steje iz pravega COUNT, ne iz dolzine vhoda',
+  sPravimStevcem.obseg.odrezanih === 500 - MAX_SEJ,
+  sPravimStevcem.obseg.odrezanih);
+t('opozorilo nosi pravo stevilo',
+  sPravimStevcem.obseg.opozorila.some((o) => o.includes(`${500 - MAX_SEJ} najstarejsih`)),
+  JSON.stringify(sPravimStevcem.obseg.opozorila));
+t('neveljaven ali premajhen stevec pade nazaj na dolzino vhoda',
+  izracunajAnalizo(izmisljene, 3).obseg.odrezanih === 5
+    && izracunajAnalizo(izmisljene.slice(0, 10), undefined).obseg.odrezanih === 0,
+  JSON.stringify([izracunajAnalizo(izmisljene, 3).obseg.odrezanih]));
+
 const razlicniTipi = izracunajAnalizo([
   { id: 2, stranka_naziv: 'B', status: 'osnutek', questionnaire_id: 1, naziv_prikaz: 'P',
     questions_snapshot: [vprasanje('y', 'radio', { options: ['da', 'ne'] })], answers: { y: 'da' } },
