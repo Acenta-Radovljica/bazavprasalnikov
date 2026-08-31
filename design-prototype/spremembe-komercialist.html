@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Komercialist-proof spremembe — predlog</title>
+<style>
+  /* Tokeni 1:1 iz admin.css (Direction D — Studio) */
+  :root {
+    --acenta-teal: #0f766e; --acenta-teal-2: #12a594; --acenta-teal-soft: #e8faf5;
+    --acenta-teal-line: #a7e8d9; --acenta-teal-dark: #0b5f59; --acenta-navy: #0d1520;
+    --ambient-1: #eef2f6; --ambient-2: #e6ecf3; --ambient-3: #f6f8fa;
+    --rail: #111820; --rail-line: #1e2a35; --rail-ink: #e8eef5; --rail-ink-2: #9aa8b6; --rail-muted: #63707e;
+    --bg: #fafbfc; --bg-sub: #f4f6f8; --card-bg: #ffffff; --card-border: #e6e9ee;
+    --hairline: #e6e9ee; --hairline-2: #d5dae1; --row-line: #f2f4f7;
+    --ink: #0d1520; --ink-2: #465364; --muted: #8a97a6; --muted-2: #b3bec9;
+    --warn: #b45309; --warn-soft: #fff8ea; --warn-line: #fbdba7;
+    --danger: #b42318; --danger-soft: #fef4f2; --danger-line: #f8c9c2;
+    --r-xs: 6px; --r-sm: 8px; --r: 10px;
+    --shadow-1: 0 1px 2px rgba(13,21,32,.05);
+    /* stara paleta seje (proces-seja.html je še na njej) */
+    --seja-ink: #1a1a2e; --seja-teal: #00b894; --seja-teal-dark: #019272;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body {
+    background: linear-gradient(180deg, var(--ambient-3) 0%, var(--ambient-1) 40%, var(--ambient-2) 100%);
+    color: var(--ink);
+    font-family: 'Inter', -apple-system, 'Segoe UI', system-ui, sans-serif;
+    font-size: 13px; letter-spacing: -0.006em; -webkit-font-smoothing: antialiased;
+    font-variant-numeric: tabular-nums;
+    padding: 28px 20px 60px;
+  }
+  .wrap { max-width: 1180px; margin: 0 auto; }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.022em; }
+  .lead { color: var(--ink-2); margin-top: 6px; max-width: 720px; line-height: 1.5; }
+  h2.sekcija {
+    font-size: 15px; font-weight: 600; letter-spacing: -0.015em;
+    margin: 44px 0 4px; display: flex; align-items: center; gap: 8px;
+  }
+  h2.sekcija .st {
+    width: 22px; height: 22px; border-radius: 999px; flex: none;
+    background: var(--acenta-navy); color: #fff; font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .sekcija-pod { color: var(--muted); font-size: 12px; margin-bottom: 14px; }
+
+  /* primerjalna mreža */
+  .primerjava { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; align-items: start; }
+  .stanje { min-width: 0; }
+  .stanje-naslov {
+    font-size: 10px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;
+    padding: 0 2px 7px; display: flex; align-items: center; gap: 6px;
+  }
+  .stanje-naslov.pred { color: var(--muted); }
+  .stanje-naslov.po { color: var(--acenta-teal); }
+  .stanje-naslov .pika { width: 7px; height: 7px; border-radius: 2px; }
+  .stanje-naslov.pred .pika { background: var(--muted-2); }
+  .stanje-naslov.po .pika { background: var(--acenta-teal-2); }
+  .okvir {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: var(--r); overflow: hidden; box-shadow: var(--shadow-1);
+  }
+  .opomba { font-size: 11.5px; color: var(--muted); padding: 8px 2px 0; line-height: 1.5; }
+  .opomba b { color: var(--ink-2); }
+
+  /* ── sidebar mock (zvest .app-sidebar) ── */
+  .rail { background: var(--rail); padding: 12px 10px 10px; width: 100%; min-height: 430px; display: flex; flex-direction: column; }
+  .rail-glava { display: flex; align-items: center; gap: 9px; margin: 0 2px 10px; }
+  .brand-mark {
+    width: 26px; height: 26px; border-radius: 7px; flex: none;
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(160deg, var(--acenta-teal-2), var(--acenta-teal));
+    color: #04231f; font-weight: 700; font-size: 12px;
+  }
+  .rail-ime { color: var(--rail-ink); font-size: 12.5px; font-weight: 600; line-height: 1.2; }
+  .rail-ime small { display: block; color: var(--rail-muted); font-size: 10.5px; font-weight: 400; }
+  .cmd {
+    display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 9px;
+    border-radius: var(--r-sm); background: rgba(255,255,255,.055);
+    border: 1px solid var(--rail-line); color: var(--rail-muted); font-size: 12px; margin-bottom: 12px;
+  }
+  .cmd .k { margin-left: auto; display: flex; gap: 3px; }
+  .cmd .k b { font: 600 10px/1 Inter, sans-serif; color: var(--rail-ink-2); background: rgba(255,255,255,.08); border: 1px solid var(--rail-line); border-radius: 4px; padding: 3px 5px; }
+  .sk { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--rail-muted); padding: 14px 10px 6px; }
+  .it {
+    display: flex; align-items: center; gap: 9px; padding: 7px 10px; border-radius: var(--r-xs);
+    color: var(--rail-ink-2); font-size: 12.5px; font-weight: 500; white-space: nowrap; position: relative;
+  }
+  .it svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; opacity: .9; flex: none; }
+  .it.aktiven { background: rgba(255,255,255,.09); color: #fff; font-weight: 600; }
+  .it.aktiven::before { content: ''; position: absolute; left: 0; top: 7px; bottom: 7px; width: 2px; border-radius: 2px; background: var(--acenta-teal-2); }
+  .it .znacka { margin-left: auto; font-size: 10px; font-weight: 700; color: #fff; background: #d92d20; border-radius: 999px; padding: 1px 6px; }
+  .it.umaknjen { outline: 1.5px dashed #d92d20; outline-offset: -1px; border-radius: var(--r-xs); }
+  .it .sev { width: 16px; text-align: center; color: var(--rail-muted); font-size: 10px; flex: none; }
+  .pod-napredno { padding-left: 14px; }
+  .rail-noga { border-top: 1px solid var(--rail-line); margin-top: auto; padding-top: 10px; display: flex; align-items: center; gap: 8px; }
+  .rail-avatar { width: 24px; height: 24px; border-radius: 999px; background: linear-gradient(160deg, #2f3c4b, #1b2530); color: var(--rail-ink); font: 700 10px Inter, sans-serif; display: flex; align-items: center; justify-content: center; flex: none; }
+  .rail-noga b { display: block; color: var(--rail-ink); font-size: 11.5px; }
+  .rail-noga span { display: block; color: var(--rail-muted); font-size: 10.5px; }
+
+  /* ── svetla vsebina (knjižnica, urejevalnik, pošiljanje) ── */
+  .vsebina { background: var(--bg); padding: 14px; }
+  .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r); box-shadow: var(--shadow-1); overflow: hidden; }
+  .card-head { display: flex; align-items: center; gap: 8px; padding: 10px 13px; border-bottom: 1px solid var(--hairline); }
+  .card-head h3 { font-size: 12.5px; font-weight: 700; }
+  .card-head .count { font-size: 10.5px; font-weight: 700; color: var(--ink-2); background: var(--bg-sub); border: 1px solid var(--hairline); border-radius: 999px; padding: 1px 7px; }
+  .card-head .desno { margin-left: auto; font-size: 11px; color: var(--muted); }
+  table.mock { width: 100%; border-collapse: collapse; }
+  table.mock th { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 8px 10px; background: var(--bg); border-bottom: 1px solid var(--hairline); white-space: nowrap; }
+  table.mock td { padding: 0 10px; height: 38px; border-bottom: 1px solid var(--row-line); font-size: 12.5px; color: var(--ink-2); white-space: nowrap; }
+  table.mock td b { font-weight: 600; color: var(--ink); }
+  .teal-link { color: var(--acenta-teal); font-weight: 600; text-decoration: none; }
+
+  .banner-opozorilo {
+    display: flex; gap: 8px; align-items: flex-start;
+    background: var(--warn-soft); border: 1px solid var(--warn-line); color: var(--warn);
+    border-radius: var(--r-xs); padding: 9px 11px; font-size: 12px; line-height: 1.45; margin-bottom: 12px;
+  }
+  .sklop-naslov { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 12px 2px 6px; }
+  .vprasanje-vrstica {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    background: #fff; border: 1px solid var(--hairline); border-radius: var(--r-xs); margin-bottom: 6px; font-size: 12.5px; color: var(--ink);
+  }
+  .vprasanje-vrstica .zvezda { color: var(--warn); }
+  .vprasanje-vrstica .akcije { margin-left: auto; display: flex; gap: 10px; color: var(--muted); font-size: 12px; }
+  .vprasanje-vrstica .akcije span { cursor: pointer; }
+  .dodaj-link { color: var(--acenta-teal); font-size: 12px; font-weight: 600; padding: 2px; display: inline-block; }
+  .btn-vrsta { display: flex; gap: 8px; margin-top: 12px; }
+  .btn-primary { background: var(--acenta-teal); color: #fff; height: 30px; padding: 0 12px; border-radius: var(--r-xs); font-weight: 600; font-size: 12px; border: 1px solid var(--acenta-teal); display: inline-flex; align-items: center; }
+  .btn-secondary { background: #fff; color: var(--ink); height: 30px; padding: 0 11px; border-radius: var(--r-xs); font-weight: 600; font-size: 12px; border: 1px solid var(--hairline-2); display: inline-flex; align-items: center; box-shadow: var(--shadow-1); }
+
+  /* tehnična stran (questionnaires.html) — namerno "grda" resnica */
+  .teh-polje { margin-bottom: 10px; }
+  .teh-polje label { display: block; font-size: 11.5px; font-weight: 600; margin-bottom: 4px; color: var(--ink); }
+  .teh-polje input, .teh-polje textarea, .teh-polje select {
+    width: 100%; border: 1px solid var(--hairline-2); border-radius: var(--r-xs);
+    padding: 7px 10px; font-size: 12.5px; color: var(--ink); font-family: inherit; background: #fff;
+  }
+  .teh-polje textarea.koda { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; color: var(--ink-2); }
+
+  /* ── seja / pošiljanje mock (stara paleta strani proces-seja.html) ── */
+  .seja { background: #f6f7f9; padding: 14px; }
+  .seja .kartica { background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,.1); padding: 16px; }
+  .seja h4 { font-size: 13.5px; font-weight: 600; color: var(--seja-ink); margin-bottom: 2px; }
+  .seja .pod { font-size: 12px; color: #6b7280; margin-bottom: 12px; line-height: 1.5; }
+  .seja .polja { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .seja .polje label { display: block; font-size: 11px; color: #6b7280; margin-bottom: 3px; }
+  .seja .polje .vnos { border: 1px solid #d1d5db; border-radius: 4px; padding: 7px 10px; font-size: 12.5px; color: var(--seja-ink); background: #fff; }
+  .seja .gumbi { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .g-obroba { border: 1px solid #d1d5db; background: #fff; color: var(--seja-ink); border-radius: 4px; padding: 7px 12px; font-size: 12.5px; }
+  .g-teal { background: var(--seja-teal); color: #fff; border-radius: 4px; padding: 7px 14px; font-size: 12.5px; font-weight: 500; border: 0; }
+  .g-teal.onemogocen { background: #cbd5e1; color: #64748b; cursor: not-allowed; }
+  .g-temen { background: var(--seja-ink); color: #fff; border-radius: 4px; padding: 7px 14px; font-size: 12.5px; font-weight: 500; border: 0; }
+  .info-vrstica { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; color: #6b7280; background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 4px; padding: 8px 10px; margin-top: 10px; line-height: 1.45; }
+  .uspeh-vrstica { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 4px; padding: 8px 10px; margin-top: 10px; line-height: 1.45; }
+  .napaka-vrstica { display: flex; gap: 7px; align-items: flex-start; font-size: 12px; color: var(--danger); background: var(--danger-soft); border: 1px solid var(--danger-line); border-radius: 4px; padding: 8px 10px; margin-top: 10px; line-height: 1.45; }
+  .znacka-status { display: inline-flex; font-size: 10px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; }
+  .znacka-status.poslan { background: var(--acenta-teal-soft); color: var(--acenta-teal); border: 1px solid var(--acenta-teal-line); }
+  .zgodovina-vrstica { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #6b7280; padding: 7px 0; border-top: 1px solid #f1f5f9; margin-top: 10px; }
+
+  /* glava seje za sekcijo 4 */
+  .seja-glava { display: flex; align-items: center; gap: 10px; background: #fff; border-bottom: 1px solid #e5e7eb; padding: 10px 14px; flex-wrap: wrap; }
+  .seja-glava .naslov { font-weight: 600; color: var(--seja-ink); font-size: 13px; }
+  .seja-glava .naslov small { display: block; font-weight: 400; color: #9ca3af; font-size: 11px; }
+  .seja-glava .shranjeno { margin-left: auto; font-size: 11px; color: #9ca3af; white-space: nowrap; }
+  .seja-glava .shranjeno.aktivno { color: var(--warn); }
+
+  .puscica-tok { text-align: center; color: var(--muted); font-size: 18px; padding: 4px 0; }
+  footer { margin-top: 48px; color: var(--muted); font-size: 11.5px; border-top: 1px solid var(--hairline-2); padding-top: 14px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Komercialist-proof spremembe — kako bo izgledalo</h1>
+    <p class="lead">Štiri dogovorjene spremembe admin aplikacije (nacrt-admin), vsaka kot primerjava
+    trenutnega in predlaganega stanja. Vse ostalo na straneh ostane nespremenjeno — prikazani so samo deli, ki se spremenijo.</p>
+  </header>
+
+  <!-- ═══════════ 1 · NAVIGACIJA ═══════════ -->
+  <h2 class="sekcija"><span class="st">1</span>Navigacija: tehnični strani v zloženo skupino »Napredno«</h2>
+  <p class="sekcija-pod">Vpliva na vseh 7 admin strani (skupna stranska vrstica iz app.js). Nič se ne briše — Vprašalniki in Cross-client ostaneta dosegljiva, a ne moti(ta) več.</p>
+
+  <div class="primerjava">
+    <div class="stanje">
+      <div class="stanje-naslov pred"><span class="pika"></span>Zdaj</div>
+      <div class="okvir">
+        <div class="rail">
+          <div class="rail-glava">
+            <div class="brand-mark">a</div>
+            <div class="rail-ime">Acenta baza<small>Interna konzola</small></div>
+          </div>
+          <div class="cmd"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Išči</span><span class="k"><b>⌘</b><b>K</b></span></div>
+          <div class="it aktiven"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/></svg>Danes<span class="znacka">3</span></div>
+          <div class="sk">Delo</div>
+          <div class="it"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Procesi</div>
+          <div class="it"><svg viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>Podjetja</div>
+          <div class="it umaknjen"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Vprašalniki</div>
+          <div class="sk">Analiza</div>
+          <div class="it"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Primerjava</div>
+          <div class="it"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Iskanje</div>
+          <div class="it umaknjen"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Cross-client</div>
+          <div class="rail-noga"><div class="rail-avatar">MZ</div><div><b>ai@acenta.si</b><span>Admin</span></div></div>
+        </div>
+      </div>
+      <p class="opomba">Rdeče označeni postavki sta tehnični: <b>Vprašalniki</b> (slugi, AI prompti, JSON) in <b>Cross-client</b> (edina angleška postavka). Komercialist ju ne rabi nikoli.</p>
+    </div>
+
+    <div class="stanje">
+      <div class="stanje-naslov po"><span class="pika"></span>Predlog — privzeto (zaprto)</div>
+      <div class="okvir">
+        <div class="rail">
+          <div class="rail-glava">
+            <div class="brand-mark">a</div>
+            <div class="rail-ime">Acenta baza<small>Interna konzola</small></div>
+          </div>
+          <div class="cmd"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Išči</span><span class="k"><b>⌘</b><b>K</b></span></div>
+          <div class="it aktiven"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/></svg>Danes<span class="znacka">3</span></div>
+          <div class="sk">Delo</div>
+          <div class="it"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Procesi</div>
+          <div class="it"><svg viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>Podjetja</div>
+          <div class="sk">Analiza</div>
+          <div class="it"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Primerjava</div>
+          <div class="it"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Iskanje</div>
+          <div class="it" style="margin-top:14px"><span class="sev">▸</span>&nbsp;Napredno</div>
+          <div class="rail-noga"><div class="rail-avatar">MZ</div><div><b>ai@acenta.si</b><span>Admin</span></div></div>
+        </div>
+      </div>
+      <p class="opomba">Komercialist vidi samo 5 postavk, ki jih zares uporablja. Stanje (odprto/zaprto) si brskalnik zapomni.</p>
+    </div>
+
+    <div class="stanje">
+      <div class="stanje-naslov po"><span class="pika"></span>Predlog — po kliku na Napredno</div>
+      <div class="okvir">
+        <div class="rail">
+          <div class="rail-glava">
+            <div class="brand-mark">a</div>
+            <div class="rail-ime">Acenta baza<small>Interna konzola</small></div>
+          </div>
+          <div class="cmd"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg><span>Išči</span><span class="k"><b>⌘</b><b>K</b></span></div>
+          <div class="it aktiven"><svg viewBox="0 0 24 24"><path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/></svg>Danes<span class="znacka">3</span></div>
+          <div class="sk">Delo</div>
+          <div class="it"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>Procesi</div>
+          <div class="it"><svg viewBox="0 0 24 24"><path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>Podjetja</div>
+          <div class="sk">Analiza</div>
+          <div class="it"><svg viewBox="0 0 24 24"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>Primerjava</div>
+          <div class="it"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Iskanje</div>
+          <div class="it" style="margin-top:14px"><span class="sev">▾</span>&nbsp;Napredno</div>
+          <div class="pod-napredno">
+            <div class="it"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Vprašalniki</div>
+            <div class="it"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>Vpogledi</div>
+          </div>
+          <div class="rail-noga"><div class="rail-avatar">MZ</div><div><b>ai@acenta.si</b><span>Admin</span></div></div>
+        </div>
+      </div>
+      <p class="opomba">Zate vse ostane en klik stran. Ob tem se <b>Cross-client preimenuje v »Vpogledi«</b> — zadnja angleška postavka izgine.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ 2 · KNJIŽNICA ═══════════ -->
+  <h2 class="sekcija"><span class="st">2</span>Knjižnica: »Uredi vprašanja« odpre predlogo, ne tehnične strani</h2>
+  <p class="sekcija-pod">Vrstica v knjižnici ostane enaka — spremeni se, kam vodi povezava.</p>
+
+  <div class="primerjava">
+    <div class="stanje">
+      <div class="stanje-naslov pred"><span class="pika"></span>Zdaj — pristane na tehnični strani</div>
+      <div class="okvir">
+        <div class="vsebina">
+          <div class="card">
+            <div class="card-head"><h3>Knjižnica vprašalnikov</h3><span class="count">1</span><span class="desno">Urejanje velja za prihodnje sestanke</span></div>
+            <table class="mock">
+              <tr><th>Predloga</th><th>Vprašanj</th><th>Sklopov</th><th></th></tr>
+              <tr>
+                <td><b>Ocena poslovnega potenciala za AI</b></td>
+                <td>51</td><td>8</td>
+                <td style="text-align:right"><span class="teal-link">Uredi vprašanja →</span></td>
+              </tr>
+            </table>
+          </div>
+          <div class="puscica-tok">↓ odpre questionnaires.html</div>
+          <div class="card">
+            <div class="card-head"><h3>Urejanje vprašalnika</h3></div>
+            <div style="padding:13px">
+              <div class="teh-polje"><label>Slug (URL)</label><input value="ocena-poslovnega-potenciala-ai" readonly></div>
+              <div class="teh-polje"><label>Namen</label><select><option>proces</option></select></div>
+              <div class="teh-polje"><label>AI prompt — povzetek</label><textarea class="koda" rows="2" readonly>Si analitik Acenta. Iz odgovorov izlušči ključne procese …</textarea></div>
+              <div class="teh-polje"><label>Vprašanja (JSON)</label><textarea class="koda" rows="4" readonly>[{"id":"sodelujoci","label":"Sodelujoči predstavniki hotela","tip":"text","obvezno":true},{"id":"sklop_1","label":"1 · Osnovni podatki o poslovanju","tip":"section"},…</textarea></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="opomba">Komercialist, ki hoče samo preurediti vprašanja, pristane pred slugi, AI prompti in surovim JSON-om. Tu se konča vsak netehnični poskus.</p>
+    </div>
+
+    <div class="stanje">
+      <div class="stanje-naslov po"><span class="pika"></span>Predlog — isti urejevalnik kot v seji</div>
+      <div class="okvir">
+        <div class="vsebina">
+          <div class="card">
+            <div class="card-head"><h3>Knjižnica vprašalnikov</h3><span class="count">1</span><span class="desno">Urejanje velja za prihodnje sestanke</span></div>
+            <table class="mock">
+              <tr><th>Predloga</th><th>Vprašanj</th><th>Sklopov</th><th></th></tr>
+              <tr>
+                <td><b>Ocena poslovnega potenciala za AI</b></td>
+                <td>51</td><td>8</td>
+                <td style="text-align:right"><span class="teal-link">Uredi vprašanja →</span></td>
+              </tr>
+            </table>
+          </div>
+          <div class="puscica-tok">↓ odpre urejanje predloge (znan vmesnik iz sestanka)</div>
+          <div class="card">
+            <div class="card-head"><h3>Ocena poslovnega potenciala za AI — urejanje predloge</h3></div>
+            <div style="padding:13px">
+              <div class="banner-opozorilo">⚠<span><b>Urejaš predlogo</b> — spremembe veljajo za vse prihodnje sestanke. Že izpolnjeni vprašalniki ostanejo nespremenjeni.</span></div>
+              <div class="sklop-naslov">Sklop 2 · Poslovni cilji in rezultat procesa</div>
+              <div class="vprasanje-vrstica">Kateri proces vam vzame največ časa?<span class="akcije"><span title="Preimenuj">✎</span><span title="Odstrani">✕</span></span></div>
+              <div class="vprasanje-vrstica">Kaj je rezultat tega procesa? <span class="zvezda" title="Poudarjeno vprašanje">★</span><span class="akcije"><span title="Preimenuj">✎</span><span title="Odstrani">✕</span></span></div>
+              <div class="vprasanje-vrstica">Kdo vse je vključen v proces danes?<span class="akcije"><span title="Preimenuj">✎</span><span title="Odstrani">✕</span></span></div>
+              <span class="dodaj-link">+ dodaj vprašanje v ta sklop</span>
+              <div class="btn-vrsta">
+                <span class="btn-primary">Shrani predlogo</span>
+                <span class="btn-secondary">Prekliči</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="opomba">Isti način urejanja, kot ga komercialist že pozna iz sestanka (»Uredi vprašanja« v seji) — le da tu spreminja predlogo. Nič novega za naučiti.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ 3 · POŠILJANJE ═══════════ -->
+  <h2 class="sekcija"><span class="st">3</span>Pošiljanje stranki: nikoli tiho</h2>
+  <p class="sekcija-pod">Kartica »Pošiljanje stranki« na dnu sestanka (proces-seja.html). Danes je gumb vedno aktiven, tudi ko pošiljanje sploh ni vklopljeno.</p>
+
+  <div class="primerjava">
+    <div class="stanje">
+      <div class="stanje-naslov pred"><span class="pika"></span>Zdaj — gumb aktiven, rezultat tih</div>
+      <div class="okvir">
+        <div class="seja">
+          <div class="kartica">
+            <h4>Pošiljanje stranki</h4>
+            <p class="pod">Stranka prejme izpolnjen zapis v telesu e-pošte in kot PDF prilogo. Transkript <b>ne</b> gre stranki.</p>
+            <div class="polja">
+              <div class="polje"><label>E-naslov prejemnika *</label><div class="vnos">info@hotelastoria.si</div></div>
+              <div class="polje"><label>Zadeva</label><div class="vnos">Povzetek najinega sestanka — Hotel Astoria</div></div>
+            </div>
+            <div class="gumbi">
+              <span class="g-obroba">Predogled za stranko →</span>
+              <span class="g-obroba">PDF →</span>
+              <button class="g-teal">Pošlji stranki</button>
+            </div>
+            <div class="info-vrstica" style="visibility:hidden">.</div>
+          </div>
+        </div>
+      </div>
+      <p class="opomba">Brez Resend ključa klik <b>ne naredi nič vidnega</b> — komercialist ne ve, ali je stranka mail dobila ali ne.</p>
+    </div>
+
+    <div class="stanje">
+      <div class="stanje-naslov po"><span class="pika"></span>Predlog — dokler pošiljanje ni vklopljeno</div>
+      <div class="okvir">
+        <div class="seja">
+          <div class="kartica">
+            <h4>Pošiljanje stranki</h4>
+            <p class="pod">Stranka prejme izpolnjen zapis v telesu e-pošte in kot PDF prilogo. Transkript <b>ne</b> gre stranki.</p>
+            <div class="polja">
+              <div class="polje"><label>E-naslov prejemnika *</label><div class="vnos">info@hotelastoria.si</div></div>
+              <div class="polje"><label>Zadeva</label><div class="vnos">Povzetek najinega sestanka — Hotel Astoria</div></div>
+            </div>
+            <div class="gumbi">
+              <span class="g-obroba">Predogled za stranko →</span>
+              <span class="g-obroba">PDF →</span>
+              <button class="g-teal onemogocen" disabled>Pošlji stranki</button>
+            </div>
+            <div class="info-vrstica">ⓘ<span>Pošiljanje e-pošte še ni vklopljeno (manjka nastavitev strežnika). Uporabi <b>Predogled za stranko</b> ali <b>PDF</b> in pošlji ročno iz svojega nabiralnika.</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="opomba">Strežnik pove UI-ju, ali je pošiljanje vklopljeno. Gumb je siv z razlago in ročno potjo — nihče ne ugiba.</p>
+    </div>
+
+    <div class="stanje">
+      <div class="stanje-naslov po"><span class="pika"></span>Predlog — z vklopljenim pošiljanjem, po kliku</div>
+      <div class="okvir">
+        <div class="seja">
+          <div class="kartica">
+            <h4 style="display:flex;align-items:center;gap:8px">Pošiljanje stranki <span class="znacka-status poslan">Poslan</span></h4>
+            <p class="pod">Stranka prejme izpolnjen zapis v telesu e-pošte in kot PDF prilogo. Transkript <b>ne</b> gre stranki.</p>
+            <div class="polja">
+              <div class="polje"><label>E-naslov prejemnika *</label><div class="vnos">info@hotelastoria.si</div></div>
+              <div class="polje"><label>Zadeva</label><div class="vnos">Povzetek najinega sestanka — Hotel Astoria</div></div>
+            </div>
+            <div class="gumbi">
+              <span class="g-obroba">Predogled za stranko →</span>
+              <span class="g-obroba">PDF →</span>
+              <button class="g-teal">Pošlji znova</button>
+            </div>
+            <div class="uspeh-vrstica">✓<span><b>Poslano na info@hotelastoria.si</b> — 31. 8. 2026 ob 14:02. Status sestanka je zdaj »Poslan«.</span></div>
+            <div class="zgodovina-vrstica">✉ 31. 8. 2026 14:02 · info@hotelastoria.si · s PDF prilogo · poslal Matjaž Kristan</div>
+          </div>
+        </div>
+      </div>
+      <p class="opomba">Jasna potrditev + zapis v zgodovini (tabela process_emails že obstaja). Status seje se premakne na »Poslan« šele ob potrjenem pošiljanju.</p>
+    </div>
+  </div>
+
+  <!-- ═══════════ 4 · ZAKLJUČI/POŠLJI ČAKATA NA SAVE ═══════════ -->
+  <h2 class="sekcija"><span class="st">4</span>Zaključi / Pošlji počakata, da so odgovori res shranjeni</h2>
+  <p class="sekcija-pod">Codexova MUST najdba: danes klik na Zaključi ali Pošlji ne počaka na autosave — zadnji vpisani odgovori se lahko izgubijo. Vizualno se to pokaže v glavi sestanka.</p>
+
+  <div class="primerjava">
+    <div class="stanje">
+      <div class="stanje-naslov pred"><span class="pika"></span>Zdaj — klik med shranjevanjem</div>
+      <div class="okvir">
+        <div class="seja-glava">
+          <span class="teal-link" style="color:var(--seja-teal)">← Procesi</span>
+          <div class="naslov">Hotel Astoria Bled — priprava urnikov zaposlenih<small>Ocena poslovnega potenciala za AI · sklop 6/8</small></div>
+          <span class="shranjeno aktivno">Shranjujem …</span>
+          <span class="g-obroba">Uredi vprašanja</span>
+          <button class="g-temen">Zaključi</button>
+          <button class="g-teal">Pošlji stranki</button>
+        </div>
+        <div class="seja" style="padding-top:10px">
+          <div class="napaka-vrstica">⚠<span>Klik na <b>Zaključi</b> v tem trenutku zaključi sejo, čeprav zadnji odgovor še ni v bazi — če save pade, je odgovor tiho izgubljen.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stanje">
+      <div class="stanje-naslov po"><span class="pika"></span>Predlog — gumb počaka na uspešen save</div>
+      <div class="okvir">
+        <div class="seja-glava">
+          <span class="teal-link" style="color:var(--seja-teal)">← Procesi</span>
+          <div class="naslov">Hotel Astoria Bled — priprava urnikov zaposlenih<small>Ocena poslovnega potenciala za AI · sklop 6/8</small></div>
+          <span class="shranjeno aktivno">Shranjujem …</span>
+          <span class="g-obroba">Uredi vprašanja</span>
+          <button class="g-temen" style="opacity:.55" disabled>Shranjujem …</button>
+          <button class="g-teal onemogocen" disabled>Pošlji stranki</button>
+        </div>
+        <div class="seja" style="padding-top:10px">
+          <div class="uspeh-vrstica">✓<span>Klik najprej <b>splakne vse neshranjene odgovore</b>; gumb kaže »Shranjujem …« in zaključi šele ob potrjenem zapisu. Če medtem isto sejo ureja nekdo drug, dobi jasno opozorilo namesto tihega prepisa (migracija 011).</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Predlog UI sprememb za bazavprasalnikov (nacrt-admin) · 31. 8. 2026 · mockup, ni živa aplikacija.<br>
+    Sekciji 1–2 uporabljata prave tokene iz admin.css (Direction D — Studio); sekciji 3–4 sta v obstoječem stilu strani proces-seja.html, ki še ni na Studio predlogi.
+  </footer>
+
+</div>
+</body>
+</html>

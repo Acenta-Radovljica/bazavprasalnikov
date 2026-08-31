@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acenta — Urejanje predloge</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/admin.css">
+  <style>
+    /* Vrstica vprasanja: besedilo je urejanju namenjen input brez okvirja,
+       da seznam bere kot seznam in ne kot obrazec s 50 polji. Okvir se
+       pokaze sele ob fokusu. */
+    .vprasanje { display: flex; align-items: center; gap: 8px; padding: 4px 10px;
+                 border-bottom: 1px solid var(--row-line); }
+    .vprasanje:last-child { border-bottom: 0; }
+    .vprasanje input[type="text"] {
+      flex: 1; min-width: 0; border: 1px solid transparent; border-radius: var(--r-xs);
+      padding: 5px 7px; font-size: 12.5px; color: var(--ink); background: transparent;
+      font-family: inherit;
+    }
+    .vprasanje input[type="text"]:hover { border-color: var(--hairline-2); }
+    .vprasanje input[type="text"]:focus { outline: none; border-color: var(--acenta-teal);
+      background: #fff; box-shadow: 0 0 0 3px var(--acenta-teal-soft); }
+    .vprasanje .tip { font-size: 10px; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase; color: var(--muted); background: var(--bg-sub);
+      border: 1px solid var(--hairline); border-radius: 5px; padding: 2px 7px;
+      white-space: nowrap; flex: none; }
+    .vprasanje label.obvezno { display: inline-flex; align-items: center; gap: 5px;
+      font-size: 11px; color: var(--muted); white-space: nowrap; flex: none; cursor: pointer; }
+    .vprasanje .odstrani { font-size: 11.5px; color: var(--danger); background: none;
+      border: 0; cursor: pointer; white-space: nowrap; flex: none; padding: 4px 2px; }
+    .vprasanje .odstrani:hover { text-decoration: underline; }
+
+    .sklop-glava { display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px; background: var(--bg-sub);
+      border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+    .sklop-glava input {
+      flex: 1; min-width: 0; border: 1px solid transparent; border-radius: var(--r-xs);
+      padding: 4px 7px; background: transparent; font-family: inherit;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+      color: var(--ink-2);
+    }
+    .sklop-glava input:hover { border-color: var(--hairline-2); }
+    .sklop-glava input:focus { outline: none; border-color: var(--acenta-teal); background: #fff; }
+
+    .dodaj { display: block; padding: 7px 10px; font-size: 12px; font-weight: 600;
+      color: var(--acenta-teal); background: none; border: 0; cursor: pointer; text-align: left; }
+    .dodaj:hover { text-decoration: underline; }
+
+    .banner { display: flex; gap: 8px; align-items: flex-start;
+      background: var(--warn-soft); border: 1px solid var(--warn-line); color: var(--warn);
+      border-radius: var(--r-xs); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="flex min-h-screen">
+    <aside id="sidebar" class="w-52 app-sidebar p-3 flex flex-col"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col">
+
+      <header class="page-head">
+        <a href="/admin/procesi.html#knjiznica" class="btn-mini">&larr; Knjižnica</a>
+        <h1 class="display ellipsis" id="naslov">Urejanje predloge</h1>
+        <span class="sub" id="stevec">&mdash;</span>
+        <div class="spacer"></div>
+        <span id="stanjeShranjeno" class="sub"></span>
+        <button id="btnShrani" class="btn-primary" disabled>Shrani predlogo</button>
+      </header>
+
+      <div class="p-4 flex flex-col gap-4 max-w-4xl">
+
+        <div class="banner">
+          <span aria-hidden="true">&#9888;</span>
+          <span><strong>Urejaš predlogo</strong> — spremembe veljajo za vse prihodnje sestanke.
+            Že začeti in izpolnjeni vprašalniki obdržijo svoja vprašanja.</span>
+        </div>
+
+        <div id="napaka" class="hidden banner" style="background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger)"></div>
+
+        <section class="card overflow-hidden">
+          <div id="seznam"><div class="text-center text-muted py-12">Nalagam predlogo ...</div></div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="/admin/app.js"></script>
+  <script>
+    renderNav('procesi');
+
+    const PREDLOGA_ID = parseInt(qs('id'), 10);
+    let predloga = null;
+    let vprasanja = [];
+    let spremenjeno = false;
+
+    function el(id) { return document.getElementById(id); }
+
+    // Prijazna imena tipov — komercialist ne rabi videti "checkbox_multi".
+    const TIP_IME = {
+      section: 'sklop', text: 'kratek odgovor', textarea: 'daljši odgovor',
+      date: 'datum', email: 'e-naslov', radio: 'ena izbira',
+      select: 'ena izbira', checkbox_multi: 'več izbir', table: 'tabela',
+    };
+
+    function oznaciSpremenjeno() {
+      spremenjeno = true;
+      el('btnShrani').disabled = false;
+      el('stanjeShranjeno').textContent = 'Neshranjene spremembe';
+    }
+
+    window.addEventListener('beforeunload', (e) => {
+      if (spremenjeno) { e.preventDefault(); e.returnValue = ''; }
+    });
+
+    function pokaziNapako(besedilo) {
+      const n = el('napaka');
+      n.innerHTML = besedilo;
+      n.classList.remove('hidden');
+    }
+    function skrijNapako() { el('napaka').classList.add('hidden'); }
+
+    // ── Izris ───────────────────────────────────────────────────────────
+    function izrisi() {
+      const kosi = [];
+      let stSekcije = 0;
+
+      // Vprasanja pred prvim sklopom (glava obrazca) dobijo svojo skupino,
+      // enako kot na sestanku ("Osnovni podatki").
+      const idxPrve = vprasanja.findIndex(q => q.tip === 'section');
+      if (idxPrve !== 0) {
+        kosi.push(`<div class="sklop-glava"><span style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:4px 7px">Osnovni podatki</span></div>`);
+      }
+
+      vprasanja.forEach((q, i) => {
+        if (q.tip === 'section') {
+          stSekcije++;
+          if (i > 0) kosi.push(`<button type="button" class="dodaj" data-dodajpred="${i}">+ dodaj vprašanje v ta sklop</button>`);
+          kosi.push(`
+            <div class="sklop-glava">
+              <input type="text" value="${esc(q.label)}" data-i="${i}" data-lastnost="label" title="Ime sklopa">
+            </div>`);
+          return;
+        }
+        kosi.push(`
+          <div class="vprasanje">
+            <input type="text" value="${esc(q.label)}" data-i="${i}" data-lastnost="label" title="Besedilo vprašanja">
+            <span class="tip">${esc(TIP_IME[q.tip] || q.tip)}</span>
+            <label class="obvezno"><input type="checkbox" data-i="${i}" data-lastnost="obvezno" ${q.obvezno ? 'checked' : ''}> obvezno</label>
+            <button type="button" class="odstrani" data-odstrani="${i}">odstrani</button>
+          </div>`);
+      });
+      kosi.push(`<button type="button" class="dodaj" data-dodajpred="${vprasanja.length}">+ dodaj vprašanje v ta sklop</button>`);
+
+      el('seznam').innerHTML = kosi.join('');
+      osveziStevec();
+    }
+
+    function osveziStevec() {
+      const stVprasanj = vprasanja.filter(q => q.tip !== 'section').length;
+      const stSklopov = vprasanja.filter(q => q.tip === 'section').length;
+      el('stevec').textContent = `${stVprasanj} vprašanj · ${stSklopov} sklopov`;
+    }
+
+    // ── Urejanje ────────────────────────────────────────────────────────
+    el('seznam').addEventListener('input', (e) => {
+      const t = e.target;
+      const i = parseInt(t.dataset.i, 10);
+      if (!Number.isInteger(i) || !vprasanja[i]) return;
+      if (t.dataset.lastnost === 'label' && t.value.trim()) {
+        vprasanja[i].label = t.value.trim();
+        oznaciSpremenjeno();
+      }
+      if (t.dataset.lastnost === 'obvezno') {
+        if (t.checked) vprasanja[i].obvezno = true; else delete vprasanja[i].obvezno;
+        oznaciSpremenjeno();
+      }
+    });
+
+    el('seznam').addEventListener('click', (e) => {
+      const t = e.target.closest('[data-odstrani],[data-dodajpred]');
+      if (!t) return;
+
+      if (t.dataset.odstrani !== undefined) {
+        const i = parseInt(t.dataset.odstrani, 10);
+        const q = vprasanja[i];
+        if (!q) return;
+        if (!confirm(`Odstranim vprašanje „${q.label}“ iz predloge?\n\nVelja za vse prihodnje sestanke. Že izpolnjeni vprašalniki ga obdržijo.`)) return;
+        vprasanja.splice(i, 1);
+        izrisi();
+        oznaciSpremenjeno();
+        return;
+      }
+
+      if (t.dataset.dodajpred !== undefined) {
+        dodajVprasanje(parseInt(t.dataset.dodajpred, 10));
+      }
+    });
+
+    // Isti tok kot na sestanku (proces-seja.html), da se komercialist uci
+    // enkrat: besedilo -> tip -> (za radio) moznosti.
+    function dodajVprasanje(vstaviNa) {
+      const label = prompt('Besedilo novega vprašanja:');
+      if (!label || !label.trim()) return;
+
+      const tip = prompt('Tip (text, textarea, date, radio):', 'textarea');
+      const veljavni = ['text', 'textarea', 'date', 'radio'];
+      if (!veljavni.includes(tip)) {
+        alert(`Neveljaven tip. Dovoljeni: ${veljavni.join(', ')}`);
+        return;
+      }
+
+      let options;
+      if (tip === 'radio') {
+        const vnos = prompt('Možnosti, ločene z vejico:', 'da, delno, ne');
+        options = (vnos || '').split(',').map(s => s.trim()).filter(Boolean);
+        if (!options.length) { alert('Radio potrebuje vsaj eno možnost.'); return; }
+      }
+
+      // Unikaten id: brez tega bi PATCH padel na duplicate_id.
+      const osnova = 'dodano_' + label.toLowerCase()
+        .replace(/[čć]/g, 'c').replace(/š/g, 's').replace(/ž/g, 'z')
+        .replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 30);
+      let id = osnova || 'dodano';
+      let n = 2;
+      while (vprasanja.some(q => q.id === id)) id = `${osnova}_${n++}`;
+
+      const novo = { id, label: label.trim(), tip };
+      if (options) novo.options = options;
+
+      vprasanja.splice(vstaviNa, 0, novo);
+      izrisi();
+      oznaciSpremenjeno();
+    }
+
+    // ── Shranjevanje ────────────────────────────────────────────────────
+    el('btnShrani').addEventListener('click', async () => {
+      const gumb = el('btnShrani');
+      gumb.disabled = true;
+      gumb.textContent = 'Shranjujem ...';
+      skrijNapako();
+
+      const res = await fetch(`/api/procesi/predloge/${PREDLOGA_ID}`, {
+        method: 'PATCH', headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ questions: vprasanja }),
+      }).catch(() => null);
+      const d = res ? await res.json().catch(() => ({})) : {};
+
+      gumb.textContent = 'Shrani predlogo';
+
+      if (!d.ok) {
+        gumb.disabled = false;
+        pokaziNapako(`Predloge ni bilo mogoče shraniti${d.detail ? `: ${esc(d.detail)}` : ''}. Nič ni izgubljeno — poskusi znova.`);
+        return;
+      }
+      spremenjeno = false;
+      const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
+      el('stanjeShranjeno').textContent = `Shranjeno ${cas}`;
+    });
+
+    // ── Nalaganje ───────────────────────────────────────────────────────
+    async function nalozi() {
+      const d = await apiFetch(`/api/procesi/predloge/${PREDLOGA_ID}`);
+      if (!d?.predloga) {
+        el('seznam').innerHTML =
+          '<div class="text-center text-muted py-12">Predloge ni bilo mogoče naložiti. Preveri povezavo ali ID.</div>';
+        return;
+      }
+      predloga = d.predloga;
+      vprasanja = Array.isArray(predloga.questions) ? predloga.questions : [];
+      el('naslov').textContent = `${predloga.naziv_prikaz} — urejanje predloge`;
+      document.title = `Acenta — ${predloga.naziv_prikaz}`;
+      izrisi();
+    }
+
+    if (!Number.isInteger(PREDLOGA_ID)) {
+      el('seznam').innerHTML =
+        '<div class="text-center text-muted py-12">Manjka parameter ?id= v naslovu.</div>';
+    } else {
+      nalozi();
+    }
+  </script>
+</body>
+</html>

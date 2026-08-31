@@ -18,19 +18,32 @@ function t(ime, pogoj, dodatek = '') {
 // dela, ne porocilo) in Procesi so pred Podjetji, ker so glavno delo.
 // Isti dan dodana "Primerjava" (cross-analiza procesnih vprasalnikov, FAZA 1)
 // kot prva postavka skupine Analiza.
-const POSTAVKE = ['Danes', 'Procesi', 'Podjetja', 'Vprašalniki', 'Primerjava', 'Iskanje', 'Cross-client'];
-const KLJUCI   = ['pregled', 'procesi', 'podjetja', 'questionnaires', 'analiza', 'search', 'insights'];
+// 31. 8. 2026: tehnicni strani (Vprasalniki, Vpogledi — prej "Cross-client")
+// preseljeni v zlozeno skupino "Napredno" na dnu; komercialist vidi samo 5
+// postavk, ki jih zares uporablja.
+const GLAVNE   = ['Danes', 'Procesi', 'Podjetja', 'Primerjava', 'Iskanje'];
+const NAPREDNE = ['Vprašalniki', 'Vpogledi'];
+const POSTAVKE = [...GLAVNE, ...NAPREDNE];
+const KLJUCI   = ['pregled', 'procesi', 'podjetja', 'analiza', 'search', 'questionnaires', 'insights'];
+const V_NAPREDNEM = new Set(['questionnaires', 'insights']);
 
 const STRANI = [
   ['Danes',        '/admin/index.html',          'pregled'],
   ['Podjetja',     '/admin/podjetja.html',       'podjetja'],
   ['Kanban',       '/admin/kanban.html',         'podjetja'],
   ['Procesi',      '/admin/procesi.html',        'procesi'],
+  ['Urejanje predloge', '/admin/predloga.html?id=1', 'procesi'],
   ['Vprašalniki',  '/admin/questionnaires.html', 'questionnaires'],
   ['Primerjava',   '/admin/analiza.html',        'analiza'],
   ['Iskanje',      '/admin/search.html',         'search'],
-  ['Cross-client', '/admin/insights.html',       'insights'],
+  ['Vpogledi',     '/admin/insights.html',       'insights'],
 ];
+
+// Prava predloga za stran "Urejanje predloge" (id po resetu ni nujno 1).
+const AUTH = 'Basic ' + Buffer.from('test@acenta.si:testgeslo123').toString('base64');
+const predlogeRes = await fetch(BASE + '/api/procesi/predloge', { headers: { Authorization: AUTH } });
+const predlogaId = (await predlogeRes.json()).predloge?.[0]?.id;
+STRANI.find(s => s[0] === 'Urejanje predloge')[1] = `/admin/predloga.html?id=${predlogaId}`;
 
 const browser = await puppeteer.launch({
   executablePath: CHROME, headless: 'new', args: ['--no-sandbox'],
@@ -60,12 +73,20 @@ for (const [ime, pot, aktivenKljuc] of STRANI) {
     // so tudi povezave v <nav>, zato je "nav a" prestevalo se stranke; in
     // oznaka postavke je prvi <span>, ker anchor vsebuje tudi stevec nalog.
     const imePostavke = (a) => (a.querySelector('span')?.textContent ?? a.textContent).trim();
-    const postavke = aside ? [...aside.querySelectorAll('nav a.sidebar-item')].map(imePostavke) : [];
+    const vse = aside ? [...aside.querySelectorAll('nav a.sidebar-item')] : [];
+    const glavne = vse.filter(a => !a.closest('#naprednoSeznam')).map(imePostavke);
+    const napredne = vse.filter(a => a.closest('#naprednoSeznam')).map(imePostavke);
+    const postavke = [...glavne, ...napredne];
+    const seznamNapredno = document.getElementById('naprednoSeznam');
     const aktivne = aside ? [...aside.querySelectorAll('nav a.active')].map(imePostavke) : [];
     return {
       imaSidebar: !!aside,
       postavke,
+      glavne,
+      napredne,
       aktivne,
+      imaNaprednoToggle: !!document.getElementById('naprednoToggle'),
+      naprednoOdprto: !!seznamNapredno && !seznamNapredno.hidden,
       staraVrhnjaVrstica: !!document.getElementById('nav'),
       preliv: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       imaCss: !!document.querySelector('link[href="/admin/admin.css"]'),
@@ -73,9 +94,16 @@ for (const [ime, pot, aktivenKljuc] of STRANI) {
   });
 
   t('stranska vrstica je izrisana', izvid.imaSidebar);
-  t('vseh 7 postavk', izvid.postavke.length === 7, JSON.stringify(izvid.postavke));
-  t('postavke so prave', JSON.stringify(izvid.postavke) === JSON.stringify(POSTAVKE),
-     JSON.stringify(izvid.postavke));
+  t('5 glavnih postavk', JSON.stringify(izvid.glavne) === JSON.stringify(GLAVNE),
+     JSON.stringify(izvid.glavne));
+  t('Napredno preklop obstaja', izvid.imaNaprednoToggle);
+  t('napredni postavki sta pravi', JSON.stringify(izvid.napredne) === JSON.stringify(NAPREDNE),
+     JSON.stringify(izvid.napredne));
+  // Skupina je privzeto zaprta; odprta je SAMO, kadar je aktivna stran v njej
+  // (aktivna postavka ne sme biti skrita). Svez brskalnik = brez localStorage.
+  t('Napredno odprto natanko takrat, ko je aktivna stran v njem',
+     izvid.naprednoOdprto === V_NAPREDNEM.has(aktivenKljuc),
+     `odprto=${izvid.naprednoOdprto}`);
   t('Procesi so v navigaciji', izvid.postavke.includes('Procesi'));
   t('natanko ena aktivna postavka', izvid.aktivne.length === 1, JSON.stringify(izvid.aktivne));
   t('aktivna je prava stran',

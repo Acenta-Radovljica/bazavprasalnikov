@@ -398,10 +398,14 @@ t('interni predogled ima pravo povezavo',
   (await page.$eval('#pPredogledInterno', e => e.getAttribute('href'))).includes('namen=interno'));
 t('PDF ima pravo povezavo', (await page.$eval('#pPdfLink', e => e.getAttribute('href'))).includes('/pdf'));
 
-// Prazen e-naslov javi napako in ne poslje
-await page.click('#pPoslji');
-await pocakaj(400);
-t('prazen prejemnik javi napako', (await page.$eval('#pStatus', e => e.textContent)).includes('e-naslov'));
+// Testno okolje nima Resend kljuca: gumb mora biti ONEMOGOCEN z vidno
+// razlago, ne aktiven gumb, ki ob kliku tiho pade. (Validacijo praznega
+// prejemnika ob VKLOPLJENEM posiljanju pokriva save-guard.test.mjs oz.
+// koda pPoslji — tu do nje po novem ni mogoce priti.)
+t('brez Resend kljuca je Poslji stranki onemogocen',
+  await page.$eval('#pPoslji', e => e.disabled));
+t('razlaga "se ni vklopljeno" je vidna',
+  await page.$eval('#pNiVklopljeno', e => !e.classList.contains('hidden')));
 
 // Vsi gumbi in povezave so ozivljeni (ni mrtvih kontrol)
 const mrtvi = await page.evaluate(() => {

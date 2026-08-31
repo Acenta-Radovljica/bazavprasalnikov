@@ -27,6 +27,13 @@ function veljavenEmail(s) {
   return typeof s === 'string' && EMAIL_REGEX.test(s.trim());
 }
 
+// Ali je posiljanje sploh vklopljeno (Resend kljuc v env). UI to prikaze kot
+// onemogocen gumb z razlago in rocno potjo, namesto aktivnega gumba, ki ob
+// kliku tiho pade.
+function jePosiljanjeVklopljeno() {
+  return !!RESEND_API_KEY && !RESEND_API_KEY.includes('vstavi');
+}
+
 // Privzeto spremno besedilo. Vikanje, pozdrav "Pozdravljeni," (agencijski
 // standard), brez obljub rezultatov in brez datumov, ki jih ni v zapisu.
 function privzetoSporocilo(seja) {
@@ -218,4 +225,4 @@ async function posljiStranki({
 }
 
 // ── DEL 6: Named exports ─────────────────────────────────────────────────
-export { posljiStranki, privzetoSporocilo, sestaviTelo, veljavenEmail, imeDatoteke };
+export { posljiStranki, privzetoSporocilo, sestaviTelo, veljavenEmail, imeDatoteke, jePosiljanjeVklopljeno };

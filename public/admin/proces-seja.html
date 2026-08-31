@@ -185,6 +185,12 @@
             </button>
           </div>
 
+          <div id="pNiVklopljeno" class="hidden flex gap-2 items-start text-sm text-gray-600 bg-slate-100 border border-slate-200 rounded px-3 py-2 mt-3">
+            <span aria-hidden="true">ⓘ</span>
+            <span>Pošiljanje e-pošte še ni vklopljeno (manjka nastavitev strežnika).
+              Uporabi <strong>Predogled za stranko</strong> ali <strong>PDF</strong> zgoraj in pošlji ročno iz svojega nabiralnika.</span>
+          </div>
+
           <div id="pStatus" class="text-sm mt-3"></div>
           <div id="pZgodovina" class="mt-4"></div>
         </section>
@@ -204,6 +210,19 @@
     let urejanjeVprasanj = false;
     let cakaSave = null;      // debounce timer
     let nespravljeno = false;
+    let odgovoriCakajo = false;  // je med debounce in dejanskim PATCH-em odgovorov
+    let revizija = null;         // answers_rev iz baze (zascita pred prepisom med zavihki)
+    let posiljanjeVklopljeno = false;
+
+    // Vsi zapisi gredo skozi ENO verigo obljub: naslednji PATCH pocaka
+    // prejsnjega, zato iz tega zavihka nikoli ne tece dvoje hkrati in
+    // zakasnel starejsi zahtevek ne more povoziti novejsega stanja.
+    let verigaShranjevanja = Promise.resolve();
+    function vVrsto(delo) {
+      const rezultat = verigaShranjevanja.then(delo, delo);
+      verigaShranjevanja = rezultat.then(() => {}, () => {});
+      return rezultat;
+    }
 
     // ── Pomozne ─────────────────────────────────────────────────────────
     function el(id) { return document.getElementById(id); }
@@ -550,27 +569,56 @@
     // ── Shranjevanje ────────────────────────────────────────────────────
     function zahtevajShranjevanje() {
       nespravljeno = true;
+      odgovoriCakajo = true;
       nastaviShranjeno('Spremembe...', 'text-amber-600');
       clearTimeout(cakaSave);
       cakaSave = setTimeout(shraniOdgovore, 900);
     }
 
+    // PATCH z odgovori nosi revizijo (answers_rev). Ob 409 — drug zavihek je
+    // medtem pisal — ENKRAT ponovi s svezo revizijo, ker je obrazec v TEM
+    // zavihku najnovejsa volja uporabnika; ob drugem neuspehu vrne false.
+    async function patchSejo(telo, zRevizijo) {
+      const posljiEnkrat = async (rev) => {
+        const res = await fetch(`/api/procesi/seje/${SEJA_ID}`, {
+          method: 'PATCH', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(zRevizijo && Number.isInteger(rev) ? { ...telo, answers_rev: rev } : telo),
+        }).catch(() => null);
+        if (!res) return { status: 0, d: {} };
+        const d = await res.json().catch(() => ({}));
+        return { status: res.status, d };
+      };
+
+      let { status, d } = await posljiEnkrat(revizija);
+      if (status === 409 && Number.isInteger(d.answers_rev)) {
+        ({ status, d } = await posljiEnkrat(d.answers_rev));
+      }
+      if (d?.ok) {
+        if (Number.isInteger(d.answers_rev)) revizija = d.answers_rev;
+        return true;
+      }
+      return false;
+    }
+
+    // Vrne true/false — klicatelja (zakljuci, poslji) ob false NE nadaljujeta.
     async function shraniOdgovore() {
       clearTimeout(cakaSave);
-      nastaviShranjeno('Shranjujem...', 'text-gray-400');
-      const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ answers: odgovori }),
+      odgovoriCakajo = false;
+      return vVrsto(async () => {
+        nastaviShranjeno('Shranjujem...', 'text-gray-400');
+        const ok = await patchSejo({ answers: odgovori }, true);
+        if (!ok) {
+          odgovoriCakajo = true;
+          nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
+          pokaziOpozorilo('Odgovorov ni bilo mogoče shraniti. Ne zapiraj zavihka — preveri povezavo in nadaljuj z vnosom, poskusili bomo znova.', 'napaka');
+          return false;
+        }
+        if (!metaCaka) nespravljeno = false;
+        skrijOpozorilo();
+        const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
+        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
+        return true;
       });
-      if (!d?.ok) {
-        nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
-        pokaziOpozorilo('Odgovorov ni bilo mogoče shraniti. Ne zapiraj zavihka — preveri povezavo in nadaljuj z vnosom, poskusili bomo znova.', 'napaka');
-        return;
-      }
-      nespravljeno = false;
-      skrijOpozorilo();
-      const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-      nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
     }
 
     async function shraniUrejanjeVprasanj() {
@@ -584,45 +632,66 @@
         if (q) { if (i.checked) q.obvezno = true; else delete q.obvezno; }
       });
 
-      nastaviShranjeno('Shranjujem...', 'text-gray-400');
-      const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ questions_snapshot: vprasanja, answers: odgovori }),
+      nespravljeno = true;
+      return vVrsto(async () => {
+        nastaviShranjeno('Shranjujem...', 'text-gray-400');
+        const ok = await patchSejo({ questions_snapshot: vprasanja, answers: odgovori }, true);
+        if (!ok) {
+          nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
+          pokaziOpozorilo('Sprememb vprašanj ni bilo mogoče shraniti.', 'napaka');
+          return false;
+        }
+        if (!metaCaka && !odgovoriCakajo) nespravljeno = false;
+        const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
+        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
+        return true;
       });
-      if (!d?.ok) {
-        nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
-        pokaziOpozorilo('Sprememb vprašanj ni bilo mogoče shraniti.', 'napaka');
-        return;
-      }
-      const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-      nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
     }
 
-    // Meta polja (stranka, proces, ...) — isti debounce.
+    // Meta polja (stranka, proces, ...) — isti debounce, isti nespravljeno
+    // (beforeunload mora pokriti tudi kartico sestanka).
     let metaCaka = null;
+
+    async function shraniMeta() {
+      clearTimeout(metaCaka);
+      metaCaka = null;
+      const telo = {};
+      document.querySelectorAll('[data-meta]').forEach(i => {
+        telo[i.dataset.meta] = i.value.trim() || null;
+      });
+      if (!telo.stranka_naziv) {
+        nastaviShranjeno('Stranka je obvezna', 'text-red-600');
+        return false;
+      }
+      return vVrsto(async () => {
+        const ok = await patchSejo(telo, false);
+        if (!ok) { nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold'); return false; }
+        seja = { ...seja, ...telo };
+        osveziGlavo();
+        if (!odgovoriCakajo) nespravljeno = false;
+        const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
+        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
+        return true;
+      });
+    }
+
     document.querySelectorAll('[data-meta]').forEach(inp => {
       inp.addEventListener('input', () => {
+        nespravljeno = true;
         nastaviShranjeno('Spremembe...', 'text-amber-600');
         clearTimeout(metaCaka);
-        metaCaka = setTimeout(async () => {
-          const telo = {};
-          document.querySelectorAll('[data-meta]').forEach(i => {
-            telo[i.dataset.meta] = i.value.trim() || null;
-          });
-          if (!telo.stranka_naziv) {
-            nastaviShranjeno('Stranka je obvezna', 'text-red-600');
-            return;
-          }
-          const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}`, {
-            method: 'PATCH', body: JSON.stringify(telo),
-          });
-          if (!d?.ok) return nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
-          osveziGlavo();
-          const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-          nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
-        }, 900);
+        metaCaka = setTimeout(shraniMeta, 900);
       });
     });
+
+    // Pred zakljucevanjem ali posiljanjem: preklici oba debounca, pocakaj
+    // tekoce zapise in shrani VSE (odgovore + kartico). Vrne skupni uspeh —
+    // ob false klicatelj STOP, sicer bi stranki slo zastarelo stanje iz baze.
+    async function splakniVse() {
+      const okOdgovori = await shraniOdgovore();
+      const okMeta = metaCaka ? await shraniMeta() : true;
+      return okOdgovori && okMeta;
+    }
 
     // Opozorilo pred zapiranjem, ce je kaj neshranjenega.
     window.addEventListener('beforeunload', (e) => {
@@ -730,10 +799,24 @@
 
     // ── Zakljuci ────────────────────────────────────────────────────────
     el('btnZakljuci').addEventListener('click', async () => {
-      await shraniOdgovore();
+      const gumb = el('btnZakljuci');
+      gumb.disabled = true;
+      gumb.textContent = 'Shranjujem ...';
+      const obnovi = () => { gumb.disabled = false; gumb.textContent = 'Zaključi'; };
+
+      // Najprej VSE shrani; ce ne uspe, sestanka NE zakljucimo — stranki bi
+      // sicer kasneje slo zastarelo stanje, komercialist pa tega ne bi videl.
+      if (!await splakniVse()) {
+        obnovi();
+        pokaziOpozorilo('Zadnje spremembe niso shranjene, zato sestanek ni zaključen. Preveri povezavo in poskusi znova — nič ni izgubljeno, odgovori so še v tem zavihku.', 'napaka');
+        return;
+      }
+
+      gumb.textContent = 'Zaključujem ...';
       let d = await apiFetch(`/api/procesi/seje/${SEJA_ID}/zakljuci`, {
         method: 'POST', body: JSON.stringify({}),
       });
+      obnovi();
 
       // apiFetch vrne null pri ne-2xx, zato 422 (manjkajoca obvezna polja)
       // preberemo z lastnim klicem, da lahko pokazemo, kaj manjka.
@@ -797,10 +880,18 @@
 
       if (!confirm(`Pošljem izpolnjen zapis na ${prejemnik}?\n\nStranka bo prejela e-pošto takoj.`)) return;
 
-      await shraniOdgovore();
-
       const gumb = el('pPoslji');
-      gumb.disabled = true; gumb.textContent = 'Pošiljam...';
+      gumb.disabled = true; gumb.textContent = 'Shranjujem ...';
+
+      // Ce zadnjih sprememb ni v bazi, posiljanje USTAVIMO — mail se sestavi
+      // iz baze in stranka bi dobila zastarelo razlicico.
+      if (!await splakniVse()) {
+        gumb.disabled = false; gumb.textContent = besediloGumbaPoslji();
+        el('pStatus').innerHTML = '<span class="text-red-600">Zadnje spremembe niso shranjene — pošiljanje ustavljeno, da stranka ne dobi zastarele različice. Preveri povezavo in poskusi znova.</span>';
+        return;
+      }
+
+      gumb.textContent = 'Pošiljam...';
       el('pStatus').innerHTML = '<span class="text-gray-500">Pošiljam...</span>';
 
       const telo = {
@@ -820,7 +911,7 @@
 
       // Osnutek: ponudimo vsiljeno posiljanje, ne pa tiho.
       if (res.status === 422 && d.error === 'seja_ni_zakljucena') {
-        gumb.disabled = false; gumb.textContent = 'Pošlji stranki';
+        gumb.disabled = false; gumb.textContent = besediloGumbaPoslji();
         const stManjka = Array.isArray(d.manjka) ? d.manjka.length : 0;
         if (!confirm(`Sestanek še ni zaključen${stManjka ? ` (manjka ${stManjka} obveznih polj)` : ''}.\n\nPošljem vseeno?`)) {
           el('pStatus').innerHTML = '<span class="text-gray-500">Pošiljanje preklicano.</span>';
@@ -834,16 +925,43 @@
         d = await res.json().catch(() => ({}));
       }
 
-      gumb.disabled = false; gumb.textContent = 'Pošlji stranki';
+      gumb.disabled = false; gumb.textContent = besediloGumbaPoslji();
 
       if (!res.ok || !d.ok) {
         el('pStatus').innerHTML =
           `<span class="text-red-600">Pošiljanje ni uspelo: ${esc(d.detail || d.error || 'neznana napaka')}</span>`;
         return;
       }
-      el('pStatus').innerHTML = `<span class="text-[#00b894]">Poslano na ${esc(prejemnik)}.</span>`;
+      const kdaj = new Date().toLocaleString('sl-SI', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      el('pStatus').innerHTML =
+        `<span class="text-[#00b894] font-semibold">✓ Poslano na ${esc(prejemnik)}</span>
+         <span class="text-gray-500">— ${esc(kdaj)}. Status sestanka je zdaj »Poslan stranki«.</span>`;
       naloziSejo();
     });
+
+    // Besedilo glavnega gumba: ce je zapis ze sel stranki, je ponoven klik
+    // "Poslji znova" — komercialist tako vidi, da ne posilja prvic.
+    function besediloGumbaPoslji() {
+      return (seja?.status === 'poslan') ? 'Pošlji znova' : 'Pošlji stranki';
+    }
+
+    // Stanje gumba za posiljanje glede na streznisko nastavitev. Brez
+    // Resend kljuca je gumb onemogocen z RAZLAGO in rocno potjo — nikoli
+    // aktiven gumb, ki tiho ne naredi nicesar.
+    function posodobiPosiljanje() {
+      const gumb = el('pPoslji');
+      const info = el('pNiVklopljeno');
+      gumb.textContent = besediloGumbaPoslji();
+      if (posiljanjeVklopljeno) {
+        gumb.disabled = false;
+        gumb.className = 'px-4 py-2 bg-[#00b894] text-white rounded text-sm font-medium hover:bg-[#019272] transition-colors';
+        info.classList.add('hidden');
+      } else {
+        gumb.disabled = true;
+        gumb.className = 'px-4 py-2 bg-slate-300 text-slate-500 rounded text-sm font-medium cursor-not-allowed';
+        info.classList.remove('hidden');
+      }
+    }
 
     function izrisiEmaile(seznam) {
       if (!seznam.length) { el('pZgodovina').innerHTML = ''; return; }
@@ -856,6 +974,7 @@
                 ? '<span class="text-[#00b894] font-semibold">✓</span>'
                 : '<span class="text-red-600 font-semibold">✗</span>'}
               <span class="text-gray-700">${esc(e.prejemnik)}</span>
+              ${e.poslal ? `<span class="text-gray-400 text-xs"> · poslal ${esc(e.poslal)}</span>` : ''}
               ${e.napaka ? `<span class="text-red-600 text-xs"> — ${esc(e.napaka)}</span>` : ''}
             </div>
             <span class="text-xs text-gray-400">${formatDatum(e.sent_at)}</span>
@@ -874,8 +993,11 @@
       seja = d.seja;
       vprasanja = Array.isArray(seja.questions_snapshot) ? seja.questions_snapshot : [];
       odgovori = (seja.answers && typeof seja.answers === 'object') ? seja.answers : {};
+      revizija = Number.isInteger(seja.answers_rev) ? seja.answers_rev : null;
+      posiljanjeVklopljeno = d.posiljanje_vklopljeno === true;
 
       osveziGlavo();
+      posodobiPosiljanje();
 
       // Meta polja
       el('mStranka').value = seja.stranka_naziv ?? '';

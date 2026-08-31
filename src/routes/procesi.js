@@ -10,7 +10,7 @@ import {
 import { renderirajIzpolnjen } from '../procesi/render.js';
 import { renderirajHtml } from '../pdf/render.js';
 import { dodajIzPovezave, shraniTranskript, najnovejsiTranskript, jeUrl } from '../procesi/transcript.js';
-import { posljiStranki, privzetoSporocilo, veljavenEmail } from '../procesi/mail.js';
+import { posljiStranki, privzetoSporocilo, veljavenEmail, jePosiljanjeVklopljeno } from '../procesi/mail.js';
 import { izracunajAnalizo } from '../procesi/analiza.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
@@ -362,6 +362,9 @@ router.get('/seje/:id', async (req, res) => {
     transkripti: transkripti?.rows ?? [],
     emaili: emaili?.rows ?? [],
     privzeto_sporocilo: privzetoSporocilo(seja),
+    // UI brez tega ne more lociti "kljuc manjka" od "posiljanje je padlo";
+    // gumb je ob false onemogocen z razlago, ne aktiven in tih.
+    posiljanje_vklopljeno: jePosiljanjeVklopljeno(),
   });
 });
 
@@ -394,13 +397,25 @@ router.patch('/seje/:id', async (req, res) => {
   }
 
   let opozorila = [];
+  let piseOdgovore = false;
   if (body.answers && typeof body.answers === 'object' && !Array.isArray(body.answers)) {
     // Zlijemo z obstojecimi odgovori, da delni PATCH ne izbrise ostalega.
     const zlito = { ...(seja.answers || {}), ...body.answers };
     const { answers, napake } = normalizirajOdgovore(vprasanja, zlito);
     opozorila = napake;
+    piseOdgovore = true;
     updates.push(`answers = $${p++}`);
     params.push(JSON.stringify(answers));
+    // Vsako pisanje odgovorov dvigne revizijo — tudi za stare kliente brez
+    // answers_rev, da novejsi zavihek konflikt vedno opazi.
+    updates.push('answers_rev = answers_rev + 1');
+  }
+
+  // CAS: ce klient poslje answers_rev, se zapis izvede samo ob ujemanju.
+  // Brez answers_rev (stari klienti / meta polja) ostane stari nacin.
+  const revKlienta = Number.isInteger(body.answers_rev) ? body.answers_rev : null;
+  if (revKlienta !== null && !piseOdgovore) {
+    return res.status(400).json({ error: 'answers_rev_brez_answers' });
   }
 
   for (const [polje, maxDolzina] of [
@@ -444,19 +459,38 @@ router.patch('/seje/:id', async (req, res) => {
 
   updates.push('updated_at = NOW()');
   params.push(id);
+  let where = `id = $${p++}`;
+  if (revKlienta !== null) {
+    where += ` AND answers_rev = $${p++}`;
+    params.push(revKlienta);
+  }
 
   const r = await dbQuery(
-    `UPDATE process_sessions SET ${updates.join(', ')} WHERE id = $${p}
-     RETURNING id, status, updated_at, questions_snapshot, answers`,
+    `UPDATE process_sessions SET ${updates.join(', ')} WHERE ${where}
+     RETURNING id, status, updated_at, questions_snapshot, answers, answers_rev`,
     params
   );
   if (!r) return res.status(500).json({ error: 'db_error' });
+
+  // 0 vrstic ob CAS pogoju = drug zavihek je medtem pisal. Vrnemo svezo
+  // revizijo, da klient ENKRAT ponovi (obrazec v zavihku je najnovejsa
+  // volja uporabnika); seja sama gotovo obstaja, ker smo jo zgoraj nalozili.
+  if (!r.rows.length) {
+    const svez = await dbQuery(
+      'SELECT answers_rev FROM process_sessions WHERE id = $1', [id]
+    );
+    return res.status(409).json({
+      error: 'answers_conflict',
+      answers_rev: svez?.rows?.[0]?.answers_rev ?? null,
+    });
+  }
 
   const posodobljena = r.rows[0];
   res.json({
     ok: true,
     seja: { id: posodobljena.id, status: posodobljena.status, updated_at: posodobljena.updated_at },
     napredek: izracunajNapredek(posodobljena.questions_snapshot, posodobljena.answers),
+    answers_rev: posodobljena.answers_rev,
     opozorila,
   });
 });

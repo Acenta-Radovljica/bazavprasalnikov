@@ -117,10 +117,6 @@ const NAV_POSTAVKE = [
     podseznam: true,
   },
   {
-    kljuc: 'questionnaires', naslov: 'Vprašalniki', href: '/admin/questionnaires.html',
-    ikona: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
-  },
-  {
     skupina: 'Analiza',
     kljuc: 'analiza', naslov: 'Primerjava', href: '/admin/analiza.html',
     ikona: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
@@ -129,11 +125,31 @@ const NAV_POSTAVKE = [
     kljuc: 'search', naslov: 'Iskanje', href: '/admin/search.html',
     ikona: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
   },
+];
+
+// Tehnicni strani, ki ju komercialist ne rabi nikoli (slugi, AI prompti,
+// surovi JSON; AI analiza cez kliente). Zlozeni sta v skupino "Napredno" na
+// dnu — dosegljivi ostajata, a ne motita osnovnega dela. Stanje (odprto /
+// zaprto) si zapomni brskalnik; ce je odprta katera od teh strani, je
+// skupina prisilno odprta, da aktivna postavka ni skrita.
+const NAPREDNO_POSTAVKE = [
   {
-    kljuc: 'insights', naslov: 'Cross-client', href: '/admin/insights.html',
+    kljuc: 'questionnaires', naslov: 'Vprašalniki', href: '/admin/questionnaires.html',
+    ikona: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
+  },
+  {
+    // "Vpogledi", ne "Cross-client" — edina angleska postavka je bila prav ta.
+    kljuc: 'insights', naslov: 'Vpogledi', href: '/admin/insights.html',
     ikona: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
   },
 ];
+
+const NAPREDNO_LS_KLJUC = 'nav_napredno_odprto';
+
+function jeNaprednoOdprto(aktiven) {
+  if (NAPREDNO_POSTAVKE.some(p => p.kljuc === aktiven)) return true;
+  try { return localStorage.getItem(NAPREDNO_LS_KLJUC) === '1'; } catch { return false; }
+}
 
 // Stare strani so uporabljale druge ključe (npr. 'home' za Podjetja). Da
 // klicev po straneh ni treba popravljati, jih preslikamo.
@@ -198,7 +214,10 @@ function sidebarHtml(active = '') {
       <span class="keys"><b>⌘</b><b>K</b></span>
     </a>
 
-    <nav class="space-y-0.5 flex-1">${postavke}</nav>
+    <nav class="space-y-0.5 flex-1">
+      ${postavke}
+      ${naprednoHtml(aktiven)}
+    </nav>
 
     <div class="rail-foot" style="padding-top:10px; margin-top:10px">
       <div class="flex items-center gap-2">
@@ -246,7 +265,8 @@ async function napolniZnackoNalog() {
 // Drsna vrstica za ozke zaslone, kjer stranske vrstice ni.
 function mobilnaVrsticaHtml(active = '') {
   const aktiven = NAV_VZDEVKI[active] || active;
-  return NAV_POSTAVKE.map(p => {
+  // Na ozkem zaslonu ni zlaganja — drsna vrstica prenese vse postavke.
+  return [...NAV_POSTAVKE, ...NAPREDNO_POSTAVKE].map(p => {
     const jeAktivna = p.kljuc === aktiven;
     return `<a href="${p.href}" class="font-medium" style="color:${jeAktivna ? '#5eead4' : '#cbd5e1'}">${esc(p.naslov)}</a>`;
   }).join('');
@@ -308,6 +328,7 @@ function renderSidebar(active = '') {
   }
   el.innerHTML = sidebarHtml(active);
   el.parentElement?.classList.add('app-shell');
+  priklopiNapredno();
   poskrbiZaOdzivnost(el, active);
   napolniZnackoNalog();
   vezaviTipkovnice();
@@ -364,6 +385,7 @@ function renderNav(active = '') {
   vsebina.parentNode.insertBefore(ovoj, vsebina);
   ovoj.appendChild(aside);
   ovoj.appendChild(vsebina);
+  priklopiNapredno();
 
   poskrbiZaOdzivnost(aside, active);
   napolniZnackoNalog();
@@ -371,6 +393,46 @@ function renderNav(active = '') {
 
   if (glava) glava.remove();
   document.body.classList.remove('bg-gray-50');
+}
+
+// Zlozena skupina "Napredno" na dnu stranske vrstice.
+function naprednoHtml(aktiven) {
+  const odprto = jeNaprednoOdprto(aktiven);
+  const postavke = NAPREDNO_POSTAVKE.map(p => {
+    const razred = `sidebar-item${p.kljuc === aktiven ? ' active' : ''}`;
+    return `
+      <a href="${p.href}" class="${razred}">
+        ${svgIkona(p.ikona, 16)}
+        <span>${esc(p.naslov)}</span>
+      </a>`;
+  }).join('');
+
+  return `
+    <div style="margin-top:14px">
+      <button type="button" id="naprednoToggle" class="sidebar-item" aria-expanded="${odprto}">
+        <span id="naprednoSev" style="width:16px;text-align:center;font-size:10px;flex:none">${odprto ? '▾' : '▸'}</span>
+        <span>Napredno</span>
+      </button>
+      <div id="naprednoSeznam" class="space-y-0.5" style="padding-left:14px" ${odprto ? '' : 'hidden'}>
+        ${postavke}
+      </div>
+    </div>`;
+}
+
+// Klik na "Napredno" odpre/zapre podseznam in stanje shrani v brskalnik.
+function priklopiNapredno() {
+  const gumb = document.getElementById('naprednoToggle');
+  const seznam = document.getElementById('naprednoSeznam');
+  if (!gumb || !seznam) return;
+  gumb.addEventListener('click', (e) => {
+    e.preventDefault();
+    const odpri = seznam.hidden;
+    seznam.hidden = !odpri;
+    gumb.setAttribute('aria-expanded', String(odpri));
+    const sev = document.getElementById('naprednoSev');
+    if (sev) sev.textContent = odpri ? '▾' : '▸';
+    try { localStorage.setItem(NAPREDNO_LS_KLJUC, odpri ? '1' : '0'); } catch { /* zasebni nacin */ }
+  });
 }
 
 // Privzeti toggle podseznama. Stran Pregled ima svojo razlicico, ki to

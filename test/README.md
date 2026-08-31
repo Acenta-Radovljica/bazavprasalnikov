@@ -26,14 +26,16 @@ docker run -d --name bazavp-test \
 # 4. Testi
 node test/reset-testne-baze.mjs      # VEDNO pred zagonom (tudi med nabori)
 node test/procesi-api.test.mjs       # 97 trditev
-node test/procesi-ui.test.mjs        # 86 trditev (pravi Chrome)
-node test/navigacija.test.mjs        # 96 trditev (vseh 8 admin strani)
+node test/procesi-ui.test.mjs        # 87 trditev (pravi Chrome)
+node test/navigacija.test.mjs        # 126 trditev (vseh 9 admin strani, skupina Napredno)
 node test/naloge.test.mjs            # 39 trditev (/api/naloge + stran Danes)
 node test/analiza.test.mjs           # 103 trditve (/api/procesi/analiza + stran Primerjava)
 node test/odgovori.test.mjs          # 47 trditev (kopija vprašalnika ob oddaji + besedila iz HTML)
+node test/answers-rev.test.mjs       # 18 trditev (CAS zascita answers_rev, posiljanje_vklopljeno)
+node test/save-guard.test.mjs        # 14 trditev (splakniVse pred Zaključi/Pošlji, veriga PATCH-ev)
 ```
 
-Skupaj 468 trditev. Zadnji zeleni zagon: 28. 8. 2026.
+Skupaj 531 trditev. Zadnji zeleni zagon: 31. 8. 2026.
 
 `TEST_BASE` prepiše naslov strežnika (privzeto `http://127.0.0.1:3399`) — uporabno,
 kadar teče sveža koda na drugem portu.
@@ -68,6 +70,13 @@ startal z 52 namesto 51).
   serializiral v UTC → vpisani 24. 8. je v vmesniku postal 23. 8.
 - **Neuspelo pošiljanje ni tiho.** Manjkajoč Resend ključ vrne 502 in se zapiše
   v `process_emails`, da komercialist ne misli, da je stranka dopis dobila.
+  Od 31. 8. UI do tega sploh ne pride: brez ključa je gumb onemogočen z razlago
+  (`posiljanje_vklopljeno` v GET seje/:id).
+- **Zaključi/Pošlji nikoli s praznimi rokami.** Klik najprej splakne VSE
+  neshranjene odgovore in meta polja (`splakniVse`); če shranjevanje pade, je
+  dejanje blokirano z vidno napako. Brez tega gre stranki po e-pošti zastarela
+  različica iz baze. Zapisi iz enega zavihka tečejo zaporedno (veriga obljub),
+  med zavihki pa jih varuje `answers_rev` CAS (409 + en retry s svežo revizijo).
 - **Imenovalec v cross-analizi je pošten.** Vprašanje, ki obstaja v dveh od treh
   snapshotov, ima pokritost „1 od 2", nikoli „1 od 3". Deljenje s številom vseh
   sej bi tiho izumilo manjkajoče odgovore, trditev iz takih številk pa bi šla
