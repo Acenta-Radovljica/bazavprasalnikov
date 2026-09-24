@@ -224,20 +224,13 @@ await pocakaj(600);
 const vsebina = await page.$eval('#content', (e) => e.textContent);
 // Stran pokaze besedilo vprasanja kot glavno, surov kljuc pa kot droben namig
 // pod njim. Trditev zato bere zgradbo vrstice, ne celotnega besedila strani.
-const vrsticeTabele = await page.$$eval('#content table tr', (trs) => trs.map((tr) => {
-  const celica = tr.querySelector('td');
-  // Namig odstranimo kot VOZLISCE. Brisanje po besedilu je "objekt" pobrisalo
-  // tudi znotraj besede "objekta" in oznaka je postala "Ime a".
-  const kopija = celica?.cloneNode(true);
-  const namig = kopija?.querySelector('div');
-  const kljuc = (namig?.textContent || '').trim();
-  namig?.remove();
-  return {
-    kljuc,
-    oznaka: (kopija?.textContent || '').replace(/\s+/g, ' ').trim(),
-    vrednost: (tr.querySelectorAll('td')[1]?.textContent || '').trim(),
-  };
-}));
+// Vsako vprasanje je svoja kartica (.q-item): besedilo, surov kljuc kot
+// droben namig in odgovor so v locenih elementih, zato jih beremo po razredih.
+const vrsticeTabele = await page.$$eval('#content .q-item', (els) => els.map((el) => ({
+  kljuc: (el.querySelector('.q-kljuc')?.textContent || '').trim(),
+  oznaka: (el.querySelector('.q-label')?.textContent || '').replace(/\s+/g, ' ').replace(/\*$/, '').trim(),
+  vrednost: (el.querySelector('.q-answer')?.textContent || '').trim(),
+})));
 const vrsticaObjekt = vrsticeTabele.find((v) => v.kljuc === 'objekt');
 t('odgovor stoji pod besedilom vprasanja, ne pod kljucem',
   vrsticaObjekt?.oznaka === 'Ime objekta' && vrsticaObjekt?.vrednost === 'Vila Test',
@@ -270,6 +263,9 @@ t('vrstni red sledi obrazcu, ne abecedi kljucev',
   && vsebina.indexOf('Koliko sob oddajate?') < vsebina.indexOf('Kaj naj izpostavimo?'),
   `${vsebina.indexOf('Ime objekta')}, ${vsebina.indexOf('Koliko sob oddajate?')}, ${vsebina.indexOf('Kaj naj izpostavimo?')}`);
 
+t('glava pokaze izpolnjevalca (ime, e-naslov ali "Anonimni odgovor")',
+  ((await page.$eval('.r-ime', (e) => e.textContent.trim()).catch(() => '')) || '').length > 0);
+t('vsako vprasanje je svoja kartica', vrsticeTabele.length > 3, String(vrsticeTabele.length));
 t('gumb za ogled obrazca obstaja', !!(await page.$('#btn-obrazec')));
 t('okvir je privzeto skrit',
   await page.$eval('#obrazec-ovoj', (e) => e.className.includes('hidden')));
@@ -294,7 +290,7 @@ await browser.close();
 // neposredno v testni bazi. Isto pocne tudi reset-testne-baze.mjs, ce bi kdaj
 // ta nabor padel prej in do sem ne prisel.
 const pg = (await import('pg')).default;
-const pool = new pg.Pool({ connectionString: 'postgres://postgres:test@127.0.0.1:5435/vprasalniki' });
+const pool = new pg.Pool({ connectionString: process.env.TEST_DB_URL || 'postgres://postgres:test@127.0.0.1:5435/vprasalniki' });
 await pool.query(`DELETE FROM responses WHERE questionnaire_id IN
   (SELECT id FROM questionnaires WHERE slug LIKE 'test-snapshot-%')`);
 const { rowCount } = await pool.query(`DELETE FROM questionnaires WHERE slug LIKE 'test-snapshot-%'`);

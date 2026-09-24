@@ -60,6 +60,65 @@ function qs(name) {
   return new URLSearchParams(window.location.search).get(name);
 }
 
+// Markdown AI besedila v HTML. Surov HTML v besedilu se ubezi: AI povzetek
+// nastane iz odgovorov stranke, zato ga ne vstavljamo kot kodo. Brez knjiznice
+// `marked` na strani vrne ubezano besedilo z ohranjenimi prelomi.
+function md(t) {
+  const varno = String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  if (typeof marked === 'undefined') return `<p style="white-space:pre-wrap">${varno}</p>`;
+  return marked.parse(varno);
+}
+
+// ── Izpolnjevalec ─────────────────────────────────────────────────────────
+// Kdo je vprasalnik izpolnil. Obrazci nimajo enotnega polja za ime (lead
+// obrazec ima `ime`, custom HTML `kontakt`, anketa pred delavnico je lahko
+// anonimna), zato se ime isce najprej po znanih kljucih, nato po besedilu
+// vprasanja. Brez imena pade na e-naslov, brez obojega na "Anonimni odgovor".
+const KLJUCI_IME = /^(ime[_ ]?(in[_ ]?)?priimek|polno[_ ]?ime|full[_ ]?name|name|ime|kontaktna[_ ]?oseba|kontakt[_ ]?oseba|oseba|kontakt|izpolnjevalec|udelezenec|udeleženec)$/i;
+const OZNAKE_IME = /(ime in priimek|vaše ime|vase ime|polno ime|kontaktna oseba|kdo izpolnjuje|^ime\b)/i;
+const KLJUCI_MAIL = /^(e[-_]?mail|mail|e[-_]?naslov|email[_ ]?naslov)$/i;
+const KLJUCI_VLOGA = /^(vloga|funkcija|delovno[_ ]?mesto|pozicija|polozaj|položaj|role)$/i;
+
+function izpolnjevalec(raw, questions) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const kratek = (v) => (typeof v === 'string' && v.trim() && v.trim().length <= 80) ? v.trim() : '';
+  const jeMail = (v) => /\S+@\S+\.\S+/.test(v);
+  // Telefonska stevilka v polju "kontakt" ni ime.
+  const niIme = (v) => jeMail(v) || /^[+\d\s\/().-]{6,}$/.test(v) || /^https?:/i.test(v);
+
+  let ime = '';
+  for (const [k, v] of Object.entries(r)) {
+    const s = kratek(v);
+    if (s && !niIme(s) && KLJUCI_IME.test(k)) { ime = s; break; }
+  }
+  // "ime" + "priimek" kot loceni polji
+  if (ime && kratek(r.priimek) && !ime.includes(r.priimek.trim())) ime = `${ime} ${r.priimek.trim()}`;
+  if (!ime) {
+    for (const q of (Array.isArray(questions) ? questions : [])) {
+      const s = kratek(r[q.id]);
+      if (s && !niIme(s) && OZNAKE_IME.test(q.label || '')) { ime = s; break; }
+    }
+  }
+
+  let mail = '';
+  for (const [k, v] of Object.entries(r)) {
+    const s = kratek(v);
+    if (s && (KLJUCI_MAIL.test(k) || (jeMail(s) && !/url|web|stran/i.test(k)))) { mail = s; break; }
+  }
+  let vloga = '';
+  for (const [k, v] of Object.entries(r)) {
+    const s = kratek(v);
+    if (s && KLJUCI_VLOGA.test(k)) { vloga = s; break; }
+  }
+
+  const prikaz = ime || mail || 'Anonimni odgovor';
+  const zacetnice = ime
+    ? ime.split(/\s+/).filter(Boolean).slice(0, 2).map(b => b[0].toUpperCase()).join('')
+    : (mail ? mail[0].toUpperCase() : '?');
+  const podnaslov = [vloga, ime ? mail : ''].filter(Boolean).join(' · ');
+  return { ime: prikaz, imaIme: !!ime, zacetnice, podnaslov, mail, vloga };
+}
+
 // Stevilo s pravilno sklanjanim samostalnikom: 1 seja, 2 seji, 3 seje, 5 sej.
 // oblike = [ednina, dvojina, mnozina 3-4, rodilnik 5 in vec].
 //

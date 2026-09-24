@@ -52,7 +52,10 @@ router.get('/companies/:id', async (req, res) => {
 
   const responses = await dbQuery(
     `SELECT r.id, r.questionnaire_id, q.slug AS q_slug, q.naziv_prikaz AS q_naziv,
-            r.submitted_at, r.raw_data, r.ai_povzetek, r.ai_processed_at, r.consent_gdpr
+            r.submitted_at, r.raw_data, r.ai_povzetek, r.ai_processed_at, r.consent_gdpr,
+            -- Za ime izpolnjevalca na kartici: kopija ob oddaji, sicer danasnja.
+            CASE WHEN COALESCE(jsonb_array_length(r.questions_snapshot), 0) > 0
+                 THEN r.questions_snapshot ELSE q.questions END AS vprasanja
        FROM responses r
        JOIN questionnaires q ON q.id = r.questionnaire_id
       WHERE r.company_id = $1

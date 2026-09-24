@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 
 const SQL_009 = new URL('../sql/009_procesi.sql', import.meta.url);
 
-const pool = new pg.Pool({ connectionString: 'postgres://postgres:test@127.0.0.1:5435/vprasalniki' });
+const pool = new pg.Pool({ connectionString: process.env.TEST_DB_URL || 'postgres://postgres:test@127.0.0.1:5435/vprasalniki' });
 
 // 1. Pobrisi vse procesne podatke (transkripti in emaili gredo kaskadno).
 await pool.query('TRUNCATE process_sessions RESTART IDENTITY CASCADE');

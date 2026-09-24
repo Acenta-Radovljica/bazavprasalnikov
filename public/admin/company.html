@@ -33,6 +33,46 @@
       padding: 32px;
       box-shadow: var(--shadow-2);
     }
+
+    /* Odgovori: ena kartica = en izpolnjevalec */
+    .odg-skupina { display:flex; align-items:center; gap:10px; margin:36px 0 12px; }
+    .odg-skupina .pill { white-space:nowrap; flex:none; }
+    .odg-skupina h2 { font-size:18px; font-weight:700; letter-spacing:-.015em; color:var(--ink); }
+    .odg-seznam { display:flex; flex-direction:column; gap:10px; }
+    .odg-kartica { background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--r-lg);
+      padding:16px 18px; transition:border-color .15s var(--ease), box-shadow .15s var(--ease); }
+    .odg-kartica:hover { border-color:var(--hairline-2); box-shadow:var(--shadow-lift); }
+    .odg-glava { display:flex; align-items:center; gap:12px; }
+    .odg-avatar { width:38px; height:38px; border-radius:999px; flex:none; display:flex; align-items:center; justify-content:center;
+      background:var(--acenta-teal-soft); color:var(--acenta-teal); font-weight:700; font-size:13px; border:1px solid var(--acenta-teal-line); }
+    .odg-avatar.anon { background:var(--bg-sub); color:var(--muted); border-color:var(--hairline); }
+    .odg-kdo { flex:1; min-width:0; }
+    .odg-ime { font-size:15px; font-weight:650; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .odg-meta { font-size:12px; color:var(--muted); display:flex; gap:6px; white-space:nowrap; overflow:hidden; }
+    .odg-meta .pika { color:var(--muted-2); }
+    .btn-odpri { flex:none; display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 14px; border-radius:999px;
+      background:var(--acenta-navy); color:#fff; font-weight:600; font-size:12.5px; white-space:nowrap; text-decoration:none;
+      box-shadow:0 1px 0 rgba(255,255,255,.12) inset, 0 6px 16px -8px rgba(13,21,32,.7); transition:background .15s var(--ease); }
+    .btn-odpri:hover { background:var(--acenta-teal); }
+    .btn-odpri svg { transition:transform .15s var(--ease); }
+    .btn-odpri:hover svg { transform:translateX(2px); }
+    .odg-povzetek { margin-top:14px; padding:14px 16px; background:var(--bg-sub); border-radius:var(--r);
+      color:var(--ink-2); max-height:9.5em; overflow:hidden; position:relative; }
+    .odg-povzetek:not(.odprt)::after { content:""; position:absolute; left:0; right:0; bottom:0; height:48px;
+      background:linear-gradient(180deg, rgba(244,246,248,0), var(--bg-sub)); }
+    .odg-povzetek.odprt { max-height:none; }
+    .odg-povzetek > :first-child { margin-top:0; }
+    .odg-povzetek > :last-child { margin-bottom:0; }
+    .odg-povzetek li { margin:.35em 0; }
+    .odg-povzetek strong { color:var(--ink); }
+    .odg-vec { margin-top:8px; font-size:12px; font-weight:600; color:var(--acenta-teal); background:none; border:0; cursor:pointer; padding:0; }
+    .odg-vec:hover { text-decoration:underline; }
+    .odg-prazno { margin-top:12px; font-size:13px; color:var(--muted); font-style:italic; }
+    @media (max-width:640px) {
+      .odg-glava { flex-wrap:wrap; }
+      .odg-meta { flex-wrap:wrap; white-space:normal; }
+      .btn-odpri { width:100%; justify-content:center; }
+    }
   </style>
 </head>
 <body class="min-h-screen">
@@ -238,31 +278,53 @@
       const skupineHTML = Array.from(grupe.values())
         .sort((a, b) => a.naziv.localeCompare(b.naziv))
         .map(g => `
-          <h2 class="display-serif mt-10 mb-4 flex items-center gap-3" style="font-size:24px;">
-            ${esc(g.naziv)}
-            <span class="pill muted">${g.items.length}</span>
-          </h2>
-          <div class="space-y-3">
+          <div class="odg-skupina">
+            <h2>${esc(g.naziv)}</h2>
+            <span class="pill muted">${sklon(g.items.length, ['odgovor', 'odgovora', 'odgovori', 'odgovorov'])}</span>
+          </div>
+          <div class="odg-seznam">
             ${g.items.map(r => {
+              const oseba = izpolnjevalec(r.raw_data, r.vprasanja);
               const povzetek = r.ai_povzetek
-                ? `<pre class="whitespace-pre-wrap text-sm text-[var(--ink-2)] font-sans mt-3 bg-[var(--bg-sub)] p-4 rounded-xl">${esc(r.ai_povzetek)}</pre>`
-                : '<div class="mt-3 text-sm text-[var(--muted-2)] italic">AI povzetek še ni generiran...</div>';
+                ? `<div class="odg-povzetek prose prose-sm max-w-none" data-odg="${r.id}">${md(r.ai_povzetek)}</div>
+                   <button type="button" class="odg-vec" data-za="${r.id}" hidden>Pokaži celoten povzetek</button>`
+                : '<div class="odg-prazno">AI povzetek še ni generiran.</div>';
               return `
-                <div class="card-flat p-6">
-                  <div class="flex items-center justify-between mb-2">
-                    <a href="/admin/response.html?id=${r.id}" class="text-sm font-semibold text-[#006e5a] hover:text-[#00b894]">
-                      Odgovor #${r.id}
+                <article class="odg-kartica" data-response="${r.id}">
+                  <header class="odg-glava">
+                    <div class="odg-avatar${oseba.imaIme ? '' : ' anon'}">${esc(oseba.zacetnice)}</div>
+                    <div class="odg-kdo">
+                      <div class="odg-ime">${esc(oseba.ime)}</div>
+                      <div class="odg-meta">
+                        ${oseba.podnaslov ? `<span>${esc(oseba.podnaslov)}</span><span class="pika">·</span>` : ''}
+                        <span>${formatDatum(r.submitted_at)}</span>
+                      </div>
+                    </div>
+                    <a class="btn-odpri" href="/admin/response.html?id=${r.id}">
+                      Odpri celoten vprašalnik
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
                     </a>
-                    <span class="text-xs text-muted">${formatDatum(r.submitted_at)}</span>
-                  </div>
+                  </header>
                   ${povzetek}
-                </div>
+                </article>
               `;
             }).join('')}
           </div>
         `).join('');
 
       el.innerHTML = skupineHTML;
+
+      // Dolg povzetek se zapre na ~6 vrstic; gumb se pokaze samo, ce je res odrezan.
+      el.querySelectorAll('.odg-povzetek').forEach(p => {
+        if (p.scrollHeight <= p.clientHeight + 4) { p.classList.add('odprt'); return; }
+        const gumb = el.querySelector(`.odg-vec[data-za="${p.dataset.odg}"]`);
+        gumb.hidden = false;
+        gumb.addEventListener('click', () => {
+          const odpri = !p.classList.contains('odprt');
+          p.classList.toggle('odprt', odpri);
+          gumb.textContent = odpri ? 'Skrij' : 'Pokaži celoten povzetek';
+        });
+      });
     }
 
     // ── Akcije ────────────────────────────────────────────────────────────
