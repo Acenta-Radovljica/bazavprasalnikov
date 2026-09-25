@@ -300,7 +300,9 @@ t('filter po statusu', (r.telo?.seje || []).every(s => s.status === 'osnutek'),
 console.log('\n=== 20. Regresija: lead vprasalniki nedotaknjeni ===');
 r = await api('/api/questionnaires');
 const vsi = r.telo?.questionnaires || [];
-t('vseh vprasalnikov 5', vsi.length === 5, vsi.length);
+// 6 = 5 seedanih + ai-business-score (migracija 012).
+t('vseh vprasalnikov 6', vsi.length === 6, vsi.length);
+t('ai-business-score je shramba (brez splosnega AI toka)', vsi.find(q => q.slug === 'ai-business-score')?.namen === 'shramba');
 t('lead jih je 3', vsi.filter(q => q.namen === 'lead').length === 3,
    vsi.filter(q => q.namen === 'lead').length);
 t('st_sej dodan', vsi.every(q => typeof q.st_sej === 'number'));

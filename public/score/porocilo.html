@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaše poročilo | AI Business Score</title>
+<meta name="description" content="V treh minutah ocenite, kako vaše podjetje uporablja umetno inteligenco in kateri proces ima največ potenciala.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/ai-business-score/score.css">
+</head>
+<body>
+<!-- ═════════════ REPORT ═════════════ -->
+<main id="v-porocilo">
+  <section class="rep-head"><div class="wrap">
+    <img src="/ai-business-score/logo_acenta.svg" alt="Acenta">
+    <h1 id="r-naslov"></h1>
+    <p class="micro" id="r-meta"></p>
+  </div></section>
+  <div class="wrap">
+    <div class="rep-card">
+      <div class="rep-top">
+        <div class="ring" id="r-ring"><div><div><strong id="r-score"></strong><small>AI Business Score</small></div></div></div>
+        <div>
+          <span class="level" id="r-level"></span>
+          <h2 id="r-levelh"></h2>
+          <p id="r-levelp"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rep-grid">
+      <div class="panel">
+        <h3>Vaš rezultat po področjih</h3>
+        <div id="r-bars"></div>
+      </div>
+      <div class="panel big-opp" id="r-opp"></div>
+    </div>
+
+    <div class="panel" style="margin-top:22px">
+      <h3>Kaj smo izvedeli o vas</h3>
+      <p id="r-odstavek" style="color:var(--ink-2)"></p>
+    </div>
+
+    <div class="three">
+      <div class="panel"><h3>Kaj delate dobro</h3><ul class="pts" id="r-dobro"></ul></div>
+      <div class="panel"><h3>Kje se zatika</h3><ul class="pts warn" id="r-zatika"></ul></div>
+      <div class="panel"><h3>Vaše priložnosti</h3><ul class="pts" id="r-prilo"></ul></div>
+    </div>
+
+    <div class="closing">
+      <div>
+        <h3>Naslednji korak: izbor pravega procesa</h3>
+        <p>Vaš rezultat kaže, da največji potencial ni v splošni uporabi AI, ampak v izboru pravega poslovnega procesa. Zato je naslednji korak ugotoviti, kje lahko AI najhitreje prihrani čas, zniža stroške ali izboljša prihodke.</p>
+      </div>
+      <div class="acts">
+        <a class="btn" id="r-booking" href="#" target="_blank" rel="noopener" hidden>Rezervirajte 30-minutni pogovor</a>
+        <a class="tel" id="r-tel" href="tel:+38641669785">ali pokličite 041 669 785</a>
+      </div>
+    </div>
+  </div>
+  <footer class="foot"><div class="wrap">
+    <span>© 2026 Acenta d.o.o.</span>
+    <a href="mailto:ai@acenta.si">ai@acenta.si</a>
+    <a href="https://www.acenta.si/politika-varstva-osebnih-podatkov/" target="_blank" rel="noopener">Politika zasebnosti</a>
+  </div></footer>
+</main>
+<p class="wrap micro" id="r-napaka" hidden style="padding:80px 20px"></p>
+
+<script type="module" src="/ai-business-score/porocilo.js"></script>
+</body>
+</html>

@@ -1,0 +1,533 @@
+<!doctype html>
+<html lang="sl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Business Score | Acenta</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* Tokens mirror acenta-web/src/app/globals.css */
+  :root {
+    --teal: #00ab9a; --teal-deep: #007e72; --teal-bright: #1ec9b6; --teal-soft: #e3f5f2;
+    --accent: #ff0a60;
+    --ink: #0a1f1d; --ink-2: #0f2a27;
+    --paper: #f6f8f7; --cloud: #ffffff; --muted: #5b6b68;
+    --line: #e4e9e7; --line-dark: rgba(255,255,255,.12);
+    --display: 'Fraunces', Georgia, serif; --sans: 'Geist', system-ui, sans-serif;
+    --radius: 1rem; --ease: cubic-bezier(.16,1,.3,1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--paper); color: var(--ink); font-family: var(--sans); font-size: 17px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 500; letter-spacing: -.01em; line-height: 1.12; margin: 0; }
+  p { margin: 0; }
+  a { color: var(--teal-deep); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+  .eyebrow { font-size: 13px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--teal); }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; border: 0; cursor: pointer; font: 600 16px/1 var(--sans); padding: 17px 28px; border-radius: 999px; background: var(--teal); color: #fff; text-decoration: none; transition: background .2s, transform .2s var(--ease); white-space: nowrap; }
+  .btn:hover { background: var(--teal-deep); transform: translateY(-1px); }
+  .btn:disabled { background: #b9c7c4; cursor: not-allowed; transform: none; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); }
+  .btn.ghost:hover { background: var(--cloud); }
+  .micro { font-size: 14px; color: var(--muted); }
+  [hidden] { display: none !important; }
+
+  /* Prototype chrome (not part of the product) */
+  .proto { display: flex; justify-content: center; gap: 4px; padding: 6px; background: #1d3a36; font-size: 12px; }
+  .proto a { color: #cfe; text-decoration: none; padding: 6px 10px; border-radius: 999px; white-space: nowrap; }
+  .proto a:hover, .proto a.on { background: var(--teal); color: #fff; }
+
+  /* ── Landing ───────────────────────────── */
+  header.top { padding: 22px 0; }
+  header.top .wrap { display: flex; align-items: center; }
+  header.top img { height: 22px; display: block; }
+  header.top .sp { flex: 1; }
+  header.top a.tel { color: var(--ink); text-decoration: none; font-weight: 500; font-size: 15px; white-space: nowrap; }
+
+  .hero { padding: 40px 0 72px; }
+  .hero .grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 56px; align-items: center; }
+  .hero h1 { font-size: clamp(38px, 5.2vw, 62px); margin: 16px 0 20px; }
+  .hero h1 em { font-style: italic; color: var(--teal); }
+  .hero .lead { font-size: 19px; color: var(--muted); max-width: 540px; }
+  .benefits { display: grid; grid-template-columns: 1fr 1fr; gap: 18px 28px; margin: 34px 0 34px; padding: 0; list-style: none; }
+  .benefits li { display: flex; gap: 12px; align-items: flex-start; }
+  .benefits .ic { flex: none; width: 34px; height: 34px; border-radius: 10px; background: var(--teal-soft); color: var(--teal-deep); display: grid; place-items: center; font-weight: 600; font-size: 14px; }
+  .benefits b { display: block; font-weight: 600; font-size: 16px; }
+  .benefits span { font-size: 15px; color: var(--muted); }
+  .cta-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+
+  /* Report preview card on landing */
+  .preview { background: var(--cloud); border: 1px solid var(--line); border-radius: 22px; padding: 26px; transform: rotate(.6deg); }
+  .preview .ph { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
+  .preview .ph b { font-family: var(--display); font-weight: 500; font-size: 20px; }
+  .preview .tag { font-size: 12px; color: var(--muted); }
+  .ring-row { display: flex; gap: 20px; align-items: center; margin-bottom: 20px; }
+  .ring { --v: 0; width: 104px; height: 104px; border-radius: 50%; flex: none; display: grid; place-items: center;
+          background: conic-gradient(var(--teal) calc(var(--v) * 1%), var(--line) 0); }
+  .ring > div { width: 82px; height: 82px; border-radius: 50%; background: var(--cloud); display: grid; place-items: center; text-align: center; }
+  .ring strong { font-family: var(--display); font-size: 32px; font-weight: 500; line-height: 1; display: block; }
+  .ring small { font-size: 11px; color: var(--muted); }
+  .level { display: inline-block; font-size: 13px; font-weight: 600; color: var(--teal-deep); background: var(--teal-soft); padding: 4px 10px; border-radius: 999px; margin-bottom: 6px; }
+  .bars { display: grid; gap: 10px; }
+  .bar .lbl { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+  .bar .lbl span:last-child { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .bar .track { height: 8px; background: var(--line); border-radius: 99px; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--teal); border-radius: 99px; }
+  .opp { margin-top: 18px; padding: 14px 16px; border-radius: 14px; background: var(--ink); color: #fff; font-size: 15px; }
+  .opp small { display: block; color: var(--teal-bright); font-size: 12px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 2px; }
+
+  .band { padding: 80px 0; }
+  .band.white { background: var(--cloud); border-block: 1px solid var(--line); }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: start; }
+  .band h2 { font-size: clamp(30px, 3.6vw, 44px); margin: 12px 0 18px; }
+  .band p.body { color: var(--muted); font-size: 18px; }
+  .steps { display: grid; gap: 14px; }
+  .step { display: flex; gap: 16px; padding: 18px 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--paper); }
+  .step .n { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--teal); color: #fff; font-weight: 600; font-size: 14px; display: grid; place-items: center; }
+  .step b { display: block; margin-bottom: 2px; }
+  .step span { color: var(--muted); font-size: 15px; }
+  .note { margin-top: 22px; padding: 20px 22px; border-left: 3px solid var(--teal); background: var(--teal-soft); border-radius: 0 var(--radius) var(--radius) 0; }
+  .note b { display: block; margin-bottom: 4px; }
+  .note span { color: var(--ink-2); font-size: 16px; }
+
+  .trust { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 30px; }
+  .trust div { padding: 20px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--cloud); }
+  .trust b { display: block; font-family: var(--display); font-weight: 500; font-size: 21px; margin-bottom: 4px; }
+  .trust span { color: var(--muted); font-size: 15px; }
+
+  .final { background: var(--ink); color: #fff; padding: 88px 0; text-align: center; }
+  .final h2 { font-size: clamp(32px, 4vw, 48px); max-width: 760px; margin: 12px auto 16px; }
+  .final p { color: #b8c8c5; max-width: 560px; margin: 0 auto 30px; font-size: 18px; }
+  .final .micro { color: #8fa39f; margin-top: 16px; }
+  footer.foot { background: var(--ink); color: #8fa39f; font-size: 14px; padding: 24px 0 40px; border-top: 1px solid var(--line-dark); }
+  footer.foot .wrap { display: flex; gap: 18px; flex-wrap: wrap; }
+  footer.foot a { color: #cfe; }
+
+  /* ── Quiz (full screen) ───────────────── */
+  .quiz { min-height: 100vh; display: flex; flex-direction: column; background: var(--paper); }
+  .qbar { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-bottom: 1px solid var(--line); background: var(--cloud); }
+  .qbar img { height: 18px; }
+  .qbar .sp { flex: 1; }
+  .qbar .count { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .qprog { height: 4px; background: var(--line); }
+  .qprog div { height: 100%; background: var(--teal); width: 0; transition: width .4s var(--ease); }
+  .qbody { flex: 1; width: 100%; max-width: 720px; margin: 0 auto; padding: 48px 20px 32px; }
+  .qbody h2 { font-size: clamp(26px, 3.4vw, 36px); margin-bottom: 8px; }
+  .qhint { color: var(--muted); font-size: 15px; margin-bottom: 26px; min-height: 1.4em; }
+  .opts { display: grid; gap: 10px; }
+  @media (min-width: 861px) { .opts.long { grid-template-columns: 1fr 1fr; } }
+  .qbody.wide { max-width: 900px; }
+  .opt { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; padding: 16px 18px; border: 1.5px solid var(--line); border-radius: 14px; background: var(--cloud); font: 500 16px/1.35 var(--sans); color: var(--ink); cursor: pointer; transition: border-color .15s, background .15s; }
+  .opt:hover { border-color: var(--teal); }
+  .opt .mk { flex: none; width: 22px; height: 22px; border: 1.5px solid #b9c7c4; border-radius: 50%; display: grid; place-items: center; }
+  .opt.multi .mk { border-radius: 6px; }
+  .opt.sel { border-color: var(--teal); background: var(--teal-soft); }
+  .opt.sel .mk { background: var(--teal); border-color: var(--teal); }
+  .opt.sel .mk::after { content: ''; width: 8px; height: 8px; background: #fff; border-radius: 50%; }
+  .opt.multi.sel .mk::after { width: 10px; height: 6px; background: none; border: 2px solid #fff; border-top: 0; border-right: 0; border-radius: 0; transform: rotate(-45deg) translate(1px,-1px); }
+  .opt.off { opacity: .45; cursor: not-allowed; }
+  .qfoot { position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 16px 20px; border-top: 1px solid var(--line); background: var(--cloud); }
+  .qfoot .sp { flex: 1; }
+  .linkbtn { background: none; border: 0; font: 500 15px var(--sans); color: var(--muted); cursor: pointer; padding: 10px 4px; }
+  .linkbtn:hover { color: var(--ink); }
+
+  /* Contact step */
+  .form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .form .full { grid-column: 1 / -1; }
+  .fld label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 6px; }
+  .fld label i { color: var(--accent); font-style: normal; }
+  .fld input { width: 100%; padding: 14px 14px; border: 1.5px solid var(--line); border-radius: 12px; font: 16px var(--sans); background: var(--cloud); color: var(--ink); }
+  .fld input:focus { outline: none; border-color: var(--teal); }
+  .fld.err input { border-color: var(--accent); }
+  .fld .e { color: var(--accent); font-size: 13px; margin-top: 4px; display: none; }
+  .fld.err .e { display: block; }
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; }
+  .seg button { padding: 11px 14px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--cloud); font: 500 15px var(--sans); color: var(--ink); cursor: pointer; white-space: nowrap; }
+  .seg button.sel { border-color: var(--teal); background: var(--teal-soft); }
+  .consent { display: flex; gap: 12px; align-items: flex-start; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+  .consent input { width: 20px; height: 20px; margin: 1px 0 0; accent-color: var(--teal); flex: none; }
+  .consent.err { color: var(--accent); }
+
+  /* ── Report ───────────────────────────── */
+  .rep-head { background: var(--ink); color: #fff; padding: 36px 0 110px; }
+  .rep-head img { height: 20px; filter: brightness(0) invert(1); }
+  .rep-head h1 { font-size: clamp(30px, 4vw, 44px); margin: 34px 0 6px; }
+  .rep-head .micro { color: #8fa39f; }
+  .rep-card { background: var(--cloud); border: 1px solid var(--line); border-radius: 22px; padding: 30px; margin-top: -80px; }
+  .rep-top { display: grid; grid-template-columns: auto 1fr; gap: 32px; align-items: center; }
+  .rep-top .ring { width: 150px; height: 150px; }
+  .rep-top .ring > div { width: 118px; height: 118px; }
+  .rep-top .ring strong { font-size: 46px; }
+  .rep-top h2 { font-size: 28px; margin: 4px 0 10px; }
+  .rep-top p { color: var(--muted); }
+  .rep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; margin-top: 22px; }
+  .panel { background: var(--cloud); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
+  .panel h3 { font-size: 21px; margin-bottom: 14px; }
+  .panel .bar { margin-bottom: 14px; }
+  .panel .bar .why { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .big-opp { background: var(--ink); color: #fff; border: 0; }
+  .big-opp small { color: var(--teal-bright); font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; }
+  .big-opp h3 { font-size: 30px; margin: 8px 0 10px; }
+  .big-opp p { color: #b8c8c5; }
+  .big-opp .rec { margin-top: 16px; padding: 14px 16px; border: 1px solid var(--line-dark); border-radius: 12px; }
+  .big-opp .rec b { color: #fff; display: block; }
+  ul.pts { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+  ul.pts li { display: flex; gap: 10px; font-size: 16px; }
+  ul.pts li::before { content: ''; flex: none; width: 8px; height: 8px; border-radius: 50%; margin-top: 9px; background: var(--teal); }
+  ul.pts.warn li::before { background: var(--accent); }
+  .three { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; margin-top: 22px; }
+  .closing { margin: 22px 0 60px; padding: 34px; border-radius: 22px; background: var(--teal-soft); display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: center; }
+  .closing h3 { font-size: 26px; margin-bottom: 8px; }
+  .closing p { color: var(--ink-2); }
+  .closing .acts { display: grid; gap: 10px; justify-items: stretch; }
+  .closing .acts .tel { text-align: center; font-weight: 600; color: var(--ink); text-decoration: none; }
+
+  @media (max-width: 860px) {
+    .hero .grid, .two, .rep-grid, .three, .closing, .rep-top { grid-template-columns: 1fr; }
+    .hero { padding-top: 16px; }
+    .preview { transform: none; }
+    .trust { grid-template-columns: 1fr; }
+    .benefits { grid-template-columns: 1fr; }
+    .form { grid-template-columns: 1fr; }
+    .band { padding: 56px 0; }
+    .rep-top { justify-items: start; }
+    .qbody { padding-top: 30px; }
+    body { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="proto" aria-label="Prototip">
+  <a href="#landing" data-go="landing">Pristajalna</a>
+  <a href="#kviz" data-go="kviz">Kviz</a>
+  <a href="#primer" data-go="primer">Poročilo (primer)</a>
+</nav>
+
+<!-- ═════════════ LANDING ═════════════ -->
+<main id="v-landing">
+  <header class="top"><div class="wrap">
+    <img src="logo_acenta.svg" alt="Acenta">
+    <span class="sp"></span>
+    <a class="tel" href="tel:+38641669785">041 669 785</a>
+  </div></header>
+
+  <section class="hero"><div class="wrap grid">
+    <div>
+      <span class="eyebrow">AI Business Score</span>
+      <h1>Kje vam lahko umetna inteligenca <em>že danes</em> prihrani čas in denar?</h1>
+      <p class="lead">V treh minutah ocenite, kako vaše podjetje uporablja AI, kateri proces ima največ potenciala in kakšen je smiseln prvi korak. Poročilo dobite takoj.</p>
+      <ul class="benefits">
+        <li><span class="ic">1</span><div><b>Vaša AI zrelost</b><span>Kje ste danes: od posameznih poskusov do AI v procesih.</span></div></li>
+        <li><span class="ic">2</span><div><b>Kje vam odteka čas</b><span>Opravila, ki ekipi vzamejo največ ur.</span></div></li>
+        <li><span class="ic">3</span><div><b>Proces z največ potenciala</b><span>Nabava, prodaja, administracija, vodenje ali podpora strankam.</span></div></li>
+        <li><span class="ic">4</span><div><b>Prvi konkreten korak</b><span>Priporočilo, ki ga lahko začnete izvajati.</span></div></li>
+      </ul>
+      <div class="cta-row">
+        <button class="btn" data-start>Začnite oceno</button>
+        <span class="micro">Brezplačno · 16 vprašanj · okoli 3 minute</span>
+      </div>
+    </div>
+
+    <aside class="preview" aria-label="Primer poročila">
+      <div class="ph"><b>Vaše poročilo</b><span class="tag">primer</span></div>
+      <div class="ring-row">
+        <div class="ring" style="--v:69"><div><div><strong>69</strong><small>od 100</small></div></div></div>
+        <div><span class="level">AI raziskovalec</span><p class="micro">AI že uporabljate, a še ne sistemsko. Največ bi pridobili z izborom enega procesa.</p></div>
+      </div>
+      <div class="bars">
+        <div class="bar"><div class="lbl"><span>AI zrelost</span><span>25</span></div><div class="track"><div class="fill" style="width:25%"></div></div></div>
+        <div class="bar"><div class="lbl"><span>Potencial v procesih</span><span>76</span></div><div class="track"><div class="fill" style="width:76%"></div></div></div>
+        <div class="bar"><div class="lbl"><span>Pripravljenost za korak</span><span>92</span></div><div class="track"><div class="fill" style="width:92%"></div></div></div>
+      </div>
+      <div class="opp"><small>Največja priložnost</small>Nabava: AI agent za primerjavo ponudb in dobaviteljev</div>
+    </aside>
+  </div></section>
+
+  <section class="band white"><div class="wrap two">
+    <div>
+      <span class="eyebrow">Zakaj ocena</span>
+      <h2>AI uporablja že večina. Redko pa tam, kjer šteje.</h2>
+      <p class="body">Veliko podjetij AI uporablja za pisanje e-pošte, besedil in hitrih povzetkov. To je koristno, a je šele začetek. Največ prihranka nastane, ko AI prevzame del konkretnega procesa: pripravo ponudb, primerjavo dobaviteljev, odgovore strankam ali poročila za vodstvo.</p>
+      <div class="note"><b>Odločitve ostanejo pri vas</b><span>AI lahko prevzame vse več rutinskega dela. Nadzor, presoja in pomembne odločitve ostanejo v rokah ljudi. Cilj je več časa za delo, ki ustvarja vrednost.</span></div>
+    </div>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><div><b>Odgovorite na 16 vprašanj</b><span>O tem, kako danes delate in kje vam odteka čas. Brez tehničnih izrazov.</span></div></div>
+      <div class="step"><span class="n">2</span><div><b>Takoj dobite poročilo</b><span>Oceno od 0 do 100, vašo stopnjo zrelosti in proces z največ potenciala.</span></div></div>
+      <div class="step"><span class="n">3</span><div><b>Po želji kratek pogovor</b><span>V 30 minutah skupaj pogledamo rezultat in izberemo prvi proces.</span></div></div>
+    </div>
+  </div></section>
+
+  <section class="band"><div class="wrap">
+    <span class="eyebrow">Kdo stoji za oceno</span>
+    <h2>Acenta, digitalna agencija iz Ljubljane</h2>
+    <p class="body" style="max-width:720px">AI rešitve razvijamo in uporabljamo sami: za odgovarjanje na mnenja gostov, pripravo ponudb in obdelavo povpraševanj. Ocena temelji na tem, kar vidimo pri podjetjih v turizmu, avtomobilski industriji in e-trgovini.</p>
+    <div class="trust">
+      <div><b>Google Partner</b><span>Certificirana agencija za digitalno oglaševanje.</span></div>
+      <div><b>AI v praksi</b><span>Rešitve, ki jih stranke že uporabljajo pri vsakdanjem delu.</span></div>
+      <div><b>Pogovor z ljudmi</b><span>Rezultat vam razloži naša ekipa, ne avtomat. 041 669 785</span></div>
+    </div>
+  </div></section>
+
+  <section class="final"><div class="wrap">
+    <span class="eyebrow">Naredite prvi korak</span>
+    <h2>Preverite, kaj bi AI že danes lahko naredil za vaše podjetje.</h2>
+    <p>Kratka ocena pokaže vašo raven uporabe AI, kje izgubljate čas in katere priložnosti še niste izkoristili.</p>
+    <button class="btn" data-start>Začnite oceno</button>
+    <p class="micro">Brezplačno · okoli 3 minute · poročilo takoj</p>
+  </div></section>
+  <footer class="foot"><div class="wrap">
+    <span>© 2026 Acenta d.o.o.</span>
+    <a href="mailto:ai@acenta.si">ai@acenta.si</a>
+    <a href="https://www.acenta.si/" data-tbd="povezava na politiko zasebnosti">Politika zasebnosti</a>
+  </div></footer>
+</main>
+
+<!-- ═════════════ QUIZ ═════════════ -->
+<main id="v-kviz" class="quiz" hidden>
+  <div class="qbar"><img src="logo_acenta.svg" alt="Acenta"><span class="sp"></span><span class="count" id="qcount"></span></div>
+  <div class="qprog"><div id="qprog"></div></div>
+
+  <section class="qbody" id="step-kontakt">
+    <h2>Najprej nekaj podatkov o vas</h2>
+    <p class="qhint">Poročilo pošljemo na vaš e-naslov. Polja z * so obvezna.</p>
+    <form class="form" id="fkontakt" novalidate>
+      <div class="fld"><label for="ime">Ime <i>*</i></label><input id="ime" autocomplete="given-name"><div class="e">Vpišite ime.</div></div>
+      <div class="fld"><label for="priimek">Priimek <i>*</i></label><input id="priimek" autocomplete="family-name"><div class="e">Vpišite priimek.</div></div>
+      <div class="fld"><label for="email">E-pošta <i>*</i></label><input id="email" type="email" autocomplete="email"><div class="e">Vpišite veljaven e-naslov.</div></div>
+      <div class="fld"><label for="telefon">Telefon <i>*</i></label><input id="telefon" type="tel" autocomplete="tel"><div class="e">Vpišite telefonsko številko.</div></div>
+      <div class="fld full"><label for="podjetje">Podjetje <i>*</i></label><input id="podjetje" autocomplete="organization"><div class="e">Vpišite naziv podjetja.</div></div>
+      <div class="fld full" id="fld-velikost"><label>Število zaposlenih <i>*</i></label><div class="seg" id="velikost"></div><div class="e">Izberite velikost podjetja.</div></div>
+      <input type="text" name="website" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+      <label class="consent full" id="c1"><input type="checkbox" id="soglasje"><span>Seznanjen(-a) sem z <a href="https://www.acenta.si/" target="_blank" data-tbd="politika zasebnosti">obvestilom o varstvu osebnih podatkov</a> in se strinjam, da Acenta moje odgovore obdela za pripravo poročila. <i style="color:var(--accent);font-style:normal">*</i></span></label>
+      <label class="consent full"><input type="checkbox" id="marketing"><span>Želim prejemati nasvete in povabila Acente o uporabi AI v podjetju. Odjava je mogoča v vsakem sporočilu.</span></label>
+    </form>
+  </section>
+
+  <section class="qbody" id="step-q" hidden>
+    <h2 id="qtitle"></h2>
+    <p class="qhint" id="qhint"></p>
+    <div class="opts" id="qopts"></div>
+  </section>
+
+  <div class="qfoot">
+    <button class="linkbtn" id="nazaj">← Nazaj</button>
+    <span class="sp"></span>
+    <button class="btn" id="naprej">Začni oceno</button>
+  </div>
+</main>
+
+<!-- ═════════════ REPORT ═════════════ -->
+<main id="v-porocilo" hidden>
+  <section class="rep-head"><div class="wrap">
+    <img src="logo_acenta.svg" alt="Acenta">
+    <h1 id="r-naslov"></h1>
+    <p class="micro" id="r-meta"></p>
+  </div></section>
+  <div class="wrap">
+    <div class="rep-card">
+      <div class="rep-top">
+        <div class="ring" id="r-ring"><div><div><strong id="r-score"></strong><small>AI Business Score</small></div></div></div>
+        <div>
+          <span class="level" id="r-level"></span>
+          <h2 id="r-levelh"></h2>
+          <p id="r-levelp"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="rep-grid">
+      <div class="panel">
+        <h3>Vaš rezultat po področjih</h3>
+        <div id="r-bars"></div>
+      </div>
+      <div class="panel big-opp" id="r-opp"></div>
+    </div>
+
+    <div class="panel" style="margin-top:22px">
+      <h3>Kaj smo izvedeli o vas</h3>
+      <p id="r-odstavek" style="color:var(--ink-2)"></p>
+    </div>
+
+    <div class="three">
+      <div class="panel"><h3>Kaj delate dobro</h3><ul class="pts" id="r-dobro"></ul></div>
+      <div class="panel"><h3>Kje se zatika</h3><ul class="pts warn" id="r-zatika"></ul></div>
+      <div class="panel"><h3>Vaše priložnosti</h3><ul class="pts" id="r-prilo"></ul></div>
+    </div>
+
+    <div class="closing">
+      <div>
+        <h3>Naslednji korak: izbor pravega procesa</h3>
+        <p>Vaš rezultat kaže, da največji potencial ni v splošni uporabi AI, ampak v izboru pravega poslovnega procesa. Zato je naslednji korak ugotoviti, kje lahko AI najhitreje prihrani čas, zniža stroške ali izboljša prihodke.</p>
+      </div>
+      <div class="acts">
+        <a class="btn" href="#rezervacija" data-tbd="povezava za rezervacijo (Matjaž/Maja)">Rezervirajte 30-minutni pogovor</a>
+        <a class="tel" href="tel:+38641669785">ali pokličite 041 669 785</a>
+      </div>
+    </div>
+  </div>
+  <footer class="foot"><div class="wrap">
+    <span>© 2026 Acenta d.o.o.</span>
+    <a href="mailto:ai@acenta.si">ai@acenta.si</a>
+    <a href="#landing" data-go="landing">Nazaj na začetek</a>
+  </div></footer>
+</main>
+
+<script type="module">
+import { VPRASANJA, VELIKOST } from '../../src/score/vprasanja-v1.js';
+import { izracunajScore } from '../../src/score/izracunaj.js';
+import { sestaviPredlogo } from '../../src/score/predloga.js';
+
+const $ = (s) => document.querySelector(s);
+const KEY = 'abs-proto';
+let st = load() || { korak: -1, kontakt: {}, odg: {} };   // korak -1 = contact step
+function load() { try { return JSON.parse(sessionStorage.getItem(KEY)); } catch { return null; } }
+function save() { try { sessionStorage.setItem(KEY, JSON.stringify(st)); } catch {} }
+
+// ── views ──
+function show(v) {
+  for (const id of ['landing', 'kviz', 'porocilo']) $('#v-' + id).hidden = id !== v;
+  markNav(v);
+  window.scrollTo(0, 0);
+}
+function markNav(v) { document.querySelectorAll('.proto a').forEach(a => a.classList.toggle('on', a.dataset.go === v)); }
+function route() {
+  const h = location.hash.slice(1) || 'landing';
+  if (h === 'kviz') { show('kviz'); renderQuiz(); }
+  else if (h === 'porocilo') { show('porocilo'); renderReport(st.rezultat ? st : PRIMER); }
+  else if (h === 'primer') { show('porocilo'); markNav('primer'); renderReport(PRIMER); }
+  else show('landing');
+}
+window.addEventListener('hashchange', route);
+document.querySelectorAll('[data-start]').forEach(b => b.addEventListener('click', () => { location.hash = 'kviz'; }));
+
+// ── contact step ──
+const seg = $('#velikost');
+for (const v of VELIKOST) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.textContent = v.text; b.dataset.id = v.id;
+  b.onclick = () => { st.kontakt.velikost = v.id; save(); paintSeg(); $('#fld-velikost').classList.remove('err'); };
+  seg.appendChild(b);
+}
+function paintSeg() { seg.querySelectorAll('button').forEach(b => b.classList.toggle('sel', b.dataset.id === st.kontakt.velikost)); }
+const POLJA = ['ime', 'priimek', 'email', 'telefon', 'podjetje'];
+for (const id of POLJA) $('#' + id).addEventListener('input', e => { st.kontakt[id] = e.target.value; save(); e.target.parentElement.classList.remove('err'); });
+$('#soglasje').addEventListener('change', e => { st.kontakt.soglasje = e.target.checked; save(); $('#c1').classList.remove('err'); });
+$('#marketing').addEventListener('change', e => { st.kontakt.marketing = e.target.checked; save(); });
+
+function preveriKontakt() {
+  let ok = true;
+  for (const id of POLJA) {
+    const v = (st.kontakt[id] || '').trim();
+    const bad = !v || (id === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) || (id === 'telefon' && v.replace(/\D/g, '').length < 8);
+    $('#' + id).parentElement.classList.toggle('err', bad); if (bad) ok = false;
+  }
+  if (!st.kontakt.velikost) { $('#fld-velikost').classList.add('err'); ok = false; }
+  if (!st.kontakt.soglasje) { $('#c1').classList.add('err'); ok = false; }
+  return ok;
+}
+
+// ── questions ──
+const N = VPRASANJA.length;
+function renderQuiz() {
+  const k = st.korak;
+  $('#step-kontakt').hidden = k !== -1;
+  $('#step-q').hidden = k === -1;
+  $('#nazaj').style.visibility = k === -1 ? 'hidden' : 'visible';
+  $('#qprog').style.width = `${((k + 1) / (N + 1)) * 100}%`;
+  $('#qcount').textContent = k === -1 ? 'Vaši podatki' : `Vprašanje ${k + 1} od ${N}`;
+  if (k === -1) {
+    for (const id of POLJA) $('#' + id).value = st.kontakt[id] || '';
+    $('#soglasje').checked = !!st.kontakt.soglasje; $('#marketing').checked = !!st.kontakt.marketing;
+    paintSeg(); $('#naprej').textContent = 'Začni oceno'; $('#naprej').disabled = false; $('#naprej').hidden = false;
+    return;
+  }
+  const q = VPRASANJA[k];
+  $('#qtitle').textContent = q.text;
+  $('#qhint').textContent = q.tip === 'vec' ? `Izberite največ ${q.max}.` : '';
+  const box = $('#qopts'); box.innerHTML = '';
+  const dolgo = q.moznosti.length > 6;
+  box.classList.toggle('long', dolgo); $('#step-q').classList.toggle('wide', dolgo);
+  const cur = st.odg[q.id];
+  const izbrane = q.tip === 'vec' ? (cur || []) : (cur ? [cur] : []);
+  for (const o of q.moznosti) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'opt' + (q.tip === 'vec' ? ' multi' : '') + (izbrane.includes(o.id) ? ' sel' : '');
+    const full = q.tip === 'vec' && izbrane.length >= q.max && !izbrane.includes(o.id);
+    if (full) b.classList.add('off');
+    b.innerHTML = `<span class="mk"></span><span></span>`; b.lastChild.textContent = o.text;
+    b.onclick = () => izberi(q, o.id);
+    box.appendChild(b);
+  }
+  const zadnje = k === N - 1;
+  $('#naprej').hidden = q.tip !== 'vec' && !zadnje && !cur;
+  $('#naprej').textContent = zadnje ? 'Pokaži rezultat' : 'Naprej';
+  $('#naprej').disabled = q.tip === 'vec' ? izbrane.length === 0 : !cur;
+}
+function izberi(q, id) {
+  if (q.tip === 'vec') {
+    let a = [...(st.odg[q.id] || [])];
+    const nevtralno = q.moznosti.find(m => m.id === id)?.nevtralno;
+    if (a.includes(id)) a = a.filter(x => x !== id);
+    else if (nevtralno) a = [id];                       // "Ne vem" clears the others
+    else { a = a.filter(x => !q.moznosti.find(m => m.id === x)?.nevtralno); if (a.length < q.max) a.push(id); }
+    st.odg[q.id] = a; save(); renderQuiz();
+  } else {
+    st.odg[q.id] = id; save(); renderQuiz();
+    if (st.korak < N - 1) setTimeout(() => { st.korak++; save(); renderQuiz(); }, 260);
+  }
+}
+$('#naprej').onclick = () => {
+  if (st.korak === -1) { if (!preveriKontakt()) return; st.korak = 0; save(); renderQuiz(); return; }
+  if (st.korak < N - 1) { st.korak++; save(); renderQuiz(); return; }
+  // Final submit: in production this is one POST /f/ai-business-score.
+  st.rezultat = izracunajScore({ ...st.odg, velikost: st.kontakt.velikost });
+  st.datum = new Date().toLocaleDateString('sl-SI'); save();
+  location.hash = 'porocilo';
+};
+$('#nazaj').onclick = () => { if (st.korak > -1) { st.korak--; save(); renderQuiz(); } };
+
+// ── report ──
+const PRIMER_ODG = {
+  velikost: '51-100', panoga: 'proizvodnja', vloga: 'direktor', uporaba: 'posamezniki',
+  sistematicnost: 'vsak_po_svoje', odgovorna_oseba: 'neformalno', razumevanje: 'povprecno',
+  pravila: 'potrebovali', izguba_casa: ['nabava', 'porocila', 'ponudbe'],
+  stroski: ['nabava', 'zaloge', 'rocna_administracija'], potencial: ['nabava', 'administracija'],
+  odziv: '24h', nabavne_cene: 'ne_preverjamo', ovira: 'kje_zaceti', hitrost: 'cim_prej',
+  pomoc: 'agent_nabava', interpretacija: 'pogovor',
+};
+const PRIMER = { kontakt: { ime: 'Ana', podjetje: 'Kovinar d.o.o.', email: 'ana@kovinar.si' }, rezultat: izracunajScore(PRIMER_ODG), datum: '29. 9. 2026' };
+
+const DIM = [
+  ['zrelost', 'AI zrelost', 'Kako sistematično AI uporabljate danes.'],
+  ['potencial', 'Potencial v procesih', 'Koliko časa in stroškov bi lahko prevzel AI.'],
+  ['pripravljenost', 'Pripravljenost za korak', 'Kako hitro želite začeti.'],
+];
+function li(ul, arr) { ul.innerHTML = ''; for (const t of arr) { const e = document.createElement('li'); e.textContent = t; ul.appendChild(e); } }
+function renderReport(s) {
+  const r = s.rezultat, k = s.kontakt;
+  $('#r-naslov').textContent = `AI Business Score za ${k.podjetje || 'vaše podjetje'}`;
+  $('#r-meta').textContent = `Izpolnjeno ${s.datum}${k.email ? ` · kopijo poročila smo poslali na ${k.email}` : ''}`;
+  $('#r-ring').style.setProperty('--v', r.skupno);
+  $('#r-score').textContent = r.skupno;
+  $('#r-level').textContent = 'Vaša stopnja';
+  $('#r-levelh').textContent = r.stopnja.naziv;
+  $('#r-levelp').textContent = r.stopnja.opis;
+  $('#r-bars').innerHTML = DIM.map(([id, n, why]) => `<div class="bar"><div class="lbl"><span>${n}</span><span>${r.dimenzije[id]} / 100</span></div><div class="track"><div class="fill" style="width:${r.dimenzije[id]}%"></div></div><div class="why">${why}</div></div>`).join('');
+  $('#r-opp').innerHTML = r.proces
+    ? `<small>Največja priložnost</small><h3>${r.proces.naziv}</h3><p>Na tem področju ste označili največ izgubljenega časa ali nepotrebnih stroškov.</p><div class="rec"><b>Priporočen prvi korak</b>${r.proces.priporocilo}</div>`
+    : `<small>Največja priložnost</small><h3>Še ni jasna</h3><p>Iz odgovorov še ne izstopa en sam proces. To je pogosto pri podjetjih, ki z AI šele začenjajo.</p><div class="rec"><b>Priporočen prvi korak</b>${r.stopnja.priporocilo}</div>`;
+  const t = sestaviPredlogo(r, k.podjetje);
+  $('#r-odstavek').textContent = t.odstavek;
+  li($('#r-dobro'), t.dobro); li($('#r-zatika'), t.zatika); li($('#r-prilo'), t.priloznosti);
+}
+
+// Links whose target is not decided yet stay visible but say so (prototype only).
+document.querySelectorAll('[data-tbd]').forEach(a => a.addEventListener('click', e => { e.preventDefault(); alert('Prototip: ' + a.dataset.tbd + ' še ni določena.'); }));
+route();
+</script>
+</body>
+</html>

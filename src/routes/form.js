@@ -5,6 +5,9 @@ import { hashIp } from '../utils/normalize.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
 import { sproziPovzetek } from '../ai/queue.js';
 import { snapshotIzVrstice } from '../lib/snapshot.js';
+import { SCORE_SLUG, validirajOddajo } from '../score/oddaja.js';
+import { shraniOddajo } from '../score/shrani.js';
+import { sprozi as sproziScoreOutbox } from '../score/outbox.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -19,6 +22,21 @@ const BARVE = {
 // Honeypot polje: ce robot napolni to skrito polje, ga zavrnemo.
 // Pravi uporabniki ga ne vidijo. Ime je "company_url" — robotom zveni vredu.
 const HONEYPOT_FIELD = 'company_url';
+
+// AI Business Score je javen (mail vsem strankam): omejitev oddaj na IP, da en
+// skript ne napolni baze in MailerLite. V spominu procesa je dovolj — ob restartu
+// se okno ponastavi, kar je sprejemljivo.
+const SCORE_OKNO_MS = 10 * 60 * 1000;
+const SCORE_MAX_V_OKNU = parseInt(process.env.SCORE_MAX_V_OKNU || '10', 10);
+const scoreOddajePoIp = new Map();
+function scorePrevec(ipHash) {
+  const zdaj = Date.now();
+  const casi = (scoreOddajePoIp.get(ipHash) || []).filter(t => zdaj - t < SCORE_OKNO_MS);
+  casi.push(zdaj);
+  scoreOddajePoIp.set(ipHash, casi);
+  if (scoreOddajePoIp.size > 5000) scoreOddajePoIp.clear();
+  return casi.length > SCORE_MAX_V_OKNU;
+}
 
 // ── DEL 3: Helper funkcije ────────────────────────────────────────────────
 
@@ -418,6 +436,8 @@ function izlusciPodjetje(payload, questions) {
 router.get('/:slug', async (req, res) => {
   const slug = String(req.params.slug || '').trim().toLowerCase();
   if (!slug) return posljiInfo(res, 400, 'Manjkajoč podatek', 'V URL-ju manjka slug vprašalnika.');
+  // AI Business Score ima svojo stran (vprasanja so v kodi, questions=[] bi dal 503).
+  if (slug === SCORE_SLUG) return res.redirect(302, '/ai-business-score');
 
   const r = await dbQuery(
     'SELECT slug, naziv_prikaz, opis, questions, aktivna, custom_html, namen FROM questionnaires WHERE slug = $1',
@@ -524,6 +544,16 @@ router.post('/:slug', async (req, res) => {
   const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip;
   const ipHash = hashIp(ip);
 
+  // AI Business Score: vprasanja zivijo v kodi (questions=[]), zato jih preverimo tu.
+  let scoreOddaja = null;
+  if (slug === SCORE_SLUG) {
+    if (scorePrevec(ipHash)) return res.status(429).json({ ok: false, error: 'too_many_requests' });
+    scoreOddaja = validirajOddajo(payload);
+    if (!scoreOddaja.ok) {
+      return res.status(400).json({ ok: false, error: scoreOddaja.error, field: scoreOddaja.field });
+    }
+  }
+
   const podjetje = izlusciPodjetje(payload, questions);
   const matchRes = await najdiPodjetjeAI(podjetje, { payload });
   if (!matchRes?.companyId) {
@@ -543,6 +573,12 @@ router.post('/:slug', async (req, res) => {
       [companyId, questionnaireId, email]
     );
     if (dup?.rows?.length > 0) {
+      // Pri oceni mora dvojni klik vseeno pripeljati do (istega) porocila.
+      if (scoreOddaja) {
+        const s = await dbQuery('SELECT token FROM score_results WHERE response_id = $1', [dup.rows[0].id]);
+        const token = s?.rows?.[0]?.token;
+        if (token) return res.json({ ok: true, deduplicated: true, reportUrl: `/r/${token}` });
+      }
       return res.json({ ok: true, deduplicated: true });
     }
   }
@@ -551,6 +587,14 @@ router.post('/:slug', async (req, res) => {
   // vrstice, torej natanko tista razlicica, proti kateri je bil odgovor
   // zgoraj preverjen.
   const snap = snapshotIzVrstice(r.rows[0]);
+
+  if (scoreOddaja) {
+    const s = await shraniOddajo({ companyId, questionnaireId, payload, ipHash, snap, oddaja: scoreOddaja });
+    if (!s) return res.status(500).json({ ok: false, error: 'save_failed' });
+    console.log(`[form/${slug}] shranjeno: company=${companyId} response=${s.responseId} score=${s.rezultat.skupno}`);
+    sproziScoreOutbox();
+    return res.json({ ok: true, responseId: s.responseId, companyId, reportUrl: `/r/${s.token}` });
+  }
 
   const inserted = await dbQuery(
     `INSERT INTO responses (company_id, questionnaire_id, raw_data, ip_hash, consent_gdpr,

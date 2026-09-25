@@ -13,6 +13,8 @@ import { router as procesiRouter } from './routes/procesi.js';
 import { router as nalogeRouter } from './routes/naloge.js';
 import { router as formRouter } from './routes/form.js';
 import { basicAuth } from './middleware/auth.js';
+import { javniRouter as scoreJavniRouter, adminRouter as scoreAdminRouter } from './routes/score.js';
+import { zazeniOutbox as zazeniScoreOutbox } from './score/outbox.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const PORT = parseInt(process.env.PORT ?? '3000', 10);
@@ -57,6 +59,10 @@ app.use('/webhook', webhookRouter);
 // Lasten obrazec — javni (brez auth). GET renderira HTML, POST sprejme submission.
 app.use('/f', formRouter);
 
+// AI Business Score: javna pristajalna stran s kvizom (/ai-business-score) in
+// porocila pod neugibljivim tokenom (/r/:token). Oddaja gre prek /f/ai-business-score.
+app.use(scoreJavniRouter);
+
 // Debug rute — ZASCITENE z basic auth. Razkrivajo osebne podatke in vsebujejo
 // nevarne operacije (/debug/cleanup zbrise vso bazo), zato nikoli brez auth.
 app.use('/debug', basicAuth, debugSimRouter);
@@ -74,6 +80,9 @@ app.use('/api/procesi', basicAuth, procesiRouter);
 // Naloge za stran "Danes". Mountan pred apiRouter-jem iz istega razloga kot
 // zgornji dve: /api/companies/:id bi drugace pozrl "naloge" kot :id.
 app.use('/api/naloge', basicAuth, nalogeRouter);
+
+// AI Business Score izvoz (CSV za Excel/CRM). Pred apiRouter-jem iz istega razloga.
+app.use('/api/score', basicAuth, scoreAdminRouter);
 
 app.use('/api', basicAuth, apiRouter);
 
@@ -133,6 +142,10 @@ async function runMigracije() {
 }
 
 await runMigracije();
+
+// Outbox za AI Business Score (MailerLite + AI besedilo). Tece v istem procesu,
+// stanje pa je v bazi, zato restart ne izgubi dela.
+zazeniScoreOutbox();
 
 app.listen(PORT, () => {
   console.log(`[server] bazavprasalnikov-api posluša na portu ${PORT}`);
