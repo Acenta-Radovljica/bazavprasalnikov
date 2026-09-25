@@ -1,6 +1,6 @@
 // ── DEL 1: Imports ────────────────────────────────────────────────────────
 import { dbQuery } from '../db.js';
-import { klicHaiku } from './claude.js';
+import { klicSonnet } from './claude.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 // Kvalifikacija je enotna ocenjevalna lestvica (ne vsebinski prompt kot
@@ -43,7 +43,7 @@ function formatirajRespondenta(idx, raw, povzetek) {
   return lines.join('\n');
 }
 
-// Varno izlusci JSON iz Haiku odgovora. Haiku vcasih ovije v ```json ... ```
+// Varno izlusci JSON iz AI odgovora. Model vcasih ovije v ```json ... ```
 // ali doda uvodni stavek — zato vzamemo podniz od prvega { do zadnjega }.
 // Vrne validiran objekt {kvalifikacija, razlog} ali null.
 function parsajKvalifikacijo(text) {
@@ -119,8 +119,10 @@ ${respondentiBlok}
 
 Vrni samo JSON z ocenama "kvalifikacija" in "razlog".`;
 
-  // Majhen output (kratek JSON) — 300 tokenov je dovolj.
-  const odgovor = await klicHaiku({ system: SYSTEM_PROMPT, user, maxTokens: 300 });
+  // Majhen output (kratek JSON) — 300 tokenov je dovolj; prostor za
+  // razmisljanje doda klicSonnet sam. Sonnet 5 namesto Haiku od 25. 9. 2026:
+  // ocena hot/warm/cold je presoja, ne povzemanje.
+  const odgovor = await klicSonnet({ system: SYSTEM_PROMPT, user, maxTokens: 300 });
   const ocena = parsajKvalifikacijo(odgovor);
   if (!ocena) {
     console.warn(`[kvalifikacija] AI ni vrnil veljavnega JSON-a za company=${companyId} q=${questionnaireId}`);

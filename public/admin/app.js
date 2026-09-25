@@ -176,6 +176,12 @@ const NAV_POSTAVKE = [
     podseznam: true,
   },
   {
+    // 25. 9. 2026: iz "Napredno" nazaj v Delo — vprasalnike se ureja redno,
+    // skrita postavka pod zlozeno skupino je bila odvec klik.
+    kljuc: 'questionnaires', naslov: 'Vprašalniki', href: '/admin/questionnaires.html',
+    ikona: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
+  },
+  {
     skupina: 'Analiza',
     kljuc: 'analiza', naslov: 'Primerjava', href: '/admin/analiza.html',
     ikona: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
@@ -186,16 +192,12 @@ const NAV_POSTAVKE = [
   },
 ];
 
-// Tehnicni strani, ki ju komercialist ne rabi nikoli (slugi, AI prompti,
-// surovi JSON; AI analiza cez kliente). Zlozeni sta v skupino "Napredno" na
-// dnu — dosegljivi ostajata, a ne motita osnovnega dela. Stanje (odprto /
+// Tehnicna stran, ki je komercialist ne rabi (AI analiza cez kliente).
+// Zlozena je v skupino "Napredno" na dnu — dosegljiva ostaja, a ne moti
+// osnovnega dela. Vprasalniki so bili tu do 25. 9. 2026. Stanje (odprto /
 // zaprto) si zapomni brskalnik; ce je odprta katera od teh strani, je
 // skupina prisilno odprta, da aktivna postavka ni skrita.
 const NAPREDNO_POSTAVKE = [
-  {
-    kljuc: 'questionnaires', naslov: 'Vprašalniki', href: '/admin/questionnaires.html',
-    ikona: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
-  },
   {
     // "Vpogledi", ne "Cross-client" — edina angleska postavka je bila prav ta.
     kljuc: 'insights', naslov: 'Vpogledi', href: '/admin/insights.html',

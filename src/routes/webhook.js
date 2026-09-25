@@ -35,7 +35,7 @@ async function obdelajSubmission({ payload, ip, questionnaireId }) {
   const consent = payload.gdpr_consent === 'on' || payload.gdpr_consent === true;
 
   const podjetje = izlusciPodjetje(payload);
-  const matchRes = await najdiPodjetjeAI(podjetje);
+  const matchRes = await najdiPodjetjeAI(podjetje, { payload });
 
   if (!matchRes?.companyId) {
     console.error('[webhook] ni mogel ustvariti/najti companies vrstice za:', podjetje);

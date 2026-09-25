@@ -71,7 +71,7 @@ router.post('/import', async (req, res) => {
     return res.status(400).json({ error: 'missing_company_name' });
   }
 
-  const matchRes = await najdiPodjetjeAI(podjetje.trim());
+  const matchRes = await najdiPodjetjeAI(podjetje.trim(), { payload });
   if (!matchRes?.companyId) {
     return res.status(500).json({ error: 'company_match_failed', podjetje });
   }

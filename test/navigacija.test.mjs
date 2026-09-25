@@ -21,11 +21,13 @@ function t(ime, pogoj, dodatek = '') {
 // 31. 8. 2026: tehnicni strani (Vprasalniki, Vpogledi — prej "Cross-client")
 // preseljeni v zlozeno skupino "Napredno" na dnu; komercialist vidi samo 5
 // postavk, ki jih zares uporablja.
-const GLAVNE   = ['Danes', 'Procesi', 'Podjetja', 'Primerjava', 'Iskanje'];
-const NAPREDNE = ['Vprašalniki', 'Vpogledi'];
+// 25. 9. 2026: Vprasalniki nazaj v skupino Delo (za Podjetja); pod Napredno
+// ostanejo samo Vpogledi.
+const GLAVNE   = ['Danes', 'Procesi', 'Podjetja', 'Vprašalniki', 'Primerjava', 'Iskanje'];
+const NAPREDNE = ['Vpogledi'];
 const POSTAVKE = [...GLAVNE, ...NAPREDNE];
-const KLJUCI   = ['pregled', 'procesi', 'podjetja', 'analiza', 'search', 'questionnaires', 'insights'];
-const V_NAPREDNEM = new Set(['questionnaires', 'insights']);
+const KLJUCI   = ['pregled', 'procesi', 'podjetja', 'questionnaires', 'analiza', 'search', 'insights'];
+const V_NAPREDNEM = new Set(['insights']);
 
 const STRANI = [
   ['Danes',        '/admin/index.html',          'pregled'],
@@ -94,10 +96,10 @@ for (const [ime, pot, aktivenKljuc] of STRANI) {
   });
 
   t('stranska vrstica je izrisana', izvid.imaSidebar);
-  t('5 glavnih postavk', JSON.stringify(izvid.glavne) === JSON.stringify(GLAVNE),
+  t('6 glavnih postavk', JSON.stringify(izvid.glavne) === JSON.stringify(GLAVNE),
      JSON.stringify(izvid.glavne));
   t('Napredno preklop obstaja', izvid.imaNaprednoToggle);
-  t('napredni postavki sta pravi', JSON.stringify(izvid.napredne) === JSON.stringify(NAPREDNE),
+  t('napredna postavka je prava', JSON.stringify(izvid.napredne) === JSON.stringify(NAPREDNE),
      JSON.stringify(izvid.napredne));
   // Skupina je privzeto zaprta; odprta je SAMO, kadar je aktivna stran v njej
   // (aktivna postavka ne sme biti skrita). Svez brskalnik = brez localStorage.

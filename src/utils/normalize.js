@@ -9,7 +9,12 @@ import { createHash } from 'node:crypto';
 function normalizirajNaziv(naziv) {
   if (!naziv || typeof naziv !== 'string') return '';
 
-  let n = naziv.toLowerCase().trim();
+  // 0) Brez sumnikov: "Gostišče Kovačič" in "Gostisce Kovacic" sta isto.
+  //    Prej je "gostišče" ostal v imenu, ker je seznam spodaj brez sumnikov.
+  //    đ se v NFD ne razstavi, zato posebej.
+  let n = naziv.toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
 
   // 1) Pike zbrisi BREZ presledka, da "d.o.o." → "doo" (en zeton, ne trije).
   //    Ostalo interpunkcijo (vejice, oklepaje) pa zamenjaj s presledkom.
@@ -21,6 +26,8 @@ function normalizirajNaziv(naziv) {
     'doo', 'dd', 'sp', 'kd', 'gmbh', 'ltd', 'inc', 'llc',
     'hotel', 'hostel', 'gostisce', 'gostilna', 'penzion',
     'apartmaji', 'apartma', 'terme', 'wellness', 'resort',
+    // "JZ Turizem in kultura Mlinsko" = "Javni zavod Turizem ..." = "Turizem ..."
+    'jz', 'javni', 'zavod',
   ]);
 
   const tokens = n.split(/\s+/).filter(t => t && !dropTokens.has(t));

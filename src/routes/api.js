@@ -77,8 +77,17 @@ router.get('/companies/:id', async (req, res) => {
     [id]
   );
 
+  // Mozen dvojnik (migracija 012): ime za opozorilo na strani podjetja.
+  let mozniDvojnik = null;
+  if (company.rows[0].mozni_dvojnik_id) {
+    const d = await dbQuery('SELECT id, naziv_prikaz FROM companies WHERE id = $1',
+      [company.rows[0].mozni_dvojnik_id]);
+    mozniDvojnik = d?.rows?.[0] ?? null;
+  }
+
   res.json({
     company: company.rows[0],
+    mozni_dvojnik: mozniDvojnik,
     responses: responses?.rows ?? [],
     priporocila: priporocila?.rows ?? [],
   });
@@ -100,9 +109,15 @@ router.patch('/companies/:id', async (req, res) => {
   const body = req.body ?? {};
   const setStatus = 'status' in body;
   const setKval = 'kvalifikacija' in body;
+  // "Ni isto podjetje": opozorilo o moznem dvojniku se da samo zavrniti
+  // (null). Nastavi ga le ujemanje ob oddaji.
+  const setDvojnik = 'mozni_dvojnik_id' in body;
 
-  if (!setStatus && !setKval) {
+  if (!setStatus && !setKval && !setDvojnik) {
     return res.status(400).json({ error: 'nothing_to_update' });
+  }
+  if (setDvojnik && body.mozni_dvojnik_id !== null) {
+    return res.status(400).json({ error: 'invalid_mozni_dvojnik_id', dovoljeno: [null] });
   }
   if (setStatus && !STATUSI.includes(body.status)) {
     return res.status(400).json({ error: 'invalid_status', dovoljeno: STATUSI });
@@ -129,11 +144,15 @@ router.patch('/companies/:id', async (req, res) => {
     }
   }
 
+  if (setDvojnik) {
+    sets.push('mozni_dvojnik_id = NULL', 'mozni_dvojnik_razlog = NULL');
+  }
+
   params.push(id);
   const upd = await dbQuery(
     `UPDATE companies SET ${sets.join(', ')} WHERE id = $${i}
      RETURNING id, status, kvalifikacija, kvalifikacija_razlog, kvalifikacija_rocna,
-               status_updated_at, kvalifikacija_updated_at`,
+               status_updated_at, kvalifikacija_updated_at, mozni_dvojnik_id`,
     params
   );
   if (!upd?.rows?.length) return res.status(404).json({ error: 'not_found' });

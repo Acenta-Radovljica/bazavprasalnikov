@@ -104,7 +104,7 @@ function sproziInsights({ dni } = {}) {
   vOzadju('insights', () => generirajInsights(dni ? { dni } : {}));
 }
 
-// Sprozi AI kvalifikacijo (hot/warm/cold) v ozadju. Brez debounce — Haiku je
+// Sprozi AI kvalifikacijo (hot/warm/cold) v ozadju. Brez debounce — Sonnet je
 // poceni, modul ob vsakem klicu prebere vse odgovore, zato zadnji zagon zmaga
 // s polno sliko. Vrata (samo lead-vprasalniki) + varovalka (ne prepise rocne
 // ocene) sta znotraj generirajKvalifikacija — klic je tu vedno varen.

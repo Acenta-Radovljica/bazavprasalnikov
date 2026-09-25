@@ -43,6 +43,7 @@
     let priporocila = [];     // [{questionnaire_id, slug, naziv_prikaz, vsebina, updated_at}]
     let aktivniTab = null;    // questionnaire_id za priporocila IN odgovore (isti izbor)
     let vsiOdgovori = false;  // "Pokaži vse" v seznamu odgovorov
+    let mozniDvojnik = null;  // {id, naziv_prikaz} — ujemanje ob oddaji ga ni smelo samodejno združiti
 
     // Lijak — ista resnica kot STATUSI v src/routes/api.js.
     const LIJAK = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen'];
@@ -94,7 +95,38 @@
             </div>
           </div>
           <a class="e-btn-soft" href="/admin/podjetja.html">← Vsa podjetja</a>
-        </div>`;
+        </div>
+        ${mozniDvojnik ? `
+          <div class="e-note warn" id="mozni-dvojnik" style="margin-bottom:16px">
+            Verjetno isto podjetje kot
+            <a href="/admin/company.html?id=${mozniDvojnik.id}"><strong>${esc(mozniDvojnik.naziv_prikaz)}</strong> (#${mozniDvojnik.id})</a>.
+            ${esc(podjetje.mozni_dvojnik_razlog || '')}
+            <div class="e-actions" style="margin-top:10px">
+              <button type="button" class="e-btn" onclick="zdruziZDvojnikom()">Združi v #${mozniDvojnik.id}</button>
+              <button type="button" class="e-btn-soft" onclick="niDvojnik()">Ni isto podjetje</button>
+            </div>
+          </div>` : ''}`;
+    }
+
+    // Opozorilo o moznem dvojniku: zdruzi TO podjetje v starejse ali zavrni.
+    async function zdruziZDvojnikom() {
+      if (!mozniDvojnik) return;
+      if (!confirm(`Združiti „${podjetje.naziv_prikaz}“ v „${mozniDvojnik.naziv_prikaz}“? Odgovori se prenesejo, tega ni mogoče razveljaviti.`)) return;
+      const r = await apiFetch(`/api/companies/${id}/merge`, {
+        method: 'POST',
+        body: JSON.stringify({ target_id: mozniDvojnik.id }),
+      });
+      if (r?.ok) {
+        window.location.href = `/admin/company.html?id=${mozniDvojnik.id}`;
+      } else {
+        alert('Napaka pri združevanju.');
+      }
+    }
+
+    async function niDvojnik() {
+      if (!await patchPodjetje({ mozni_dvojnik_id: null })) return;
+      mozniDvojnik = null;
+      renderHeader();
     }
 
     // ── Zgoraj: priporocila (akcentna kartica) + ocena + status ───────────
@@ -376,6 +408,7 @@
         return;
       }
       podjetje    = data.company;
+      mozniDvojnik = data.mozni_dvojnik ?? null;
       odgovori    = data.responses ?? [];
       priporocila = data.priporocila ?? [];
       renderHeader();

@@ -525,7 +525,7 @@ router.post('/:slug', async (req, res) => {
   const ipHash = hashIp(ip);
 
   const podjetje = izlusciPodjetje(payload, questions);
-  const matchRes = await najdiPodjetjeAI(podjetje);
+  const matchRes = await najdiPodjetjeAI(podjetje, { payload });
   if (!matchRes?.companyId) {
     return res.status(500).json({ ok: false, error: 'company_match_failed' });
   }
