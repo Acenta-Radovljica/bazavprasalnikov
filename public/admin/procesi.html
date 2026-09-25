@@ -357,7 +357,7 @@
           ${esc(f.naslov)}: ${esc(f.opis)}
           <button type="button" data-pocisti-filter="${f.id}" title="Odstrani filter">&times;</button>
         </span>`).join('')
-        + `<button type="button" id="pocistiVse" class="text-xs text-muted hover:text-[#15151f] underline ml-1">Počisti vse</button>`;
+        + `<button type="button" id="pocistiVse" class="text-xs text-muted hover:text-[#16262e] underline ml-1">Počisti vse</button>`;
     }
 
     // ── Razvrscanje ───────────────────────────────────────────────────────
@@ -409,7 +409,7 @@
       if (!vseSeje.length) {
         document.getElementById('seje').innerHTML = `
           <div class="text-center py-16 px-6">
-            <div class="text-[#15151f] font-medium mb-1">Še ni sestankov.</div>
+            <div class="text-[#16262e] font-medium mb-1">Še ni sestankov.</div>
             <div class="text-sm text-muted">Klikni „Nov sestanek“ zgoraj in začni izpolnjevati vprašalnik.</div>
           </div>`;
         return;
@@ -417,7 +417,7 @@
       if (!seje.length) {
         document.getElementById('seje').innerHTML = `
           <div class="text-center py-16 px-6">
-            <div class="text-[#15151f] font-medium mb-1">Noben sestanek ne ustreza filtrom.</div>
+            <div class="text-[#16262e] font-medium mb-1">Noben sestanek ne ustreza filtrom.</div>
             <div class="text-sm text-muted">Odstrani kakšen filter zgoraj.</div>
           </div>`;
         return;

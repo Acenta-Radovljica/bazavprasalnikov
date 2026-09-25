@@ -21,9 +21,25 @@
       <p class="text-muted mb-3" style="font-size:12px">
         Povleci kartico v drug stolpec za spremembo statusa. Klik na kartico odpre podjetje.
       </p>
-      <div id="board" class="flex gap-3 overflow-x-auto pb-3"></div>
+      <div id="board" class="kb-board"></div>
     </div>
   </main>
+
+  <style>
+    /* Vseh 7 faz lijaka na en zaslon; pod ~1200px se tabla drsi vodoravno. */
+    .kb-board { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 10px; overflow-x: auto; padding-bottom: 12px; }
+    .kb-glava { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 0 4px 8px; font-size: 12px; font-weight: 800; color: var(--ink-2); }
+    .kb-glava span { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kb-glava i { width: 8px; height: 8px; border-radius: 2px; flex: none; }
+    .kb-glava b { font-size: 10px; font-weight: 800; color: var(--muted); background: var(--row-line); border-radius: 10px; padding: 2px 7px; }
+    .kb-stolpec { background: #ffffff80; border-radius: 12px; min-height: 60vh; padding: 8px; display: flex; flex-direction: column; gap: 8px; transition: background .15s; }
+    .kb-stolpec:hover { background: #ffffffb3; }
+    .kb-kartica { background: #fff; border-radius: 10px; padding: 11px 12px; cursor: grab; border: 1px solid transparent; transition: border-color .15s, box-shadow .15s; }
+    .kb-kartica:hover { border-color: var(--accent-soft); box-shadow: var(--shadow-lift); }
+    .kb-ime { font-size: 12.5px; font-weight: 800; color: var(--ink-2); margin-bottom: 8px; line-height: 1.35; overflow-wrap: anywhere; }
+    .kb-st { font-size: 10px; font-weight: 700; color: var(--muted-2); white-space: nowrap; }
+    .kb-prazno { text-align: center; color: var(--muted-2); font-size: 11px; font-weight: 600; padding: 22px 0; }
+  </style>
 
   <script src="/admin/app.js"></script>
   <script>
@@ -35,21 +51,27 @@
     const STATUSI = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen', 'izgubljen'];
 
     // Barvni rob stolpca po fazi (vizualna orientacija po lijaku).
+    // Barve lijaka iz palete v admin.css: od sive (nov) prek vse temnejse
+    // turkizne do jantarja (ponudba); dobljen zelen, izgubljen rdec.
     const STOLPEC_BARVA = {
-      nov:          'border-gray-400',
-      kvalificiran: 'border-indigo-400',
-      kontaktiran:  'border-blue-400',
-      sestanek:     'border-purple-400',
-      ponudba:      'border-amber-400',
-      dobljen:      'border-green-500',
-      izgubljen:    'border-red-400',
+      nov:          'var(--sev3)',
+      kvalificiran: '#6cc2b3',
+      kontaktiran:  'var(--accent-hover)',
+      sestanek:     'var(--accent)',
+      ponudba:      '#e8b640',
+      dobljen:      'var(--good, #1f9a6b)',
+      izgubljen:    'var(--sev1)',
+    };
+    const STATUS_NAZIV = {
+      nov: 'Nov', kvalificiran: 'Kvalificiran', kontaktiran: 'Kontaktiran', sestanek: 'Sestanek',
+      ponudba: 'Ponudba', dobljen: 'Dobljen', izgubljen: 'Izgubljen',
     };
 
     // Barvna znacka za kvalifikacijo (HOT rdeca / WARM oranzna / COLD modra).
     function kvalBadge(k) {
-      if (k === 'hot')  return '<span class="px-1.5 py-0.5 text-xs rounded bg-red-100 text-red-700 font-semibold">HOT</span>';
-      if (k === 'warm') return '<span class="px-1.5 py-0.5 text-xs rounded bg-orange-100 text-orange-700 font-semibold">WARM</span>';
-      if (k === 'cold') return '<span class="px-1.5 py-0.5 text-xs rounded bg-blue-100 text-blue-700 font-semibold">COLD</span>';
+      if (k === 'hot')  return '<span class="e-chip bad">Hot</span>';
+      if (k === 'warm') return '<span class="e-chip warn">Warm</span>';
+      if (k === 'cold') return '<span class="e-chip cold">Cold</span>';
       return '';
     }
 
@@ -61,11 +83,11 @@
              data-id="${p.id}"
              ondragstart="zacniVlecenje(event, ${p.id})"
              onclick="if(!jeVleklo) window.location.href='/admin/company.html?id=${p.id}'"
-             class="kartica bg-white rounded shadow-sm border border-gray-200 p-3 cursor-pointer hover:shadow-md transition-shadow">
-          <div class="font-medium text-sm text-[#1a1a2e] mb-1">${esc(p.naziv_prikaz)}</div>
-          <div class="flex items-center justify-between">
+             class="kartica kb-kartica">
+          <div class="kb-ime">${esc(p.naziv_prikaz)}</div>
+          <div class="flex items-center justify-between gap-2">
             ${badge || '<span></span>'}
-            <span class="text-xs text-gray-400">${p.st_odgovorov} odg.</span>
+            <span class="kb-st">${p.st_odgovorov} odg.</span>
           </div>
         </div>
       `;
@@ -83,14 +105,14 @@
 
       board.innerHTML = STATUSI.map(s => {
         const kartice = skupine[s].map(kartica).join('') ||
-          '<div class="text-center text-gray-300 text-xs py-6">—</div>';
+          '<div class="kb-prazno">Ni podjetij</div>';
         return `
-          <div class="flex-shrink-0 w-64">
-            <div class="flex items-center justify-between mb-2 px-1">
-              <span class="text-sm font-semibold text-[#1a1a2e] capitalize">${s}</span>
-              <span class="text-xs text-gray-400">${skupine[s].length}</span>
+          <div class="kb-stolpec-ovoj">
+            <div class="kb-glava">
+              <span><i style="background:${STOLPEC_BARVA[s]}"></i>${STATUS_NAZIV[s]}</span>
+              <b>${skupine[s].length}</b>
             </div>
-            <div class="stolpec border-t-4 ${STOLPEC_BARVA[s]} bg-gray-100 rounded-b min-h-[60vh] p-2 space-y-2"
+            <div class="stolpec kb-stolpec"
                  data-status="${s}"
                  ondragover="event.preventDefault()"
                  ondrop="spustiKartico(event, '${s}')">

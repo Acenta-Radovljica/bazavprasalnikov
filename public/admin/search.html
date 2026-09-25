@@ -14,14 +14,14 @@
   <header id="nav"></header>
 
   <main class="max-w-5xl mx-auto px-6 py-8">
-    <h1 class="text-2xl font-bold text-[#1a1a2e] mb-4">Polnotekstovno iskanje</h1>
+    <h1 class="text-2xl font-bold text-[#16262e] mb-4">Polnotekstovno iskanje</h1>
 
     <form id="form" class="mb-6">
       <input
         id="q"
         type="text"
         placeholder="Vnesi iskalno geslo (npr. wellness, chatbot, AI orodja)..."
-        class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#00b894]"
+        class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#0b7a6c]"
       >
     </form>
 
@@ -68,7 +68,7 @@
         ${results.map(r => `
           <div class="bg-white rounded shadow p-4 mb-3">
             <div class="flex items-center justify-between mb-2">
-              <a href="/admin/response.html?id=${r.response_id}" class="text-sm font-medium text-[#00b894] hover:underline">
+              <a href="/admin/response.html?id=${r.response_id}" class="text-sm font-medium text-[#0b7a6c] hover:underline">
                 ${esc(r.naziv_prikaz)} — odgovor #${r.response_id}
               </a>
               <span class="text-xs text-gray-500">${formatDatum(r.submitted_at)}</span>

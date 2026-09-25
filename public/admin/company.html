@@ -4,91 +4,27 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Acenta — Podjetje</title>
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
-    /* Per-page: tabs */
-    .tab-btn {
-      padding: 11px 18px; border-radius: 14px 14px 0 0;
-      font-size: 14px; font-weight: 600; color: var(--muted);
-      cursor: pointer; border: 1px solid transparent; border-bottom: none;
-      background: transparent;
-      transition: color 0.15s, background 0.15s;
-    }
-    .tab-btn.active {
-      background: var(--card-bg); color: var(--ink);
-      border-color: var(--hairline);
-      box-shadow: 0 -2px 8px -4px rgba(20, 18, 12, 0.06);
-    }
-    .tab-btn:hover:not(.active) { color: var(--ink); background: var(--bg-sub); }
-
-    .tab-content {
-      background: var(--card-bg);
-      border: 1px solid var(--hairline); border-top: none;
-      border-radius: 0 14px 14px 14px;
-      padding: 32px;
-      box-shadow: var(--shadow-2);
-    }
-
-    /* Odgovori: ena kartica = en izpolnjevalec */
-    .odg-skupina { display:flex; align-items:center; gap:10px; margin:36px 0 12px; }
-    .odg-skupina .pill { white-space:nowrap; flex:none; }
-    .odg-skupina h2 { font-size:18px; font-weight:700; letter-spacing:-.015em; color:var(--ink); }
-    .odg-seznam { display:flex; flex-direction:column; gap:10px; }
-    .odg-kartica { background:var(--card-bg); border:1px solid var(--card-border); border-radius:var(--r-lg);
-      padding:16px 18px; transition:border-color .15s var(--ease), box-shadow .15s var(--ease); }
-    .odg-kartica:hover { border-color:var(--hairline-2); box-shadow:var(--shadow-lift); }
-    .odg-glava { display:flex; align-items:center; gap:12px; }
-    .odg-avatar { width:38px; height:38px; border-radius:999px; flex:none; display:flex; align-items:center; justify-content:center;
-      background:var(--acenta-teal-soft); color:var(--acenta-teal); font-weight:700; font-size:13px; border:1px solid var(--acenta-teal-line); }
-    .odg-avatar.anon { background:var(--bg-sub); color:var(--muted); border-color:var(--hairline); }
-    .odg-kdo { flex:1; min-width:0; }
-    .odg-ime { font-size:15px; font-weight:650; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .odg-meta { font-size:12px; color:var(--muted); display:flex; gap:6px; white-space:nowrap; overflow:hidden; }
-    .odg-meta .pika { color:var(--muted-2); }
-    .btn-odpri { flex:none; display:inline-flex; align-items:center; gap:7px; height:34px; padding:0 14px; border-radius:999px;
-      background:var(--acenta-navy); color:#fff; font-weight:600; font-size:12.5px; white-space:nowrap; text-decoration:none;
-      box-shadow:0 1px 0 rgba(255,255,255,.12) inset, 0 6px 16px -8px rgba(13,21,32,.7); transition:background .15s var(--ease); }
-    .btn-odpri:hover { background:var(--acenta-teal); }
-    .btn-odpri svg { transition:transform .15s var(--ease); }
-    .btn-odpri:hover svg { transform:translateX(2px); }
-    .odg-povzetek { margin-top:14px; padding:14px 16px; background:var(--bg-sub); border-radius:var(--r);
-      color:var(--ink-2); max-height:9.5em; overflow:hidden; position:relative; }
-    .odg-povzetek:not(.odprt)::after { content:""; position:absolute; left:0; right:0; bottom:0; height:48px;
-      background:linear-gradient(180deg, rgba(244,246,248,0), var(--bg-sub)); }
-    .odg-povzetek.odprt { max-height:none; }
-    .odg-povzetek > :first-child { margin-top:0; }
-    .odg-povzetek > :last-child { margin-bottom:0; }
-    .odg-povzetek li { margin:.35em 0; }
-    .odg-povzetek strong { color:var(--ink); }
-    .odg-vec { margin-top:8px; font-size:12px; font-weight:600; color:var(--acenta-teal); background:none; border:0; cursor:pointer; padding:0; }
-    .odg-vec:hover { text-decoration:underline; }
-    .odg-prazno { margin-top:12px; font-size:13px; color:var(--muted); font-style:italic; }
-    @media (max-width:640px) {
-      .odg-glava { flex-wrap:wrap; }
-      .odg-meta { flex-wrap:wrap; white-space:normal; }
-      .btn-odpri { width:100%; justify-content:center; }
+    @media print {
+      .app-sidebar, [data-mobilna-nav], .e-feature-actions, .e-crumb, .e-bottom { display: none !important; }
+      .e-reco-wrap { max-height: none !important; }
+      .e-reco-wrap::after { display: none !important; }
     }
   </style>
 </head>
 <body class="min-h-screen">
   <header id="nav"></header>
 
-  <main class="max-w-6xl mx-auto px-6 py-10 relative">
-    <div class="hero-blob"></div>
-    <a href="/admin/" class="hero-content text-sm font-medium text-[#006e5a] hover:text-[#00b894]">← Nazaj na seznam</a>
-
-    <div id="header" class="hero-content mt-4 mb-8"></div>
-
-    <!-- Priporocila po vprasalnikih -->
-    <div id="priporocila-tabs" class="mb-8"></div>
-
-    <!-- Odgovori (grouped by questionnaire) -->
-    <div id="odgovori-section"></div>
+  <main class="flex-1 min-w-0 flex flex-col">
+    <div class="e-wrap" id="stran">
+      <div class="e-crumb" id="crumb">Baza vprašalnikov / <a href="/admin/podjetja.html">Podjetja</a></div>
+      <div id="header"></div>
+      <div id="zgoraj"></div>
+      <div id="spodaj"></div>
+    </div>
   </main>
 
   <script src="/admin/app.js"></script>
@@ -97,237 +33,297 @@
 
     const id = qs('id');
     if (!id) {
-      document.getElementById('header').innerHTML = '<div class="bg-red-50 text-red-700 p-4 rounded">Manjka ?id= parameter</div>';
+      document.getElementById('header').innerHTML = '<div class="e-note bad">Manjka ?id= parameter.</div>';
       throw new Error('no id');
     }
 
     // ── Stanje ────────────────────────────────────────────────────────────
     let podjetje = null;
-    let odgovori = [];        // [{id, questionnaire_id, q_slug, q_naziv, submitted_at, ...}]
+    let odgovori = [];        // [{id, questionnaire_id, q_slug, q_naziv, submitted_at, raw_data, ai_povzetek, vprasanja}]
     let priporocila = [];     // [{questionnaire_id, slug, naziv_prikaz, vsebina, updated_at}]
-    let aktivniTab = null;    // questionnaire_id
+    let aktivniTab = null;    // questionnaire_id za priporocila IN odgovore (isti izbor)
+    let vsiOdgovori = false;  // "Pokaži vse" v seznamu odgovorov
 
-    // ── Header (osnovni podatki podjetja) ─────────────────────────────────
-    function renderHeader() {
-      document.getElementById('header').innerHTML = `
-        <div class="card p-10">
-          <h1 class="display mb-3">${esc(podjetje.naziv_prikaz)}</h1>
-          <div class="text-sm text-muted mb-6">
-            Normalizirano: <code class="bg-[var(--bg-sub)] px-1.5 py-0.5 rounded text-xs">${esc(podjetje.naziv_normaliziran)}</code>
-            · ${odgovori.length} ${odgovori.length === 1 ? 'odgovor' : 'odgovorov'} skupaj
-            · Zadnji: ${podjetje.last_response_at ? formatDatum(podjetje.last_response_at) : '—'}
-          </div>
-          <div class="flex flex-wrap gap-3">
-            <button onclick="odpriMerge()" class="btn-secondary">
-              Zlij z drugim podjetjem
-            </button>
-            <button onclick="izbrisiPodjetje()" class="btn-danger">
-              GDPR izbris
-            </button>
-          </div>
-        </div>
-      `;
+    // Lijak — ista resnica kot STATUSI v src/routes/api.js.
+    const LIJAK = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen'];
+    const STATUS_NAZIV = {
+      nov: 'Nov', kvalificiran: 'Kvalificiran', kontaktiran: 'Kontaktiran', sestanek: 'Sestanek',
+      ponudba: 'Ponudba', dobljen: 'Dobljen', izgubljen: 'Izgubljen',
+    };
+    const KVAL_NAZIV = { hot: 'Hot', warm: 'Warm', cold: 'Cold' };
+    const MAX_ODGOVOROV = 5;
+
+    // Zacetnice za znak podjetja; pravne oblike niso del imena.
+    function zacetnicePodjetja(naziv) {
+      const besede = String(naziv || '').replace(/\b(d\.?o\.?o\.?|s\.?p\.?|d\.?d\.?)/gi, '')
+        .split(/\s+/).filter(b => /[\p{L}\d]/u.test(b) && !/^(za|in|na|v|pri|s|z|of|the|and)$/i.test(b));
+      return besede.slice(0, 2).map(b => b.match(/[\p{L}\d]/u)[0].toUpperCase()).join('') || '?';
     }
 
-    // ── Priporocila — tabs po vprasalniku ─────────────────────────────────
-    function renderPriporocila() {
-      const el = document.getElementById('priporocila-tabs');
-
-      // Pripravi seznam tabov: vsi vprasalniki, za katere podjetje ima
-      // odgovore ALI priporocila. Vir resnice: unique questionnaire_id iz obeh.
-      const tabMap = new Map();  // qid -> { qid, slug, naziv, imaPriporocila, imaOdgovore }
-
+    // Vprasalniki podjetja: vsi, za katere ima odgovore ALI priporocila.
+    function vprasalniki() {
+      const m = new Map();
       for (const o of odgovori) {
-        const k = o.questionnaire_id;
-        if (!tabMap.has(k)) tabMap.set(k, { qid: k, slug: o.q_slug, naziv: o.q_naziv, imaPriporocila: false, imaOdgovore: true });
+        if (!m.has(o.questionnaire_id)) m.set(o.questionnaire_id, { qid: o.questionnaire_id, slug: o.q_slug, naziv: o.q_naziv, st: 0 });
+        m.get(o.questionnaire_id).st++;
       }
       for (const p of priporocila) {
-        const k = p.questionnaire_id;
-        if (!tabMap.has(k)) tabMap.set(k, { qid: k, slug: p.slug, naziv: p.naziv_prikaz, imaPriporocila: true, imaOdgovore: false });
-        else tabMap.get(k).imaPriporocila = true;
+        if (!m.has(p.questionnaire_id)) m.set(p.questionnaire_id, { qid: p.questionnaire_id, slug: p.slug, naziv: p.naziv_prikaz, st: 0 });
       }
+      return [...m.values()].sort((a, b) => b.st - a.st || a.naziv.localeCompare(b.naziv));
+    }
 
-      const tabs = Array.from(tabMap.values()).sort((a, b) => a.naziv.localeCompare(b.naziv));
-
-      if (!tabs.length) {
-        el.innerHTML = `
-          <div class="bg-yellow-50 border border-yellow-200 rounded p-4 text-sm text-yellow-800">
-            Podjetje še nima odgovorov ali priporočil.
+    // ── Glava ─────────────────────────────────────────────────────────────
+    function renderHeader() {
+      const vpr = vprasalniki();
+      const zadnji = podjetje.last_response_at ? formatDan(podjetje.last_response_at) : '—';
+      document.title = `Acenta — ${podjetje.naziv_prikaz}`;
+      document.getElementById('crumb').innerHTML =
+        `Baza vprašalnikov / <a href="/admin/podjetja.html">Podjetja</a> / <strong>${esc(podjetje.naziv_prikaz)}</strong>`;
+      document.getElementById('header').innerHTML = `
+        <div class="e-title">
+          <div class="e-profile">
+            <div class="e-logo">${esc(zacetnicePodjetja(podjetje.naziv_prikaz))}</div>
+            <div style="min-width:0">
+              <div class="e-eyebrow"><i></i>Podjetje · ${sklon(odgovori.length, ['odgovor', 'odgovora', 'odgovori', 'odgovorov'])} · zadnji ${zadnji}</div>
+              <h1>${esc(podjetje.naziv_prikaz)}.</h1>
+              <div class="e-links">
+                ${vpr.map(v => `<a href="#" data-tab="${v.qid}">${esc(v.naziv)} <small>${v.st}</small></a>`).join('')}
+                <span title="Normaliziran naziv, po katerem se združujejo odgovori">Normalizirano: ${esc(podjetje.naziv_normaliziran)}</span>
+              </div>
+            </div>
           </div>
-        `;
+          <a class="e-btn-soft" href="/admin/podjetja.html">← Vsa podjetja</a>
+        </div>`;
+    }
+
+    // ── Zgoraj: priporocila (akcentna kartica) + ocena + status ───────────
+    function renderZgoraj() {
+      const vpr = vprasalniki();
+      const el = document.getElementById('zgoraj');
+      if (!vpr.length) {
+        el.innerHTML = '<div class="e-panel"><div class="e-empty">Podjetje še nima odgovorov ali priporočil.</div></div>';
         return;
       }
+      if (aktivniTab === null || !vpr.some(v => v.qid === aktivniTab)) aktivniTab = vpr[0].qid;
+      const tab = vpr.find(v => v.qid === aktivniTab);
+      const p = priporocila.find(x => x.questionnaire_id === aktivniTab);
+      const odgZaTab = odgovori.filter(o => o.questionnaire_id === aktivniTab);
 
-      // Aktivni tab: izberi tistega z zadnjo aktivnostjo, ce ni nastavljen
-      if (aktivniTab === null || !tabs.some(t => t.qid === aktivniTab)) {
-        aktivniTab = tabs[0].qid;
+      // Zastarela = obstaja odgovor, novejsi od zadnje generacije.
+      const novejsi = p ? odgZaTab.filter(o => new Date(o.submitted_at) > new Date(p.updated_at)).length : 0;
+      const besediloNovejsi = novejsi === 1 ? 'je prišel 1 nov odgovor'
+        : novejsi === 2 ? 'sta prišla 2 nova odgovora'
+        : novejsi <= 4 ? `so prišli ${novejsi} novi odgovori` : `je prišlo ${novejsi} novih odgovorov`;
+      const stikalo = vpr.length > 1
+        ? `<div class="e-switch">${vpr.map(v => `<button type="button" data-tab="${v.qid}" class="${v.qid === aktivniTab ? 'active' : ''}">${esc(v.naziv)}</button>`).join('')}</div>`
+        : `<span class="e-badge">/f/${esc(tab.slug || '')}</span>`;
+
+      const vsebina = p
+        ? `${novejsi ? `<div class="e-warnbar">⚠ Zastarela: po generaciji ${besediloNovejsi}. Regenerirajte, da bodo upoštevani.</div>` : ''}
+           <div class="e-reco-wrap" id="reco"><div class="e-reco">${md(p.vsebina)}</div></div>`
+        : `<div class="e-reco-prazno">
+             <span class="ikona"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg></span>
+             <b>Priporočila še niso pripravljena</b>
+             <p>AI prebere ${odgZaTab.length === 1 ? 'odgovor' : `vseh ${odgZaTab.length} odgovorov`} na ta vprašalnik in pripravi povzetek skupine, predloge in naslednje korake. Generiranje traja okoli 70 sekund.</p>
+           </div>`;
+
+      const akcije = `
+        <div class="e-feature-actions">
+          <button type="button" class="e-btn-white" onclick="regeneriraj(${aktivniTab}, 'priporocila')">${p ? 'Regeneriraj priporočila' : 'Generiraj priporočila'}</button>
+          ${odgZaTab.length ? `<button type="button" class="e-btn-ghost" onclick="regeneriraj(${aktivniTab}, 'vse')">Regeneriraj vse</button>` : ''}
+          ${p ? `<a class="e-btn-ghost" href="/api/companies/${id}/pdf?questionnaire_id=${aktivniTab}" download>Izvozi PDF</a>
+                 <button type="button" class="e-btn-ghost" onclick="window.print()">Natisni</button>` : ''}
+          <div class="spacer"></div>
+          ${p ? '<button type="button" class="e-btn-ghost" id="reco-vec" hidden>Pokaži vse</button>' : ''}
+        </div>`;
+
+      const izKoliko = `iz ${odgZaTab.length} ${odgZaTab.length === 1 ? 'odgovora' : 'odgovorov'}`;
+      el.innerHTML = `
+        <div class="e-grid">
+          <div class="e-feature">
+            <div class="e-feature-top">
+              <div>
+                <span class="lbl">AI priporočila · ${esc(tab.naziv)}</span>
+                <div class="e-feature-sub">${p ? `<b>Generirano ${formatDan(p.updated_at)}</b> · ${izKoliko}` : 'Še ni generirano'}</div>
+              </div>
+              ${stikalo}
+            </div>
+            ${vsebina}
+            ${akcije}
+          </div>
+          <div class="e-side">
+            ${kvalKartica()}
+            ${statusKartica()}
+          </div>
+        </div>`;
+
+      // Dolga priporocila se zlozijo; gumb se pokaze samo, ce je res odrezano.
+      const wrap = document.getElementById('reco');
+      const gumb = document.getElementById('reco-vec');
+      if (wrap && gumb) {
+        if (wrap.scrollHeight <= wrap.clientHeight + 4) { wrap.classList.add('kratko'); }
+        else {
+          gumb.hidden = false;
+          gumb.addEventListener('click', () => {
+            const odpri = !wrap.classList.contains('open');
+            wrap.classList.toggle('open', odpri);
+            gumb.textContent = odpri ? 'Skrij' : 'Pokaži vse';
+          });
+        }
       }
+    }
 
-      // Render tab bar
-      const tabBar = tabs.map(t => {
-        const stOdg = odgovori.filter(o => o.questionnaire_id === t.qid).length;
-        const status = t.imaPriporocila ? '<span class="pill teal">✓</span>' : '<span class="pill warn">brez</span>';
+    function kvalKartica() {
+      const k = podjetje.kvalifikacija;
+      const vir = !k ? 'Še ni ocenjeno' : podjetje.kvalifikacija_rocna ? 'Ročno' : 'AI';
+      const gumbi = ['hot', 'warm', 'cold'].map(v =>
+        `<button type="button" class="${v}${k === v ? ' on' : ''}" onclick="nastaviKval('${v}')">${KVAL_NAZIV[v]}</button>`
+      ).join('') + `<button type="button" class="ai${!podjetje.kvalifikacija_rocna ? ' on' : ''}" onclick="nastaviKval(null)" title="Prepusti oceno AI (ponastavi ročno)">AI</button>`;
+      return `
+        <div class="e-sidecard">
+          <div class="label">Ocena leada <span class="e-chip layer">${vir}</span></div>
+          <div class="e-kval ${k || ''}"><span class="dot"></span>${k ? KVAL_NAZIV[k] : 'Neocenjeno'}</div>
+          ${podjetje.kvalifikacija_razlog ? `<p class="note">${esc(podjetje.kvalifikacija_razlog)}</p>` : ''}
+          <div class="e-seg" style="margin-top:auto;padding-top:14px">${gumbi}</div>
+        </div>`;
+    }
+
+    function statusKartica() {
+      const s = podjetje.status || 'nov';
+      const ix = LIJAK.indexOf(s);
+      const izgubljen = s === 'izgubljen';
+      const crte = LIJAK.map((_, i) => `<i class="${izgubljen ? '' : i < ix ? 'done' : i === ix ? 'cur' : ''}"></i>`).join('');
+      const opts = [...LIJAK, 'izgubljen'].map(v =>
+        `<option value="${v}" ${v === s ? 'selected' : ''}>${STATUS_NAZIV[v]}</option>`).join('');
+      const kdaj = podjetje.status_updated_at ? ` · spremenjeno ${formatDan(podjetje.status_updated_at)}` : '';
+      return `
+        <div class="e-sidecard">
+          <div class="label">Prodajni status</div>
+          <div class="big" style="font-size:26px">${STATUS_NAZIV[s] || esc(s)}</div>
+          <div class="e-steps${izgubljen ? ' lost' : ''}">${crte}</div>
+          <div class="foot">
+            <span>${izgubljen ? 'Izgubljen' : `${ix + 1} od ${LIJAK.length} faz`}${kdaj}</span>
+            <select class="e-select" aria-label="Prodajni status" onchange="nastaviStatus(this.value, this)">${opts}</select>
+          </div>
+        </div>`;
+    }
+
+    // ── Spodaj: odgovori po izpolnjevalcih + desni stolpec ────────────────
+    function renderSpodaj() {
+      const vpr = vprasalniki();
+      const el = document.getElementById('spodaj');
+      if (!vpr.length) { el.innerHTML = ''; return; }
+      const odgZaTab = odgovori.filter(o => o.questionnaire_id === aktivniTab);
+      const prikazani = vsiOdgovori ? odgZaTab : odgZaTab.slice(0, MAX_ODGOVOROV);
+
+      const vrstice = prikazani.map(r => {
+        const oseba = izpolnjevalec(r.raw_data, r.vprasanja);
+        const meta = [oseba.podnaslov, formatDatum(r.submitted_at)].filter(Boolean).map(esc).join(' · ');
+        const povzetek = r.ai_povzetek
+          ? `<div class="sum" data-odg="${r.id}">${md(r.ai_povzetek)}</div>
+             <button type="button" class="e-link sum-more" data-za="${r.id}" hidden>Pokaži celoten povzetek</button>`
+          : '<div class="none">AI povzetek še ni generiran.</div>';
         return `
-          <button class="tab-btn ${t.qid === aktivniTab ? 'active' : ''}" onclick="izberiTab(${t.qid})">
-            ${esc(t.naziv)}
-            <span class="pill muted ml-1">${stOdg}</span>
-            ${status}
-          </button>
-        `;
+          <article class="e-resp" data-response="${r.id}">
+            <span class="e-av${oseba.imaIme ? '' : ' anon'}">${esc(oseba.zacetnice)}</span>
+            <div style="min-width:0">
+              <h3 class="odg-ime">${esc(oseba.ime)}</h3>
+              <div class="meta">${meta}</div>
+              ${povzetek}
+            </div>
+            <a class="e-btn e-open btn-odpri" href="/admin/response.html?id=${r.id}">Odpri celoten vprašalnik <span class="e-go">→</span></a>
+          </article>`;
       }).join('');
 
+      const zavihki = vpr.map(v =>
+        `<button type="button" data-tab="${v.qid}" class="${v.qid === aktivniTab ? 'active' : ''}">${esc(v.naziv)} <b>${v.st}</b></button>`).join('');
+
+      const najvec = Math.max(1, ...vpr.map(v => v.st));
       el.innerHTML = `
-        <div class="flex items-end gap-1 border-b border-[var(--hairline)]">${tabBar}</div>
-        <div id="tab-content" class="tab-content"></div>
-      `;
-
-      renderTabContent();
-    }
-
-    function izberiTab(qid) {
-      aktivniTab = qid;
-      renderPriporocila();
-    }
-
-    function renderTabContent() {
-      const el = document.getElementById('tab-content');
-      const qid = aktivniTab;
-      const p = priporocila.find(x => x.questionnaire_id === qid);
-      const odgovoriZaTab = odgovori.filter(o => o.questionnaire_id === qid);
-      const tabInfo = odgovoriZaTab[0] || (p ? { q_naziv: p.naziv_prikaz, q_slug: p.slug } : null);
-
-      // Zastarela = obstaja response novejsi od priporocila updated_at
-      const zadnjiResponse = odgovoriZaTab[0]?.submitted_at;
-      const zastarela = p && zadnjiResponse && new Date(zadnjiResponse) > new Date(p.updated_at);
-
-      const warning = zastarela
-        ? `<div class="bg-[#fbeed4] border border-[#f0d99a] text-[#8a4d00] px-4 py-3 rounded-xl text-sm mb-5">
-             ⚠️ Priporočila so <b>zastarela</b> — nov odgovor je prišel po zadnji generaciji. Klikni "Regeneriraj priporočila" za posodobitev.
-           </div>`
-        : '';
-
-      // Akcijski gumbi (vedno enaki, glede na ali ima priporocila)
-      const akcijeHTML = `
-        <div class="flex flex-wrap gap-3 mb-6">
-          <button onclick="regeneriraj(${qid}, 'priporocila')" class="btn-primary">
-            ${p ? 'Regeneriraj priporočila' : 'Generiraj priporočila prvič'}
-          </button>
-          ${odgovoriZaTab.length ? `
-            <button onclick="regeneriraj(${qid}, 'vse')" class="btn-secondary" style="background:var(--acenta-navy); color:#fff; border-color:var(--acenta-navy);">
-              Regeneriraj VSE (povzetki + priporočila)
-            </button>
-          ` : ''}
-          ${p ? `
-            <a href="/api/companies/${id}/pdf?questionnaire_id=${qid}" class="btn-secondary" style="color:var(--acenta-teal-dark); border-color:var(--acenta-teal); text-decoration:none;" download>
-              Izvozi PDF (Acenta branding)
-            </a>
-            <a href="javascript:window.print()" class="text-sm font-medium text-muted hover:text-[#15151f] self-center">Natisni</a>
-          ` : ''}
-        </div>
-      `;
-
-      const hdrInfo = `
-        <div class="flex items-center justify-between mb-1">
+        <div class="e-bottom">
+          <section class="e-panel" id="odgovori-section">
+            <h2>Odgovori</h2>
+            <p class="desc">Ena vrstica je en izpolnjevalec. Povzetek je AI, celoten vprašalnik je en klik stran.</p>
+            <div class="e-tabs" role="tablist">${zavihki}</div>
+            ${vrstice || '<div class="e-empty">Za ta vprašalnik ni odgovorov, samo priporočila.</div>'}
+            ${odgZaTab.length > MAX_ODGOVOROV ? `
+              <div class="e-panel-foot">
+                <span>Prikazanih ${prikazani.length} od ${odgZaTab.length}</span>
+                <button type="button" class="e-btn-soft" onclick="vsiOdgovori = !vsiOdgovori; renderSpodaj()">${vsiOdgovori ? 'Pokaži manj' : `Pokaži vse (${odgZaTab.length})`}</button>
+              </div>` : ''}
+          </section>
           <div>
-            <div class="text-xs text-muted uppercase tracking-wider font-medium">Vprašalnik</div>
-            <div class="display-serif" style="font-size:24px;">${esc(tabInfo?.q_naziv || '?')}</div>
-            <div class="text-xs text-muted">/f/${esc(tabInfo?.q_slug || '')}</div>
+            <section class="e-panel">
+              <h2>Po vprašalnikih</h2>
+              <p class="desc">Koliko odgovorov je podjetje oddalo na posamezen vprašalnik.</p>
+              <div style="margin-top:12px">
+                ${vpr.map(v => `<div class="e-bar-row" title="${esc(v.naziv)}"><span>${esc(v.naziv)}</span><div class="track"><i style="width:${Math.round(v.st / najvec * 100)}%"></i></div><strong>${v.st}</strong></div>`).join('')}
+              </div>
+            </section>
+            <section class="e-panel">
+              <h2>Upravljanje</h2>
+              <p class="desc">Združitev podvojenih podjetij in GDPR izbris vseh podatkov. Obojega ni mogoče razveljaviti.</p>
+              <div class="e-actions" style="margin-top:14px">
+                <button type="button" class="e-btn-soft" onclick="odpriMerge()">Združi z drugim podjetjem</button>
+                <button type="button" class="e-btn-danger" onclick="izbrisiPodjetje()">GDPR izbris</button>
+              </div>
+            </section>
           </div>
-          <div class="text-xs text-muted text-right">
-            ${p ? `Generirano: <b>${formatDatum(p.updated_at)}</b>` : 'Še ni generirano'}
-          </div>
-        </div>
-        <hr class="divider" style="margin: 24px 0;">
-      `;
+        </div>`;
 
-      if (!p) {
-        el.innerHTML = `
-          ${hdrInfo}
-          ${akcijeHTML}
-          <div class="bg-[#fdf6e3] border border-[#f0e6c8] rounded-xl p-4 text-sm text-[#8a4d00]">
-            AI priporočila še niso generirana za ta vprašalnik. Klikni <b>Generiraj priporočila prvič</b>.
-          </div>
-        `;
-        return;
-      }
-
-      const html = marked.parse(p.vsebina);
-      el.innerHTML = `
-        ${hdrInfo}
-        ${warning}
-        ${akcijeHTML}
-        <div class="prose prose-sm max-w-none">${html}</div>
-      `;
-    }
-
-    // ── Odgovori (grouped by questionnaire) ───────────────────────────────
-    function renderOdgovori() {
-      const el = document.getElementById('odgovori-section');
-      if (!odgovori.length) {
-        el.innerHTML = '<div class="card p-8 text-muted text-center">Še ni odgovorov.</div>';
-        return;
-      }
-
-      // Grupiraj po questionnaire_id
-      const grupe = new Map();
-      for (const r of odgovori) {
-        if (!grupe.has(r.questionnaire_id)) grupe.set(r.questionnaire_id, { naziv: r.q_naziv, slug: r.q_slug, items: [] });
-        grupe.get(r.questionnaire_id).items.push(r);
-      }
-
-      const skupineHTML = Array.from(grupe.values())
-        .sort((a, b) => a.naziv.localeCompare(b.naziv))
-        .map(g => `
-          <div class="odg-skupina">
-            <h2>${esc(g.naziv)}</h2>
-            <span class="pill muted">${sklon(g.items.length, ['odgovor', 'odgovora', 'odgovori', 'odgovorov'])}</span>
-          </div>
-          <div class="odg-seznam">
-            ${g.items.map(r => {
-              const oseba = izpolnjevalec(r.raw_data, r.vprasanja);
-              const povzetek = r.ai_povzetek
-                ? `<div class="odg-povzetek prose prose-sm max-w-none" data-odg="${r.id}">${md(r.ai_povzetek)}</div>
-                   <button type="button" class="odg-vec" data-za="${r.id}" hidden>Pokaži celoten povzetek</button>`
-                : '<div class="odg-prazno">AI povzetek še ni generiran.</div>';
-              return `
-                <article class="odg-kartica" data-response="${r.id}">
-                  <header class="odg-glava">
-                    <div class="odg-avatar${oseba.imaIme ? '' : ' anon'}">${esc(oseba.zacetnice)}</div>
-                    <div class="odg-kdo">
-                      <div class="odg-ime">${esc(oseba.ime)}</div>
-                      <div class="odg-meta">
-                        ${oseba.podnaslov ? `<span>${esc(oseba.podnaslov)}</span><span class="pika">·</span>` : ''}
-                        <span>${formatDatum(r.submitted_at)}</span>
-                      </div>
-                    </div>
-                    <a class="btn-odpri" href="/admin/response.html?id=${r.id}">
-                      Odpri celoten vprašalnik
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
-                    </a>
-                  </header>
-                  ${povzetek}
-                </article>
-              `;
-            }).join('')}
-          </div>
-        `).join('');
-
-      el.innerHTML = skupineHTML;
-
-      // Dolg povzetek se zapre na ~6 vrstic; gumb se pokaze samo, ce je res odrezan.
-      el.querySelectorAll('.odg-povzetek').forEach(p => {
-        if (p.scrollHeight <= p.clientHeight + 4) { p.classList.add('odprt'); return; }
-        const gumb = el.querySelector(`.odg-vec[data-za="${p.dataset.odg}"]`);
-        gumb.hidden = false;
-        gumb.addEventListener('click', () => {
-          const odpri = !p.classList.contains('odprt');
-          p.classList.toggle('odprt', odpri);
-          gumb.textContent = odpri ? 'Skrij' : 'Pokaži celoten povzetek';
+      // Dolg povzetek se zapre; gumb se pokaze samo, ce je res odrezan.
+      el.querySelectorAll('.e-resp .sum').forEach(s => {
+        if (s.scrollHeight <= s.clientHeight + 4) { s.classList.add('odprt', 'kratko'); return; }
+        const g = el.querySelector(`.sum-more[data-za="${s.dataset.odg}"]`);
+        g.hidden = false;
+        g.addEventListener('click', () => {
+          const odpri = !s.classList.contains('odprt');
+          s.classList.toggle('odprt', odpri);
+          g.textContent = odpri ? 'Skrij' : 'Pokaži celoten povzetek';
         });
       });
     }
 
+    function izberiTab(qid) {
+      if (qid === aktivniTab) return;
+      aktivniTab = qid;
+      vsiOdgovori = false;
+      renderZgoraj();
+      renderSpodaj();
+    }
+
+    // En poslusalec za vse izbire vprasalnika (povezave v glavi, stikalo, zavihki).
+    document.getElementById('stran').addEventListener('click', (e) => {
+      const el = e.target.closest('[data-tab]');
+      if (!el) return;
+      e.preventDefault();
+      izberiTab(Number(el.dataset.tab));
+      if (el.closest('.e-links')) document.getElementById('zgoraj').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
     // ── Akcije ────────────────────────────────────────────────────────────
+    async function patchPodjetje(telo) {
+      const r = await apiFetch(`/api/companies/${id}`, { method: 'PATCH', body: JSON.stringify(telo) });
+      if (!r?.ok) { alert('Napaka pri shranjevanju.'); return false; }
+      Object.assign(podjetje, r.company);
+      return true;
+    }
+
+    async function nastaviKval(v) {
+      if (v === null && !podjetje.kvalifikacija_rocna) return;
+      if (v !== null && v === podjetje.kvalifikacija && podjetje.kvalifikacija_rocna) return;
+      if (await patchPodjetje({ kvalifikacija: v })) renderZgoraj();
+    }
+
+    async function nastaviStatus(s, el) {
+      el.disabled = true;
+      const ok = await patchPodjetje({ status: s });
+      el.disabled = false;
+      if (!ok) { el.value = podjetje.status; return; }
+      renderZgoraj();
+    }
+
     async function regeneriraj(qid, mode) {
       const opis = mode === 'vse' ? 'VSE (povzetki + priporočila)' : 'priporočila';
       const cas  = mode === 'vse' ? 'nekaj minut' : '~70 sekund';
@@ -376,15 +372,15 @@
     (async () => {
       const data = await apiFetch(`/api/companies/${id}`);
       if (!data) {
-        document.getElementById('header').innerHTML = '<div class="bg-red-50 text-red-700 p-4 rounded">Napaka pri nalaganju.</div>';
+        document.getElementById('header').innerHTML = '<div class="e-note bad">Napaka pri nalaganju podjetja.</div>';
         return;
       }
       podjetje    = data.company;
       odgovori    = data.responses ?? [];
       priporocila = data.priporocila ?? [];
       renderHeader();
-      renderPriporocila();
-      renderOdgovori();
+      renderZgoraj();
+      renderSpodaj();
     })();
   </script>
 </body>

@@ -22,7 +22,7 @@
     .naloga::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent; }
     .naloga.nujno::before { background: linear-gradient(180deg, #f04438, #d92d20); }
     .naloga.opozorilo::before { background: linear-gradient(180deg, #fdb022, #f79009); }
-    .naloga.mirno::before { background: linear-gradient(180deg, #5fe3cd, var(--acenta-teal-2)); }
+    .naloga.mirno::before { background: linear-gradient(180deg, #9fd6cc, var(--acenta-teal-2)); }
     .naloga b { display: block; font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: -.012em; }
     .naloga p { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
     .naloga .noga { display: flex; align-items: center; gap: 6px; margin-top: 9px; }
@@ -251,7 +251,7 @@
         const y = H - pad - ((v - min) / razpon) * (H - 2 * pad);
         return `${x.toFixed(1)} ${y.toFixed(1)}`;
       });
-      svg.innerHTML = `<path d="M ${tocke.join(' L ')}" fill="none" stroke="#12a594"
+      svg.innerHTML = `<path d="M ${tocke.join(' L ')}" fill="none" stroke="#0b7a6c"
         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`;
     }
 
@@ -384,19 +384,19 @@
         return `<text x="${p.x}" y="${padT + innerH + 17}" text-anchor="middle" font-size="11" fill="#98a2b3">${d.getDate()}. ${d.getMonth() + 1}.</text>`;
       }).join('');
 
-      const dots = points.map(p => p.v > 0 ? `<circle cx="${p.x}" cy="${p.y}" r="2.5" fill="#0f766e"/>` : '').join('');
+      const dots = points.map(p => p.v > 0 ? `<circle cx="${p.x}" cy="${p.y}" r="2.5" fill="#0b6457"/>` : '').join('');
 
       el.innerHTML = `
         <svg viewBox="0 0 ${W} ${H}" class="w-full h-full" preserveAspectRatio="xMidYMid meet">
           <defs>
             <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#0f766e" stop-opacity="0.16"/>
-              <stop offset="100%" stop-color="#0f766e" stop-opacity="0"/>
+              <stop offset="0%" stop-color="#0b6457" stop-opacity="0.16"/>
+              <stop offset="100%" stop-color="#0b6457" stop-opacity="0"/>
             </linearGradient>
           </defs>
           ${gridLines}
           <path d="${areaD}" fill="url(#areaGrad)"/>
-          <path d="${pathD}" stroke="#0f766e" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="${pathD}" stroke="#0b6457" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
           ${dots}
           ${xLabels}
         </svg>`;

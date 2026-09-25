@@ -22,13 +22,13 @@
   <!-- Orodna vrstica -->
   <div class="lepljivo bg-white border-b border-gray-200 shadow-sm">
     <div class="max-w-6xl mx-auto px-6 py-3 flex items-center gap-4 flex-wrap">
-      <a href="/admin/procesi.html" class="text-sm text-[#00b894] hover:underline shrink-0">← Procesi</a>
+      <a href="/admin/procesi.html" class="text-sm text-[#0b7a6c] hover:underline shrink-0">← Procesi</a>
 
       <!-- Na ozkem zaslonu naslov dobi svojo vrstico (basis-full). Prej ga je
            stiskanje odrezalo na "Hote..." in ni bilo videti, cigav sestanek je
            odprt — kar je pri delu s stranko najpomembnejsi podatek na ekranu. -->
       <div class="min-w-0 basis-full order-last sm:order-none sm:basis-auto sm:flex-1">
-        <div id="glavaNaslov" class="font-semibold text-[#1a1a2e] truncate">Nalagam...</div>
+        <div id="glavaNaslov" class="font-semibold text-[#16262e] truncate">Nalagam...</div>
         <div id="glavaPod" class="text-xs text-gray-500 truncate"></div>
       </div>
 
@@ -39,10 +39,10 @@
         <button id="btnUredi" class="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors">
           Uredi vprašanja
         </button>
-        <button id="btnZakljuci" class="px-3 py-1.5 text-sm bg-[#1a1a2e] text-white rounded hover:bg-[#2a2a44] transition-colors">
+        <button id="btnZakljuci" class="px-3 py-1.5 text-sm bg-[#16262e] text-white rounded hover:bg-[#16262e] transition-colors">
           Zaključi
         </button>
-        <button id="btnPoslji" class="px-3 py-1.5 text-sm bg-[#00b894] text-white rounded hover:bg-[#019272] transition-colors">
+        <button id="btnPoslji" class="px-3 py-1.5 text-sm bg-[#0b7a6c] text-white rounded hover:bg-[#0b7a6c] transition-colors">
           Pošlji stranki
         </button>
       </div>
@@ -59,15 +59,15 @@
         <div id="sklopNav" class="space-y-1.5"></div>
 
         <div class="mt-6 pt-4 border-t border-gray-200 space-y-1.5">
-          <a href="#kartaTranskript" class="block text-gray-600 hover:text-[#00b894]">Transkript</a>
-          <a href="#kartaPosiljanje" class="block text-gray-600 hover:text-[#00b894]">Pošiljanje stranki</a>
+          <a href="#kartaTranskript" class="block text-gray-600 hover:text-[#0b7a6c]">Transkript</a>
+          <a href="#kartaPosiljanje" class="block text-gray-600 hover:text-[#0b7a6c]">Pošiljanje stranki</a>
         </div>
       </nav>
 
       <div class="flex-1 min-w-0">
         <!-- Kartica sestanka: poganja seznam in filtre, ni del dokumenta za stranko -->
         <section class="bg-white rounded shadow p-5 mb-6">
-          <h2 class="text-sm font-semibold text-[#1a1a2e] mb-1">Kartica sestanka</h2>
+          <h2 class="text-sm font-semibold text-[#16262e] mb-1">Kartica sestanka</h2>
           <p class="text-xs text-gray-500 mb-4">
             Za razvrščanje in iskanje po seznamu. Vsebina dokumenta za stranko pride iz „Osnovni podatki“ spodaj.
           </p>
@@ -75,27 +75,27 @@
             <label class="block">
               <span class="text-xs text-gray-500 block mb-1">Stranka</span>
               <input id="mStranka" data-meta="stranka_naziv" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
             </label>
             <label class="block">
               <span class="text-xs text-gray-500 block mb-1">Proces</span>
               <input id="mProces" data-meta="proces" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
             </label>
             <label class="block">
               <span class="text-xs text-gray-500 block mb-1">Oddelek</span>
               <input id="mOddelek" data-meta="oddelek" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
             </label>
             <label class="block">
               <span class="text-xs text-gray-500 block mb-1">Svetovalec</span>
               <input id="mSvetovalec" data-meta="svetovalec" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
             </label>
             <label class="block">
               <span class="text-xs text-gray-500 block mb-1">Datum sestanka</span>
               <input id="mDatum" data-meta="datum_sestanka" type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
             </label>
           </div>
         </section>
@@ -105,28 +105,28 @@
 
         <!-- Transkript -->
         <section id="kartaTranskript" class="bg-white rounded shadow p-5 mt-8 scroll-mt-24">
-          <h2 class="font-semibold text-[#1a1a2e] mb-1">Transkript sestanka</h2>
+          <h2 class="font-semibold text-[#16262e] mb-1">Transkript sestanka</h2>
           <p class="text-sm text-gray-500 mb-4">
             Besedilo se shrani <strong>v našo bazo</strong>, ne le kot povezava — Soniox povezava lahko poteče.
           </p>
 
           <div class="flex flex-col sm:flex-row gap-3 mb-3">
             <input id="tUrl" type="url" placeholder="Soniox povezava (https://...)"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+              class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
             <button id="tPrenesi"
-              class="px-4 py-2 bg-[#1a1a2e] text-white rounded text-sm font-medium hover:bg-[#2a2a44] transition-colors shrink-0">
+              class="px-4 py-2 bg-[#16262e] text-white rounded text-sm font-medium hover:bg-[#16262e] transition-colors shrink-0">
               Prenesi in shrani
             </button>
           </div>
 
           <details id="tRocnoOvoj" class="mb-3">
-            <summary class="text-sm text-[#00b894] cursor-pointer hover:underline">
+            <summary class="text-sm text-[#0b7a6c] cursor-pointer hover:underline">
               Prilepi transkript ročno
             </summary>
             <textarea id="tBesedilo" rows="8" placeholder="Prilepi celoten surov transkript..."
-              class="w-full mt-3 px-3 py-2 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:border-[#00b894]"></textarea>
+              class="w-full mt-3 px-3 py-2 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:border-[#0b7a6c]"></textarea>
             <button id="tShraniRocno"
-              class="mt-2 px-4 py-2 bg-[#00b894] text-white rounded text-sm font-medium hover:bg-[#019272] transition-colors">
+              class="mt-2 px-4 py-2 bg-[#0b7a6c] text-white rounded text-sm font-medium hover:bg-[#0b7a6c] transition-colors">
               Shrani prilepljeni transkript
             </button>
           </details>
@@ -137,7 +137,7 @@
 
         <!-- Posiljanje -->
         <section id="kartaPosiljanje" class="bg-white rounded shadow p-5 mt-6 mb-10 scroll-mt-24">
-          <h2 class="font-semibold text-[#1a1a2e] mb-1">Pošiljanje stranki</h2>
+          <h2 class="font-semibold text-[#16262e] mb-1">Pošiljanje stranki</h2>
           <p class="text-sm text-gray-500 mb-4">
             Stranka prejme izpolnjen zapis v telesu e-pošte in kot PDF prilogo.
             Transkript <strong>ne</strong> gre stranki. Odgovori gredo na ai@acenta.si.
@@ -147,19 +147,19 @@
             <label class="block">
               <span class="text-xs text-gray-500 block mb-1">E-naslov prejemnika <span class="text-red-500">*</span></span>
               <input id="pEmail" type="email" placeholder="ime@hotel.si"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
             </label>
             <label class="block">
               <span class="text-xs text-gray-500 block mb-1">Zadeva</span>
               <input id="pZadeva" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
             </label>
           </div>
 
           <label class="block mb-4">
             <span class="text-xs text-gray-500 block mb-1">Spremno besedilo</span>
             <textarea id="pSporocilo" rows="9"
-              class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]"></textarea>
+              class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]"></textarea>
           </label>
 
           <label class="flex items-center gap-2 text-sm text-gray-600 mb-4">
@@ -180,7 +180,7 @@
               PDF →
             </a>
             <button id="pPoslji"
-              class="px-4 py-2 bg-[#00b894] text-white rounded text-sm font-medium hover:bg-[#019272] transition-colors">
+              class="px-4 py-2 bg-[#0b7a6c] text-white rounded text-sm font-medium hover:bg-[#0b7a6c] transition-colors">
               Pošlji stranki
             </button>
           </div>
@@ -258,7 +258,7 @@
 
       if (q.tip === 'textarea') {
         polje = `<textarea data-qid="${esc(q.id)}" data-tip="textarea"
-                    class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]"
+                    class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]"
                   >${esc(v ?? '')}</textarea>`;
 
       } else if (q.tip === 'radio' || q.tip === 'select') {
@@ -288,7 +288,7 @@
           (q.drugo ? `
             <input type="text" data-qid="${esc(q.id)}" data-tip="checkbox_drugo"
               placeholder="drugo: ..." value="${esc(drugo)}"
-              class="mt-2 w-full sm:w-2/3 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">`
+              class="mt-2 w-full sm:w-2/3 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">`
             : '');
 
       } else if (q.tip === 'table') {
@@ -301,7 +301,7 @@
             <td class="border border-gray-200 p-0">
               <input type="text" data-qid="${esc(q.id)}" data-tip="table" data-r="${r}" data-c="${c}"
                 value="${esc(mreza[r]?.[c] ?? '')}"
-                class="w-full px-2 py-1.5 text-sm border-0 focus:outline-none focus:bg-[#f0fdf9]">
+                class="w-full px-2 py-1.5 text-sm border-0 focus:outline-none focus:bg-[#e3f5f1]">
             </td>`).join('') + '</tr>';
         }
         polje = `
@@ -319,7 +319,7 @@
         const htmlTip = q.tip === 'date' ? 'date' : q.tip === 'email' ? 'email' : 'text';
         polje = `<input type="${htmlTip}" data-qid="${esc(q.id)}" data-tip="${esc(q.tip)}"
                     value="${esc(v ?? '')}"
-                    class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#00b894]">`;
+                    class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">`;
       }
 
       const urejanje = urejanjeVprasanj ? `
@@ -363,10 +363,10 @@
       if (zacetek > 0) {
         stevecSekcij++;
         const sid = `sklop-${stevecSekcij}`;
-        navKosi.push(`<a href="#${sid}" class="block text-gray-600 hover:text-[#00b894]" data-navza="${sid}">Osnovni podatki</a>`);
+        navKosi.push(`<a href="#${sid}" class="block text-gray-600 hover:text-[#0b7a6c]" data-navza="${sid}">Osnovni podatki</a>`);
         kosi.push(`
           <section id="${sid}" class="bg-white rounded shadow p-5 mb-6 scroll-mt-24">
-            <h2 class="text-base font-semibold text-[#1a1a2e] pb-2 mb-1 border-b-2 border-[#00b894]">Osnovni podatki</h2>
+            <h2 class="text-base font-semibold text-[#16262e] pb-2 mb-1 border-b-2 border-[#0b7a6c]">Osnovni podatki</h2>
             <div class="text-xs text-gray-500 italic mb-4">Glava vprašalnika — to gre v dokument za stranko. Prednapolnjeno iz kartice sestanka zgoraj.</div>`);
         for (let i = 0; i < zacetek; i++) {
           const q = vprasanja[i];
@@ -383,10 +383,10 @@
           if (odprtaSekcija) kosi.push(dodajGumb(stevecSekcij), '</section>');
           stevecSekcij++;
           const sid = `sklop-${stevecSekcij}`;
-          navKosi.push(`<a href="#${sid}" class="block text-gray-600 hover:text-[#00b894]" data-navza="${sid}">${esc(q.label)}</a>`);
+          navKosi.push(`<a href="#${sid}" class="block text-gray-600 hover:text-[#0b7a6c]" data-navza="${sid}">${esc(q.label)}</a>`);
           kosi.push(`
             <section id="${sid}" class="bg-white rounded shadow p-5 mb-6 scroll-mt-24">
-              <h2 class="text-base font-semibold text-[#1a1a2e] pb-2 mb-1 border-b-2 border-[#00b894]">${esc(q.label)}</h2>
+              <h2 class="text-base font-semibold text-[#16262e] pb-2 mb-1 border-b-2 border-[#0b7a6c]">${esc(q.label)}</h2>
               ${q.namig ? `<div class="text-xs text-gray-500 italic mb-4">${esc(q.namig)}</div>` : '<div class="mb-4"></div>'}`);
           odprtaSekcija = true;
           continue;
@@ -414,7 +414,7 @@
     function dodajGumb(stSekcije) {
       if (!urejanjeVprasanj) return '';
       return `<button type="button" data-dodajvsekcijo="${stSekcije}"
-        class="mt-2 text-sm text-[#00b894] hover:underline">+ dodaj vprašanje v ta sklop</button>`;
+        class="mt-2 text-sm text-[#0b7a6c] hover:underline">+ dodaj vprašanje v ta sklop</button>`;
     }
 
     // ── Branje odgovorov iz DOM v objekt ───────────────────────────────
@@ -616,7 +616,7 @@
         if (!metaCaka) nespravljeno = false;
         skrijOpozorilo();
         const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
+        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#0b7a6c]');
         return true;
       });
     }
@@ -643,7 +643,7 @@
         }
         if (!metaCaka && !odgovoriCakajo) nespravljeno = false;
         const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
+        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#0b7a6c]');
         return true;
       });
     }
@@ -670,7 +670,7 @@
         osveziGlavo();
         if (!odgovoriCakajo) nespravljeno = false;
         const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#00b894]');
+        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#0b7a6c]');
         return true;
       });
     }
@@ -727,7 +727,7 @@
             <div class="flex items-center justify-between gap-3 flex-wrap">
               <div class="text-sm">
                 ${ok
-                  ? `<span class="text-[#00b894] font-semibold">✓ shranjen</span>
+                  ? `<span class="text-[#0b7a6c] font-semibold">✓ shranjen</span>
                      <span class="text-gray-500">· ${Number(t.znakov || 0).toLocaleString('sl-SI')} znakov · vir: ${esc(t.vir)}</span>`
                   : `<span class="text-red-700 font-semibold">✗ ni prenesen</span>
                      <span class="text-red-600">· ${esc(t.napaka || 'neznana napaka')}</span>`}
@@ -737,7 +737,7 @@
             ${t.soniox_url ? `<div class="text-xs text-gray-400 mt-1 truncate">${esc(t.soniox_url)}</div>` : ''}
             ${ok && t.predogled ? `
               <details class="mt-2">
-                <summary class="text-xs text-[#00b894] cursor-pointer hover:underline">Pokaži začetek</summary>
+                <summary class="text-xs text-[#0b7a6c] cursor-pointer hover:underline">Pokaži začetek</summary>
                 <div class="mt-2 text-xs text-gray-600 font-mono whitespace-pre-wrap bg-gray-50 p-2 rounded max-h-40 overflow-y-auto">${esc(t.predogled)}…</div>
               </details>` : ''}
           </div>`;
@@ -768,7 +768,7 @@
         // Odpremo rocno polje, da je naslednji korak očiten.
         el('tRocnoOvoj').open = true;
       } else {
-        el('tStatus').innerHTML = '<span class="text-[#00b894]">Transkript shranjen v bazo.</span>';
+        el('tStatus').innerHTML = '<span class="text-[#0b7a6c]">Transkript shranjen v bazo.</span>';
         el('tUrl').value = '';
       }
       naloziSejo();
@@ -792,7 +792,7 @@
         el('tStatus').innerHTML = '<span class="text-red-600">Shranjevanje ni uspelo.</span>';
         return;
       }
-      el('tStatus').innerHTML = '<span class="text-[#00b894]">Transkript shranjen v bazo.</span>';
+      el('tStatus').innerHTML = '<span class="text-[#0b7a6c]">Transkript shranjen v bazo.</span>';
       el('tBesedilo').value = '';
       naloziSejo();
     });
@@ -934,7 +934,7 @@
       }
       const kdaj = new Date().toLocaleString('sl-SI', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
       el('pStatus').innerHTML =
-        `<span class="text-[#00b894] font-semibold">✓ Poslano na ${esc(prejemnik)}</span>
+        `<span class="text-[#0b7a6c] font-semibold">✓ Poslano na ${esc(prejemnik)}</span>
          <span class="text-gray-500">— ${esc(kdaj)}. Status sestanka je zdaj »Poslan stranki«.</span>`;
       naloziSejo();
     });
@@ -954,7 +954,7 @@
       gumb.textContent = besediloGumbaPoslji();
       if (posiljanjeVklopljeno) {
         gumb.disabled = false;
-        gumb.className = 'px-4 py-2 bg-[#00b894] text-white rounded text-sm font-medium hover:bg-[#019272] transition-colors';
+        gumb.className = 'px-4 py-2 bg-[#0b7a6c] text-white rounded text-sm font-medium hover:bg-[#0b7a6c] transition-colors';
         info.classList.add('hidden');
       } else {
         gumb.disabled = true;
@@ -971,7 +971,7 @@
           <div class="text-sm border-t border-gray-100 py-2 flex items-center justify-between gap-3 flex-wrap">
             <div>
               ${e.status === 'poslan'
-                ? '<span class="text-[#00b894] font-semibold">✓</span>'
+                ? '<span class="text-[#0b7a6c] font-semibold">✓</span>'
                 : '<span class="text-red-600 font-semibold">✗</span>'}
               <span class="text-gray-700">${esc(e.prejemnik)}</span>
               ${e.poslal ? `<span class="text-gray-400 text-xs"> · poslal ${esc(e.poslal)}</span>` : ''}

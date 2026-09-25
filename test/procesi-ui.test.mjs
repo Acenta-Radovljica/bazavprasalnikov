@@ -38,7 +38,7 @@ const browser = await puppeteer.launch({
 // se je pri drugem zagonu lomil na besedilu, ki ga je vpisal prvi zagon.
 const AUTH = 'Basic ' + Buffer.from('test@acenta.si:testgeslo123').toString('base64');
 async function apiJson(pot, opt = {}) {
-  const res = await fetch('http://127.0.0.1:3399' + pot, {
+  const res = await fetch(BASE + pot, {
     ...opt, headers: { Authorization: AUTH, 'content-type': 'application/json', ...(opt.headers || {}) },
   });
   return res.json();

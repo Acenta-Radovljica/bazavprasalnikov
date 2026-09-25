@@ -29,6 +29,10 @@ router.get('/companies', async (req, res) => {
       c.status, c.kvalifikacija, c.kvalifikacija_razlog,
       EXISTS (SELECT 1 FROM company_priporocila cp WHERE cp.company_id = c.id) AS has_priporocila,
       (SELECT MAX(updated_at) FROM company_priporocila cp WHERE cp.company_id = c.id) AS priporocila_updated_at,
+      -- Za podvrstico na seznamu: na katere vprasalnike je podjetje odgovarjalo.
+      (SELECT string_agg(DISTINCT q.naziv_prikaz, ' · ')
+         FROM responses r3 JOIN questionnaires q ON q.id = r3.questionnaire_id
+        WHERE r3.company_id = c.id) AS vprasalniki,
       COUNT(r.id)::int AS st_odgovorov,
       MAX(r.submitted_at) AS zadnji_odgovor
     FROM companies c

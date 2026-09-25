@@ -4,100 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Acenta — Odgovor</title>
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/admin/admin.css">
-  <style>
-    .r-ovoj { max-width: 920px; width: 100%; margin: 0 auto; padding: 20px 16px 64px; display: flex; flex-direction: column; gap: 14px; }
-
-    /* Glava: kdo je izpolnil */
-    .r-hero { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg);
-      padding: 22px 24px; display: flex; gap: 18px; align-items: center; position: relative; overflow: hidden; }
-    .r-hero::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
-      background: linear-gradient(90deg, var(--acenta-teal), var(--acenta-teal-2)); }
-    .r-avatar { width: 56px; height: 56px; border-radius: 999px; flex: none; display: flex; align-items: center; justify-content: center;
-      background: var(--acenta-teal-soft); color: var(--acenta-teal); border: 1px solid var(--acenta-teal-line);
-      font-weight: 700; font-size: 19px; letter-spacing: .02em; }
-    .r-avatar.anon { background: var(--bg-sub); color: var(--muted); border-color: var(--hairline); }
-    .r-kdo { flex: 1; min-width: 0; }
-    .r-oznaka { font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-    .r-ime { font-size: 24px; font-weight: 700; letter-spacing: -.02em; line-height: 1.2; color: var(--ink); margin-top: 2px; }
-    .r-pod { font-size: 13px; color: var(--ink-2); margin-top: 2px; }
-    .r-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-    .r-chip { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 9px; border-radius: 999px;
-      font-size: 11.5px; font-weight: 600; background: var(--bg-sub); color: var(--ink-2); border: 1px solid var(--hairline); white-space: nowrap; }
-    a.r-chip { text-decoration: none; color: var(--acenta-teal); background: var(--acenta-teal-soft); border-color: var(--acenta-teal-line); }
-    a.r-chip:hover { background: #d8f5ec; }
-    .r-akcije { display: flex; flex-direction: column; gap: 8px; flex: none; align-self: flex-start; }
-
-    /* Napredek izpolnjenosti */
-    .r-napredek { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--ink-2); }
-    .r-napredek .track { flex: 1; height: 6px; border-radius: 999px; background: var(--bg-sub); overflow: hidden; }
-    .r-napredek .fill { height: 100%; background: var(--acenta-teal); border-radius: 999px; }
-    .r-napredek b { color: var(--ink); }
-
-    /* Karta z naslovom */
-    .r-karta { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg); padding: 18px 22px; }
-    .r-karta-naslov { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
-    .r-karta-naslov .ai { font-size: 10px; font-weight: 700; letter-spacing: .06em; padding: 2px 7px; border-radius: 999px;
-      background: var(--info-soft); color: var(--info); border: 1px solid var(--info-line); }
-    .r-povzetek { color: var(--ink-2); }
-    .r-povzetek > :first-child { margin-top: 0; }
-    .r-povzetek > :last-child { margin-bottom: 0; }
-    .r-povzetek strong { color: var(--ink); }
-
-    /* Vprasalnik */
-    .r-sklop { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--acenta-teal);
-      margin: 18px 0 2px 4px; }
-    .q-item { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--r-lg);
-      padding: 16px 20px 18px; display: grid; grid-template-columns: 30px 1fr; column-gap: 12px; }
-    .q-item.prazen { background: #fcfcfd; }
-    .q-st { width: 26px; height: 26px; border-radius: 8px; background: var(--bg-sub); color: var(--ink-2);
-      font-size: 11.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
-    .q-item:not(.prazen) .q-st { background: var(--acenta-navy); color: #fff; }
-    .q-label { font-size: 14.5px; font-weight: 600; color: var(--ink); line-height: 1.4; }
-    .q-label .obv { color: var(--danger); margin-left: 2px; }
-    .q-kljuc { font: 500 10.5px/1.3 ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--muted-2); margin-top: 2px; }
-    .q-answer { grid-column: 2; margin-top: 10px; font-size: 14px; color: var(--ink); }
-    .q-kratko { font-weight: 600; }
-    .q-besedilo { white-space: pre-wrap; line-height: 1.6; color: var(--ink-2); background: var(--bg-sub);
-      border-left: 3px solid var(--acenta-teal-line); border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 10px 14px; }
-    .q-prazno { font-size: 13px; color: var(--muted); font-style: italic; }
-    .q-opcije { display: flex; flex-wrap: wrap; gap: 6px; }
-    .opt { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 5px 12px; border-radius: 999px;
-      font-size: 13px; line-height: 1.3; border: 1px solid var(--hairline); color: var(--muted); background: #fff; }
-    .opt.izbran { border-color: var(--acenta-teal); background: var(--acenta-teal-soft); color: var(--acenta-teal-dark); font-weight: 600; }
-    .opt .dot { width: 14px; height: 14px; border-radius: 999px; border: 1.5px solid var(--hairline-2); flex: none;
-      display: flex; align-items: center; justify-content: center; }
-    .opt.kvadrat .dot { border-radius: 4px; }
-    .opt.izbran .dot { background: var(--acenta-teal); border-color: var(--acenta-teal); }
-    .opt.izbran .dot svg { display: block; }
-    .opt .dot svg { display: none; }
-
-    .r-opozorilo { border-radius: var(--r); padding: 10px 13px; font-size: 13px; }
-
-    @media (max-width: 640px) {
-      .r-hero { flex-direction: column; align-items: flex-start; padding: 20px 18px; }
-      .r-akcije { flex-direction: row; flex-wrap: wrap; align-self: stretch; }
-      .r-ime { font-size: 21px; }
-      .q-item { grid-template-columns: 1fr; padding: 14px 16px 16px; }
-      .q-st { margin-bottom: 8px; }
-      .q-answer { grid-column: 1; }
-    }
-  </style>
 </head>
 <body class="min-h-screen">
   <header id="nav"></header>
 
   <main class="flex-1 min-w-0 flex flex-col">
-    <header class="page-head">
-      <a id="back" href="/admin/" class="btn-mini">← Nazaj na podjetje</a>
-      <span class="sub" id="crumb"></span>
-    </header>
-    <div class="r-ovoj">
+    <div class="e-wrap">
+      <div class="e-crumb" id="crumb">Baza vprašalnikov / <a href="/admin/podjetja.html">Podjetja</a></div>
       <div id="content"></div>
     </div>
   </main>
@@ -125,66 +41,92 @@
         .filter(o => o.value !== '');
     }
 
+    // Lestvica = same stevilke v zaporedju (1-4, 1-5, 0-10). Izrise se kot
+    // vrsta ploscic, ne kot seznam izbir, ker se tako bere kot ocena.
+    function jeLestvica(moznosti) {
+      if (moznosti.length < 3 || moznosti.length > 11) return false;
+      const n = moznosti.map(o => Number(o.value));
+      return n.every((x, i) => Number.isInteger(x) && (i === 0 || x === n[i - 1] + 1));
+    }
+
+    // Iz besedila vprasanja potegne razlago lestvice: "(1 = slabo, 4 = zelo dobro)".
+    function razlagaLestvice(label) {
+      const m = String(label || '').match(/\(\s*\d+\s*=\s*([^,)]+),\s*\d+\s*=\s*([^)]+)\)/);
+      return m ? `${m[1].trim()} → ${m[2].trim()}` : '';
+    }
+
     // En odgovor v HTML. Pri izbirnih vprasanjih pokazemo VSE moznosti in
     // oznacimo izbrane — tako se bere kot izpolnjen vprasalnik, ne kot izvoz.
     function izrisOdgovora(q, v) {
-      if (prazno(v)) return '<div class="q-prazno">Ni odgovora</div>';
+      if (prazno(v)) return '<div class="e-none">Ni odgovora</div>';
       const izbrane = (Array.isArray(v) ? v : [v]).map(x => String(x));
       const moznosti = normMoznosti(q.options);
-      const vec = q.tip === 'checkbox' || Array.isArray(v);
+      const vec = q.tip === 'checkbox' || q.tip === 'checkbox_multi' || Array.isArray(v);
 
+      if (moznosti.length && !vec && jeLestvica(moznosti) && izbrane.length === 1) {
+        const razlaga = razlagaLestvice(q.label);
+        return '<div class="e-scale">' + moznosti.map(o =>
+          `<span class="${izbrane.includes(o.value) ? 'on' : ''}">${esc(o.label)}</span>`).join('')
+          + (razlaga ? `<small>${esc(razlaga)}</small>` : '') + '</div>';
+      }
       if (moznosti.length) {
         const znane = new Set(moznosti.map(o => o.value));
         const dodatne = izbrane.filter(x => !znane.has(x)).map(x => ({ value: x, label: x }));
-        return '<div class="q-opcije">' + [...moznosti, ...dodatne].map(o => {
+        return '<div class="e-opts">' + [...moznosti, ...dodatne].map(o => {
           const je = izbrane.includes(o.value);
-          return `<span class="opt${je ? ' izbran' : ''}${vec ? ' kvadrat' : ''}"><span class="dot">${KLJUKICA}</span>${esc(o.label)}</span>`;
+          return `<span class="e-opt${je ? ' on' : ''}${vec ? ' sq' : ''}"><span class="box">${KLJUKICA}</span>${esc(o.label)}</span>`;
         }).join('') + '</div>';
       }
       if (Array.isArray(v)) {
-        return '<div class="q-opcije">' + v.map(x =>
-          `<span class="opt izbran kvadrat"><span class="dot">${KLJUKICA}</span>${esc(String(x))}</span>`).join('') + '</div>';
+        return '<div class="e-opts">' + v.map(x =>
+          `<span class="e-opt on sq"><span class="box">${KLJUKICA}</span>${esc(String(x))}</span>`).join('') + '</div>';
       }
       if (typeof v === 'boolean' || v === 'on') {
         const da = v === true || v === 'on';
-        return `<div class="q-opcije"><span class="opt${da ? ' izbran' : ''} kvadrat"><span class="dot">${KLJUKICA}</span>${da ? 'Da' : 'Ne'}</span></div>`;
+        return `<div class="e-opts"><span class="e-opt${da ? ' on' : ''} sq"><span class="box">${KLJUKICA}</span>${da ? 'Da' : 'Ne'}</span></div>`;
       }
-      if (typeof v === 'object') return `<pre class="q-besedilo" style="font-size:12px">${esc(JSON.stringify(v, null, 2))}</pre>`;
+      if (typeof v === 'object') return `<pre class="e-quote" style="font-size:12px">${esc(JSON.stringify(v, null, 2))}</pre>`;
       const t = String(v);
-      if (t.length > 70 || t.includes('\n')) return `<div class="q-besedilo">${esc(t)}</div>`;
-      return `<div class="q-kratko">${esc(t)}</div>`;
+      if (t.length > 70 || t.includes('\n')) return `<div class="e-quote">${esc(t)}</div>`;
+      return `<div class="e-short">${esc(t)}</div>`;
     }
 
     // Vprasalnik kot zaporedje kartic, v vrstnem redu obrazca, s sklopi.
     // Polja, ki niso v vprasanjih (gdpr_consent ...), gredo na konec.
+    // Razreda q-item/q-label/q-kljuc/q-answer bereta testi (odgovori.test.mjs).
     function renderVprasalnik(raw, questions) {
       const r = raw && typeof raw === 'object' ? raw : {};
       const qList = Array.isArray(questions) ? questions : [];
       const handled = new Set([HONEYPOT]);
       const deli = [];
-      let st = 0, odgovorjeno = 0, zadnjiSklop = '';
+      let st = 0, odgovorjeno = 0, obveznihBrez = 0, zadnjiSklop = '';
 
       const kartica = (q, v) => {
         st++;
         const je = !prazno(v);
         if (je) odgovorjeno++;
+        else if (q.obvezno) obveznihBrez++;
         return `
-          <section class="q-item${je ? '' : ' prazen'}" data-kljuc="${esc(q.id)}">
-            <div class="q-st">${st}</div>
-            <div>
-              <div class="q-label">${esc(q.label || q.id)}${q.obvezno ? '<span class="obv">*</span>' : ''}</div>
-              <div class="q-kljuc">${esc(q.id)}</div>
+          <section class="e-q q-item${je ? '' : ' empty'}" data-kljuc="${esc(q.id)}">
+            <div class="rank">${st}</div>
+            <div style="min-width:0">
+              <h3 class="q-label">${esc(q.label || q.id)}${q.obvezno ? '<span class="req">*</span>' : ''}</h3>
+              <div class="key q-kljuc">${esc(q.id)}</div>
+              <div class="ans q-answer">${izrisOdgovora(q, v)}</div>
             </div>
-            <div class="q-answer">${izrisOdgovora(q, v)}</div>
           </section>`;
       };
 
       for (const q of qList) {
         if (handled.has(q.id)) continue;
         handled.add(q.id);
+        if (q.tip === 'section') {
+          deli.push(`<div class="e-section"><i></i>${esc(q.label || '')}</div>`);
+          continue;
+        }
         if (q.sklop && q.sklop !== zadnjiSklop) {
           zadnjiSklop = q.sklop;
-          deli.push(`<div class="r-sklop">${esc(q.sklop)}</div>`);
+          deli.push(`<div class="e-section"><i></i>${esc(q.sklop)}</div>`);
         }
         deli.push(kartica(q, r[q.id]));
       }
@@ -192,11 +134,11 @@
       const meta = { gdpr_consent: 'Soglasje GDPR' };
       const ostala = Object.entries(r).filter(([k, v]) => !handled.has(k) && !prazno(v));
       if (ostala.length) {
-        deli.push(`<div class="r-sklop">${qList.length ? 'Ostala polja' : 'Odgovori'}</div>`);
+        deli.push(`<div class="e-section"><i></i>${qList.length ? 'Ostala polja' : 'Odgovori'}</div>`);
         for (const [k, v] of ostala) deli.push(kartica({ id: k, label: meta[k] || k }, v));
       }
 
-      return { html: deli.join('') || '<div class="q-prazno">Odgovor nima polj.</div>', st, odgovorjeno };
+      return { html: deli.join('') || '<div class="e-panel"><div class="e-empty">Odgovor nima polj.</div></div>', st, odgovorjeno, obveznihBrez };
     }
 
     // Pretvori eno vrednost v navadno besedilo za CSV (arrays → "a; b", objekti → JSON).
@@ -401,18 +343,13 @@
     function opozoriloOIzvoru(r) {
       if (r.ima_snapshot) return '';
       const hudo = r.vprasalnik_urejen_po_oddaji;
-      const barva = hudo
-        ? 'background:#fef4f2; border:1px solid #f8c9c2; color:#b42318'
-        : 'background:#fff8ea; border:1px solid #fbdba7; color:#b45309';
       const besedilo = hudo
         ? 'Ta odgovor je bil oddan, <b>preden je bil vprašalnik nazadnje urejen</b>. ' +
           'Kopija vprašanj iz časa oddaje ne obstaja, zato so spodaj današnja vprašanja — ' +
           'nekatera se od tistih, ki jih je stranka videla, lahko razlikujejo.'
         : 'Ta odgovor je iz časa pred shranjevanjem kopije vprašalnika, zato so spodaj ' +
           'današnja vprašanja. Vprašalnik od oddaje ni bil urejen, zato se najverjetneje ujemajo.';
-      return `<div style="${barva}; border-radius:10px; padding:10px 13px; font-size:13px; margin-bottom:14px">
-        ${besedilo}
-      </div>`;
+      return `<div class="e-note ${hudo ? 'bad' : 'warn'}">${besedilo}</div>`;
     }
 
     // Sestavi CSV in sproži prenos. Doda UTF-8 BOM, da Excel pravilno pokaže šumnike.
@@ -451,62 +388,76 @@
       const oseba = izpolnjevalec(r.raw_data, vprasanja);
       const vpr = renderVprasalnik(r.raw_data, vprasanja);
       const odstotek = vpr.st ? Math.round((vpr.odgovorjeno / vpr.st) * 100) : 0;
+      const podjetjeUrl = `/admin/company.html?id=${r.company_id}`;
 
-      document.getElementById('back').href = `/admin/company.html?id=${r.company_id}`;
-      document.getElementById('crumb').textContent = `${r.naziv_prikaz || ''} · ${r.q_naziv || ''}`;
+      document.getElementById('crumb').innerHTML =
+        `Baza vprašalnikov / <a href="/admin/podjetja.html">Podjetja</a> / <a href="${podjetjeUrl}">${esc(r.naziv_prikaz || '')}</a> / <strong>${esc(oseba.ime)}</strong>`;
       document.title = `Acenta — ${oseba.ime}`;
 
       const povzetek = r.ai_povzetek
-        ? `<div class="r-povzetek prose prose-sm max-w-none">${md(r.ai_povzetek)}</div>`
-        : '<div class="q-prazno">AI povzetek še ni generiran.</div>';
+        ? `<div class="e-reco" style="margin-top:12px">${md(r.ai_povzetek)}</div>`
+        : '<div class="e-empty-on-accent">AI povzetek še ni generiran.</div>';
+      const kopija = r.ima_snapshot ? 'kopija ob oddaji' : (r.vprasalnik_urejen_po_oddaji ? 'današnja (urejena)' : 'današnja');
 
       document.getElementById('content').innerHTML = `
-        <div class="flex flex-col gap-[14px]">
-          <header class="r-hero">
-            <div class="r-avatar${oseba.imaIme ? '' : ' anon'}">${esc(oseba.zacetnice)}</div>
-            <div class="r-kdo">
-              <div class="r-oznaka">Izpolnil/-a</div>
+        <div class="e-title">
+          <div class="e-profile">
+            <div class="e-logo round${oseba.imaIme ? '' : ' anon'}">${esc(oseba.zacetnice)}</div>
+            <div style="min-width:0">
+              <div class="e-eyebrow"><i></i>Izpolnil/-a · ${formatDatum(r.submitted_at)}</div>
               <h1 class="r-ime">${esc(oseba.ime)}</h1>
-              ${oseba.podnaslov ? `<div class="r-pod">${esc(oseba.podnaslov)}</div>` : ''}
-              <div class="r-meta">
-                <a class="r-chip" href="/admin/company.html?id=${r.company_id}">${esc(r.naziv_prikaz)}</a>
-                <span class="r-chip">${esc(r.q_naziv || '')}</span>
-                <span class="r-chip">${formatDatum(r.submitted_at)}</span>
-                <span class="tag ${r.consent_gdpr ? 'ok' : 'warn'}" style="height:24px;display:inline-flex;align-items:center;padding:0 9px;border-radius:999px;font-size:11.5px;font-weight:600">GDPR ${r.consent_gdpr ? 'da' : 'ne'}</span>
+              <div class="e-links">
+                <a href="${podjetjeUrl}">${esc(r.naziv_prikaz)}</a>
+                <span>${esc(r.q_naziv || '')}</span>
+                ${oseba.podnaslov ? `<span>${esc(oseba.podnaslov)}</span>` : ''}
               </div>
             </div>
-            <div class="r-akcije">
-              <button id="btn-csv" class="btn-secondary">Prenesi CSV</button>
-              ${r.custom_html_snapshot ? '<button id="btn-obrazec" class="btn-secondary">Pokaži obrazec</button>' : ''}
-            </div>
-          </header>
-
-          <div class="r-karta">
-            <div class="r-karta-naslov">Povzetek <span class="ai">AI</span></div>
-            ${povzetek}
           </div>
-
-          <div class="r-karta" style="padding:14px 22px">
-            <div class="r-napredek">
-              <span><b>${vpr.odgovorjeno}</b> od ${sklon(vpr.st, SKLONI.vprasanje)} odgovorjenih</span>
-              <div class="track"><div class="fill" style="width:${odstotek}%"></div></div>
-              <span>${odstotek} %</span>
-            </div>
+          <div class="e-actions">
+            <button id="btn-csv" class="e-btn-soft" type="button">Prenesi CSV</button>
+            ${r.custom_html_snapshot ? '<button id="btn-obrazec" class="e-btn-soft" type="button">Pokaži obrazec</button>' : ''}
+            <a class="e-btn-soft" href="${podjetjeUrl}">← Podjetje</a>
           </div>
-
-          ${opozoriloOIzvoru(r)}
-
-          <div class="flex flex-col gap-2">${vpr.html}</div>
-
-          ${r.custom_html_snapshot ? `
-          <div id="obrazec-ovoj" class="hidden r-karta">
-            <div class="r-karta-naslov">Obrazec, kot ga je videla stranka</div>
-            <div class="text-sm" style="color:var(--muted);margin-bottom:10px">
-              Shranjena kopija obrazca ob oddaji (${r.custom_html_snapshot.length.toLocaleString('sl-SI')} znakov), samo za branje.
-            </div>
-            <iframe id="obrazec" sandbox="" class="w-full" style="height:70vh;border:1px solid var(--hairline);border-radius:var(--r);background:#fff"></iframe>
-          </div>` : ''}
         </div>
+
+        <div class="e-grid">
+          <div class="e-feature">
+            <div class="e-feature-top">
+              <span class="lbl">AI povzetek odgovora</span>
+              ${r.ai_processed_at ? `<span class="e-badge">${formatDatum(r.ai_processed_at)}</span>` : ''}
+            </div>
+            ${povzetek}
+            <div class="e-progress"><span>Odgovorjeno</span><div class="track"><i style="width:${odstotek}%"></i></div><b>${vpr.odgovorjeno} / ${vpr.st}</b></div>
+          </div>
+          <div class="e-side">
+            <div class="e-sidecard">
+              <div class="label">Izpolnjenost</div>
+              <div class="big">${odstotek} <span style="font-size:15px;color:var(--muted-2);letter-spacing:0">%</span></div>
+              <div class="e-stack"><i style="flex:${vpr.odgovorjeno || 0};background:var(--accent)"></i><i style="flex:${Math.max(0, vpr.st - vpr.odgovorjeno)};background:var(--track)"></i></div>
+              <p class="note">${vpr.odgovorjeno} od ${sklon(vpr.st, SKLONI.vprasanje)} odgovorjenih${vpr.obveznihBrez ? ` · ${vpr.obveznihBrez} obveznih brez odgovora` : ''}</p>
+            </div>
+            <div class="e-sidecard">
+              <div class="label">Podatki oddaje</div>
+              <dl class="e-kv">
+                <div><dt>Soglasje GDPR</dt><dd><span class="e-chip ${r.consent_gdpr ? 'ok' : 'warn'}">${r.consent_gdpr ? 'Da' : 'Ne'}</span></dd></div>
+                <div><dt>Vprašanja</dt><dd>${kopija}</dd></div>
+                <div><dt>Podjetje</dt><dd><a href="${podjetjeUrl}">${esc(r.naziv_prikaz)} →</a></dd></div>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        ${opozoriloOIzvoru(r)}
+
+        <div class="e-section"><i></i>Vprašalnik · ${sklon(vpr.st, SKLONI.vprasanje)}</div>
+        <div>${vpr.html}</div>
+
+        ${r.custom_html_snapshot ? `
+        <div id="obrazec-ovoj" class="hidden e-panel" style="margin-top:16px">
+          <h2>Obrazec, kot ga je videla stranka</h2>
+          <p class="desc">Shranjena kopija obrazca ob oddaji (${r.custom_html_snapshot.length.toLocaleString('sl-SI')} znakov), samo za branje.</p>
+          <iframe id="obrazec" sandbox="" class="w-full" style="height:70vh;border:1px solid var(--hairline);border-radius:10px;background:#fff;margin-top:12px"></iframe>
+        </div>` : ''}
       `;
 
       document.getElementById('btn-csv')?.addEventListener('click', () => prenesiCsv(r));

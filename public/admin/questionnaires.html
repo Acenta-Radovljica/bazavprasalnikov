@@ -46,7 +46,7 @@
       <section id="view-editor" style="display:none;">
         <div class="flex items-end justify-between mb-10">
           <div>
-            <button class="text-sm text-muted hover:text-[#006e5a] mb-2 font-medium" onclick="zapriUrejevalnik()">← Nazaj na seznam</button>
+            <button class="text-sm text-muted hover:text-[#0b6457] mb-2 font-medium" onclick="zapriUrejevalnik()">← Nazaj na seznam</button>
             <h1 class="display" id="editor-naslov">Nov vprašalnik</h1>
             <div class="text-sm text-muted mt-2" id="editor-podnaslov">—</div>
           </div>
@@ -82,7 +82,7 @@
               <div class="field-help">Pri <strong>shrambi</strong> AI prompti niso potrebni — obrazec se le shrani in je dostopen v pregledu.</div>
             </div>
             <div class="md:col-span-2 flex items-center gap-2">
-              <input id="f-aktivna" type="checkbox" class="w-4 h-4 accent-[#00b894]">
+              <input id="f-aktivna" type="checkbox" class="w-4 h-4 accent-[#0b7a6c]">
               <label for="f-aktivna" class="text-sm font-medium">Aktivna — obrazec sprejema submissione</label>
             </div>
           </div>
@@ -194,7 +194,7 @@
       }
       el.innerHTML = list.map(q => {
         const odgLinka = q.st_odgovorov > 0
-          ? `<a href="/admin/#q=${q.id}" class="text-[#006e5a] hover:text-[#00b894] font-medium" onclick="event.stopPropagation()">${q.st_odgovorov} ${q.st_odgovorov === 1 ? 'odgovor' : 'odgovorov'} →</a>`
+          ? `<a href="/admin/#q=${q.id}" class="text-[#0b6457] hover:text-[#0b7a6c] font-medium" onclick="event.stopPropagation()">${q.st_odgovorov} ${q.st_odgovorov === 1 ? 'odgovor' : 'odgovorov'} →</a>`
           : `<span>0 odgovorov</span>`;
         return `
         <div class="row-lift flex items-center justify-between px-5 py-4 border border-transparent rounded-xl cursor-pointer"
@@ -207,7 +207,7 @@
               <div class="font-semibold truncate">${esc(q.naziv_prikaz)}</div>
               <div class="text-xs text-muted truncate mt-0.5">
                 <a href="${publicFormUrl(esc(q.slug))}" target="_blank" rel="noopener"
-                   class="text-[#006e5a] hover:text-[#00b894] font-medium"
+                   class="text-[#0b6457] hover:text-[#0b7a6c] font-medium"
                    onclick="event.stopPropagation()"
                    title="Odpri javni obrazec">/f/${esc(q.slug)} ↗</a>
                 · ${q.st_vprasanj} ${q.st_vprasanj === 1 ? 'vprašanje' : 'vprašanj'}
@@ -219,7 +219,7 @@
           <div class="flex items-center gap-3">
             ${q.namen === 'shramba' ? '<span class="badge-info">Shramba</span>' : '<span class="badge-neutral">Lead</span>'}
             ${q.aktivna ? '<span class="badge-success">Aktivna</span>' : '<span class="badge-neutral">Ugasnjena</span>'}
-            <a href="${publicFormUrl(esc(q.slug))}" target="_blank" rel="noopener" class="text-sm font-medium text-[#006e5a] hover:text-[#00b894]" onclick="event.stopPropagation()">Predogled →</a>
+            <a href="${publicFormUrl(esc(q.slug))}" target="_blank" rel="noopener" class="text-sm font-medium text-[#0b6457] hover:text-[#0b7a6c]" onclick="event.stopPropagation()">Predogled →</a>
           </div>
         </div>
       `;}).join('');
@@ -368,8 +368,8 @@
                 <span class="pill">${esc(q.tip)}</span>
               </div>
               <div class="flex items-center gap-1">
-                <button class="text-gray-400 hover:text-[#00b894] px-2 py-1 text-sm" title="Premakni gor" onclick="premakniVprasanje(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:.3;cursor:not-allowed;"' : ''}>↑</button>
-                <button class="text-gray-400 hover:text-[#00b894] px-2 py-1 text-sm" title="Premakni dol" onclick="premakniVprasanje(${idx}, 1)" ${idx === vprasanja.length - 1 ? 'disabled style="opacity:.3;cursor:not-allowed;"' : ''}>↓</button>
+                <button class="text-gray-400 hover:text-[#0b7a6c] px-2 py-1 text-sm" title="Premakni gor" onclick="premakniVprasanje(${idx}, -1)" ${idx === 0 ? 'disabled style="opacity:.3;cursor:not-allowed;"' : ''}>↑</button>
+                <button class="text-gray-400 hover:text-[#0b7a6c] px-2 py-1 text-sm" title="Premakni dol" onclick="premakniVprasanje(${idx}, 1)" ${idx === vprasanja.length - 1 ? 'disabled style="opacity:.3;cursor:not-allowed;"' : ''}>↓</button>
                 <button class="text-gray-400 hover:text-red-600 px-2 py-1 text-sm" title="Odstrani" onclick="odstraniVprasanje(${idx})">✕</button>
               </div>
             </div>
@@ -392,7 +392,7 @@
               </div>
               <div class="md:col-span-1 flex items-end pb-1">
                 <label class="flex items-center gap-2 text-sm">
-                  <input type="checkbox" class="w-4 h-4 accent-[#00b894]" ${q.obvezno ? 'checked' : ''}
+                  <input type="checkbox" class="w-4 h-4 accent-[#0b7a6c]" ${q.obvezno ? 'checked' : ''}
                          onchange="posodobiPolje(${idx}, 'obvezno', this.checked)">
                   <span>Obv.</span>
                 </label>

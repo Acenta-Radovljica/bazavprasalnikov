@@ -327,7 +327,7 @@ function mobilnaVrsticaHtml(active = '') {
   // Na ozkem zaslonu ni zlaganja — drsna vrstica prenese vse postavke.
   return [...NAV_POSTAVKE, ...NAPREDNO_POSTAVKE].map(p => {
     const jeAktivna = p.kljuc === aktiven;
-    return `<a href="${p.href}" class="font-medium" style="color:${jeAktivna ? '#5eead4' : '#cbd5e1'}">${esc(p.naslov)}</a>`;
+    return `<a href="${p.href}" class="${jeAktivna ? 'active' : ''}">${esc(p.naslov)}</a>`;
   }).join('');
 }
 
@@ -361,9 +361,8 @@ function poskrbiZaOdzivnost(aside, active) {
 
   const mobilna = document.createElement('div');
   mobilna.setAttribute('data-mobilna-nav', '');
-  mobilna.className = 'md:hidden flex gap-4 overflow-x-auto whitespace-nowrap px-4 py-3 text-sm';
-  mobilna.style.background = '#101828';
-  mobilna.style.color = '#fff';
+  mobilna.className = 'md:hidden flex overflow-x-auto whitespace-nowrap';
+  // Barve in oblika so v admin.css ([data-mobilna-nav]).
   mobilna.innerHTML = mobilnaVrsticaHtml(active);
 
   vsebina.parentNode.insertBefore(desno, vsebina);
@@ -406,7 +405,7 @@ function zagotoviStile() {
   if (!document.querySelector('link[href*="fonts.googleapis.com"]')) {
     const f = document.createElement('link');
     f.rel = 'stylesheet';
-    f.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap';
+    f.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap';
     document.head.appendChild(f);
   }
 }
@@ -467,12 +466,12 @@ function naprednoHtml(aktiven) {
   }).join('');
 
   return `
-    <div style="margin-top:14px">
-      <button type="button" id="naprednoToggle" class="sidebar-item" aria-expanded="${odprto}">
-        <span id="naprednoSev" style="width:16px;text-align:center;font-size:10px;flex:none">${odprto ? '▾' : '▸'}</span>
+    <div class="rail-napredno">
+      <button type="button" id="naprednoToggle" class="sidebar-item${odprto ? ' odprto' : ''}" aria-expanded="${odprto}">
+        <span id="naprednoSev" aria-hidden="true">${svgIkona('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>', 18)}</span>
         <span>Napredno</span>
       </button>
-      <div id="naprednoSeznam" class="space-y-0.5" style="padding-left:14px" ${odprto ? '' : 'hidden'}>
+      <div id="naprednoSeznam" ${odprto ? '' : 'hidden'}>
         ${postavke}
       </div>
     </div>`;
@@ -488,8 +487,7 @@ function priklopiNapredno() {
     const odpri = seznam.hidden;
     seznam.hidden = !odpri;
     gumb.setAttribute('aria-expanded', String(odpri));
-    const sev = document.getElementById('naprednoSev');
-    if (sev) sev.textContent = odpri ? '▾' : '▸';
+    gumb.classList.toggle('odprto', odpri);
     try { localStorage.setItem(NAPREDNO_LS_KLJUC, odpri ? '1' : '0'); } catch { /* zasebni nacin */ }
   });
 }
