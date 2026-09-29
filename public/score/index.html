@@ -5,90 +5,178 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AI Business Score | Acenta</title>
 <meta name="description" content="V treh minutah ocenite, kako vaše podjetje uporablja umetno inteligenco in kateri proces ima največ potenciala.">
+<meta name="theme-color" content="#071715">
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Geist:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Geist:wght@400..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/ai-business-score/score.css">
+<link rel="stylesheet" href="/ai-business-score/landing.css">
+<script>document.documentElement.classList.add('js');</script>
 </head>
 <body>
 <!-- ═════════════ LANDING ═════════════ -->
-<main id="v-landing">
-  <header class="top"><div class="wrap">
-    <img src="/ai-business-score/logo_acenta.svg" alt="Acenta">
-    <span class="sp"></span>
-    <a class="tel" href="tel:+38641669785">041 669 785</a>
-  </div></header>
+<main id="v-landing" class="lp">
+  <header class="lp-nav" data-nav>
+    <div class="lp-wrap lp-nav-in">
+      <img src="/ai-business-score/logo_acenta.svg" alt="Acenta" width="124" height="20">
+      <span class="lp-sp"></span>
+      <button class="lp-btn lp-btn-sm" data-start data-nav-cta tabindex="-1">Začnite oceno</button>
+      <a class="lp-tel" href="tel:+38641669785">041 669 785</a>
+    </div>
+  </header>
 
-  <section class="hero"><div class="wrap grid">
-    <div>
-      <span class="eyebrow">AI Business Score</span>
-      <h1>Kje vam lahko umetna inteligenca <em>že danes</em> prihrani čas in denar?</h1>
-      <p class="lead">V treh minutah ocenite, kako vaše podjetje uporablja AI, kateri proces ima največ potenciala in kakšen je smiseln prvi korak. Poročilo dobite takoj.</p>
-      <ul class="benefits">
-        <li><span class="ic">1</span><div><b>Vaša AI zrelost</b><span>Kje ste danes: od posameznih poskusov do AI v procesih.</span></div></li>
-        <li><span class="ic">2</span><div><b>Kje vam odteka čas</b><span>Opravila, ki ekipi vzamejo največ ur.</span></div></li>
-        <li><span class="ic">3</span><div><b>Proces z največ potenciala</b><span>Nabava, prodaja, administracija, vodenje ali podpora strankam.</span></div></li>
-        <li><span class="ic">4</span><div><b>Prvi konkreten korak</b><span>Priporočilo, ki ga lahko začnete izvajati.</span></div></li>
-      </ul>
-      <div class="cta-row">
-        <button class="btn" data-start>Začnite oceno</button>
-        <span class="micro">Brezplačno · 16 vprašanj · okoli 3 minute</span>
+  <!-- Hero: value prop left, the live report instrument right -->
+  <section class="lp-hero" data-hero>
+    <div class="lp-wrap lp-hero-grid">
+      <div class="lp-hero-copy">
+        <p class="lp-eyebrow lp-in" style="--d:0">AI Business Score</p>
+        <h1 class="lp-h1" aria-label="Kje vam AI že danes prihrani čas in denar?">
+          <span class="w" aria-hidden="true"><span style="--i:0">Kje</span></span>
+          <span class="w" aria-hidden="true"><span style="--i:1">vam</span></span>
+          <span class="w" aria-hidden="true"><span style="--i:2">AI</span></span>
+          <span class="w acc" aria-hidden="true"><span style="--i:3">že</span></span>
+          <span class="w acc" aria-hidden="true"><span style="--i:4">danes</span></span>
+          <span class="w" aria-hidden="true"><span style="--i:5">prihrani</span></span>
+          <span class="w" aria-hidden="true"><span style="--i:6">čas</span></span>
+          <span class="w" aria-hidden="true"><span style="--i:7">in</span></span>
+          <span class="w" aria-hidden="true"><span style="--i:8">denar?</span></span>
+        </h1>
+        <p class="lp-lead lp-in" style="--d:6">16 vprašanj, okoli 3 minute. Takoj izveste, kako vaše podjetje uporablja AI in kje je največ potenciala.</p>
+        <div class="lp-cta lp-in" style="--d:8">
+          <button class="lp-btn" data-start data-magnetic><span>Začnite oceno</span><i class="lp-arrow" aria-hidden="true"></i></button>
+          <span class="lp-free">Brezplačno</span>
+        </div>
+      </div>
+
+      <figure class="lp-meter lp-in" style="--d:4" data-meter data-tilt aria-label="Primer poročila AI Business Score">
+        <div class="lp-meter-head">
+          <span>Primer poročila</span>
+          <span class="lp-meter-area" data-m="podrocje">Nabava</span>
+        </div>
+        <div class="lp-meter-main">
+          <div class="lp-dial">
+            <svg viewBox="0 0 200 200" aria-hidden="true">
+              <circle class="lp-dial-track" cx="100" cy="100" r="86"/>
+              <circle class="lp-dial-val" cx="100" cy="100" r="86" data-m="ring"/>
+            </svg>
+            <div class="lp-dial-num"><strong data-m="skupno">0</strong><small>od 100</small></div>
+          </div>
+          <div class="lp-meter-level">
+            <span class="lp-chip" data-m="stopnja">AI raziskovalec</span>
+            <p data-m="opis">AI že uporabljate, a še ne sistemsko.</p>
+          </div>
+        </div>
+        <dl class="lp-dims">
+          <div><dt>AI zrelost</dt><dd><span class="lp-ticks" data-m="t-zrelost"></span><b data-m="zrelost">0</b></dd></div>
+          <div><dt>Potencial v procesih</dt><dd><span class="lp-ticks" data-m="t-potencial"></span><b data-m="potencial">0</b></dd></div>
+          <div><dt>Pripravljenost za korak</dt><dd><span class="lp-ticks" data-m="t-pripravljenost"></span><b data-m="pripravljenost">0</b></dd></div>
+        </dl>
+        <div class="lp-opp">
+          <small>Največja priložnost</small>
+          <p data-m="priloznost">AI agent za nabavo ali pilotni projekt v nabavi</p>
+        </div>
+      </figure>
+    </div>
+  </section>
+
+  <!-- Argument: read line by line as it scrolls into focus -->
+  <section class="lp-argue">
+    <div class="lp-wrap">
+      <h2 class="lp-h2">AI uporablja že večina. Redko pa tam, kjer šteje.</h2>
+      <p class="lp-scrub" data-scrub>Večina podjetij AI uporablja za e-pošto in povzetke. Največ prihranka pa nastane, ko AI prevzame del konkretnega procesa: pripravo ponudb, primerjavo dobaviteljev, odgovore strankam ali poročila za vodstvo.</p>
+    </div>
+  </section>
+
+  <!-- What the report shows: four compact tiles, each animates as it arrives -->
+  <section class="lp-report">
+    <div class="lp-wrap">
+      <h2 class="lp-h2 lp-report-title" data-reveal>Kaj izveste v poročilu</h2>
+      <div class="lp-bento">
+        <article class="lp-card lp-c-level" data-card>
+          <div class="lp-card-copy">
+            <h3>Vašo AI zrelost</h3>
+            <p>Pet stopenj, od posameznih poskusov do AI v procesih.</p>
+          </div>
+          <ol class="lp-levels" aria-label="Stopnje AI zrelosti">
+            <li>AI začetnik</li>
+            <li class="on">AI raziskovalec</li>
+            <li>AI uporabnik</li>
+            <li>AI pospeševalec</li>
+            <li>AI-first kandidat</li>
+          </ol>
+        </article>
+
+        <article class="lp-card lp-c-time" data-card>
+          <div class="lp-card-copy">
+            <h3>Kje vam odteka čas</h3>
+            <p>Opravila, ki ekipi vzamejo največ ur.</p>
+          </div>
+          <ul class="lp-chips" aria-label="Primer izbranih opravil">
+            <li class="pick" style="--k:0">Priprava ponudb</li>
+            <li>Administracija</li>
+            <li class="pick" style="--k:1">Odgovarjanje na povpraševanja</li>
+            <li>Delo z dokumenti</li>
+            <li class="pick" style="--k:2">Priprava poročil</li>
+            <li>Iskanje informacij</li>
+          </ul>
+        </article>
+
+        <article class="lp-card lp-c-area" data-card>
+          <div class="lp-card-copy">
+            <h3>Proces z največ potenciala</h3>
+            <p>Kje se AI pri vas najhitreje obrestuje.</p>
+          </div>
+          <ul class="lp-areas" aria-label="Področja, ki jih ocena primerja">
+            <li>Nabava</li>
+            <li class="on">Prodaja</li>
+            <li>Administracija in interno znanje</li>
+            <li>Vodstvo in odločanje</li>
+            <li>Podpora strankam in gostom</li>
+          </ul>
+        </article>
+
+        <article class="lp-card lp-c-step" data-card>
+          <div class="lp-card-copy">
+            <h3>Prvi konkreten korak</h3>
+            <p>Priporočilo, ki ga lahko začnete izvajati.</p>
+          </div>
+          <div class="lp-step">
+            <small>Priporočilo za področje Prodaja</small>
+            <p class="lp-step-rec"><span>AI pomočnik za prodajo</span> <span>in pripravo ponudb</span></p>
+          </div>
+        </article>
       </div>
     </div>
+  </section>
 
-    <aside class="preview" aria-label="Primer poročila">
-      <div class="ph"><b>Vaše poročilo</b><span class="tag">primer</span></div>
-      <div class="ring-row">
-        <div class="ring" style="--v:69"><div><div><strong>69</strong><small>od 100</small></div></div></div>
-        <div><span class="level">AI raziskovalec</span><p class="micro">AI že uporabljate, a še ne sistemsko. Največ bi pridobili z izborom enega procesa.</p></div>
+  <!-- Closing: how it goes, who is behind it, one CTA. The dial motif fills as it arrives. -->
+  <section class="lp-final" data-final>
+    <svg class="lp-final-ring" viewBox="0 0 400 400" aria-hidden="true">
+      <circle cx="200" cy="200" r="180" class="lp-final-track"/>
+      <circle cx="200" cy="200" r="180" class="lp-final-val"/>
+    </svg>
+    <div class="lp-wrap lp-final-in">
+      <h2 class="lp-h2 lp-final-h" data-reveal>Preverite, kaj bi AI že danes lahko naredil za vaše podjetje.</h2>
+      <ol class="lp-steps" data-flow aria-label="Kako poteka">
+        <li style="--k:0"><span class="lp-node" aria-hidden="true"></span><h3>16 vprašanj</h3><p>Brez tehničnih izrazov, okoli 3 minute.</p></li>
+        <li style="--k:1"><span class="lp-node" aria-hidden="true"></span><h3>Poročilo takoj</h3><p>Ocena, stopnja zrelosti in proces z največ potenciala.</p></li>
+        <li style="--k:2"><span class="lp-node" aria-hidden="true"></span><h3>Po želji pogovor</h3><p>30 minut z našo ekipo o prvem procesu.</p></li>
+      </ol>
+      <div data-reveal style="--d:2">
+        <button class="lp-btn" data-start data-magnetic><span>Začnite oceno</span><i class="lp-arrow" aria-hidden="true"></i></button>
       </div>
-      <div class="bars">
-        <div class="bar"><div class="lbl"><span>AI zrelost</span><span>25</span></div><div class="track"><div class="fill" style="width:25%"></div></div></div>
-        <div class="bar"><div class="lbl"><span>Potencial v procesih</span><span>76</span></div><div class="track"><div class="fill" style="width:76%"></div></div></div>
-        <div class="bar"><div class="lbl"><span>Pripravljenost za korak</span><span>92</span></div><div class="track"><div class="fill" style="width:92%"></div></div></div>
-      </div>
-      <div class="opp"><small>Največja priložnost</small>Nabava: AI agent za primerjavo ponudb in dobaviteljev</div>
-    </aside>
-  </div></section>
-
-  <section class="band white"><div class="wrap two">
-    <div>
-      <span class="eyebrow">Zakaj ocena</span>
-      <h2>AI uporablja že večina. Redko pa tam, kjer šteje.</h2>
-      <p class="body">Veliko podjetij AI uporablja za pisanje e-pošte, besedil in hitrih povzetkov. To je koristno, a je šele začetek. Največ prihranka nastane, ko AI prevzame del konkretnega procesa: pripravo ponudb, primerjavo dobaviteljev, odgovore strankam ali poročila za vodstvo.</p>
-      <div class="note"><b>Odločitve ostanejo pri vas</b><span>AI lahko prevzame vse več rutinskega dela. Nadzor, presoja in pomembne odločitve ostanejo v rokah ljudi. Cilj je več časa za delo, ki ustvarja vrednost.</span></div>
+      <p class="lp-note" data-reveal style="--d:3">Pripravila Acenta, digitalna agencija iz Ljubljane in Google Partner. AI rešitve razvijamo in uporabljamo tudi sami.</p>
     </div>
-    <div class="steps">
-      <div class="step"><span class="n">1</span><div><b>Odgovorite na 16 vprašanj</b><span>O tem, kako danes delate in kje vam odteka čas. Brez tehničnih izrazov.</span></div></div>
-      <div class="step"><span class="n">2</span><div><b>Takoj dobite poročilo</b><span>Oceno od 0 do 100, vašo stopnjo zrelosti in proces z največ potenciala.</span></div></div>
-      <div class="step"><span class="n">3</span><div><b>Po želji kratek pogovor</b><span>V 30 minutah skupaj pogledamo rezultat in izberemo prvi proces.</span></div></div>
-    </div>
-  </div></section>
+  </section>
 
-  <section class="band"><div class="wrap">
-    <span class="eyebrow">Kdo stoji za oceno</span>
-    <h2>Acenta, digitalna agencija iz Ljubljane</h2>
-    <p class="body" style="max-width:720px">AI rešitve razvijamo in uporabljamo sami: za odgovarjanje na mnenja gostov, pripravo ponudb in obdelavo povpraševanj. Ocena temelji na tem, kar vidimo pri podjetjih v turizmu, avtomobilski industriji in e-trgovini.</p>
-    <div class="trust">
-      <div><b>Google Partner</b><span>Certificirana agencija za digitalno oglaševanje.</span></div>
-      <div><b>AI v praksi</b><span>Rešitve, ki jih stranke že uporabljajo pri vsakdanjem delu.</span></div>
-      <div><b>Pogovor z ljudmi</b><span>Rezultat vam razloži naša ekipa, ne avtomat. 041 669 785</span></div>
+  <footer class="lp-foot">
+    <div class="lp-wrap lp-foot-in">
+      <span>© 2026 Acenta d.o.o.</span>
+      <a href="mailto:ai@acenta.si">ai@acenta.si</a>
+      <a href="https://www.acenta.si/politika-varstva-osebnih-podatkov/" target="_blank" rel="noopener">Politika zasebnosti</a>
     </div>
-  </div></section>
-
-  <section class="final"><div class="wrap">
-    <span class="eyebrow">Naredite prvi korak</span>
-    <h2>Preverite, kaj bi AI že danes lahko naredil za vaše podjetje.</h2>
-    <p>Kratka ocena pokaže vašo raven uporabe AI, kje izgubljate čas in katere priložnosti še niste izkoristili.</p>
-    <button class="btn" data-start>Začnite oceno</button>
-    <p class="micro">Brezplačno · okoli 3 minute · poročilo takoj</p>
-  </div></section>
-  <footer class="foot"><div class="wrap">
-    <span>© 2026 Acenta d.o.o.</span>
-    <a href="mailto:ai@acenta.si">ai@acenta.si</a>
-    <a href="https://www.acenta.si/politika-varstva-osebnih-podatkov/" target="_blank" rel="noopener">Politika zasebnosti</a>
-  </div></footer>
+  </footer>
 </main>
 
 <!-- ═════════════ QUIZ ═════════════ -->
@@ -126,6 +214,7 @@
   </div>
 </main>
 
+<script src="/ai-business-score/landing.js" defer></script>
 <script type="module" src="/ai-business-score/kviz.js"></script>
 </body>
 </html>
