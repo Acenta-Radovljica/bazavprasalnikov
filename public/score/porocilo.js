@@ -25,7 +25,8 @@ else {
   const d = await res.json();
   document.title = `AI Business Score za ${d.podjetje} | Acenta`;
   $('#r-naslov').textContent = `AI Business Score za ${d.podjetje || 'vaše podjetje'}`;
-  $('#r-meta').textContent = `Izpolnjeno ${d.datum}${d.email ? ` · kopijo poročila pošljemo na ${d.email}` : ''}`;
+  // No copy is e-mailed until MailerLite is configured, so do not promise one here.
+  $('#r-meta').textContent = `Izpolnjeno ${d.datum} · povezavo si shranite, da se lahko k poročilu vrnete`;
   $('#r-ring').style.setProperty('--v', d.skupno);
   $('#r-score').textContent = d.skupno;
   $('#r-level').textContent = 'Vaša stopnja';

@@ -118,7 +118,7 @@ async function oddaj() {
         velikost: st.kontakt.velikost,
         gdpr_consent: !!st.kontakt.soglasje,
         marketing_consent: !!st.kontakt.marketing,
-        company_url: $('#company_url').value,
+        company_url: $('#hp_sidro').value,
         odgovori: st.odg,
       }),
     });

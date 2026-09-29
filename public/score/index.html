@@ -186,7 +186,7 @@
 
   <section class="qbody" id="step-kontakt">
     <h2>Najprej nekaj podatkov o vas</h2>
-    <p class="qhint">Poročilo pošljemo na vaš e-naslov. Polja z * so obvezna.</p>
+    <p class="qhint">Poročilo vidite takoj po zadnjem vprašanju. Polja z * so obvezna.</p>
     <form class="form" id="fkontakt" novalidate>
       <div class="fld"><label for="ime">Ime <i>*</i></label><input id="ime" autocomplete="given-name"><div class="e">Vpišite ime.</div></div>
       <div class="fld"><label for="priimek">Priimek <i>*</i></label><input id="priimek" autocomplete="family-name"><div class="e">Vpišite priimek.</div></div>
@@ -194,11 +194,16 @@
       <div class="fld"><label for="telefon">Telefon <i>*</i></label><input id="telefon" type="tel" autocomplete="tel"><div class="e">Vpišite telefonsko številko.</div></div>
       <div class="fld full"><label for="podjetje">Podjetje <i>*</i></label><input id="podjetje" autocomplete="organization"><div class="e">Vpišite naziv podjetja.</div></div>
       <div class="fld full" id="fld-velikost"><label>Število zaposlenih <i>*</i></label><div class="seg" id="velikost"></div><div class="e">Izberite velikost podjetja.</div></div>
-      <input type="text" id="company_url" name="company_url" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
       <label class="consent full" id="c1"><input type="checkbox" id="soglasje"><span>Seznanjen(-a) sem z <a href="https://www.acenta.si/politika-varstva-osebnih-podatkov/" target="_blank" rel="noopener">obvestilom o varstvu osebnih podatkov</a> in se strinjam, da Acenta moje odgovore obdela za pripravo poročila. <i style="color:var(--accent);font-style:normal">*</i></span></label>
       <label class="consent full"><input type="checkbox" id="marketing"><span>Želim prejemati nasvete in povabila Acente o uporabi AI v podjetju. Odjava je mogoča v vsakem sporočilu.</span></label>
     </form>
   </section>
+
+  <!-- Anti-spam trap, kept OUTSIDE the form and with a meaningless name: browser autofill filled the
+       old in-form "company_url" field for real visitors and every submission was dropped as spam. -->
+  <div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">
+    <input type="text" id="hp_sidro" name="hp_sidro" tabindex="-1" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
+  </div>
 
   <section class="qbody" id="step-q" hidden>
     <h2 id="qtitle"></h2>
