@@ -110,6 +110,13 @@ t('glave: noindex, no-referrer, no-store',
 const pds = JSON.stringify(pd);
 t('brez lead razreda, financnega potenciala, signalov in odgovorov',
   !/"lead"|"financni"|"signali"|"odgovori"|"telefon"|"razlogi"/.test(pds), pds.slice(0, 200));
+// Since 30. 9. the report echoes the respondent's own picks, as option TEXTS only.
+t('izbrano: samo besedila, brez oznak odgovorov',
+  Array.isArray(pd.izbrano?.cas) && pd.izbrano.cas.every(x => typeof x === 'string' && /\s|[A-ZČŠŽ]/.test(x))
+  && !/"cim_prej"|"pilot"|"proizvodnja"|"zre"|"prip"|"sig"/.test(pds), JSON.stringify(pd.izbrano));
+t('vzvodi: najvec 3 z besedilom in tockami',
+  Array.isArray(pd.vzvodi) && pd.vzvodi.length <= 3 && pd.vzvodi.every(v => v.korak && v.zrelost > 0) && typeof pd.skupaj?.skupno === 'number',
+  JSON.stringify(pd.vzvodi));
 t('skupno + 3 dimenzije + stopnja + proces', pd.skupno === pricakovano.skupno && Object.keys(pd.dimenzije).length === 3 && pd.stopnja?.naziv && pd.proces?.id === 'nabava');
 t('brez SCORE_BOOKING_URL ni gumba za rezervacijo', pd.rezervacija === null);
 r = await fetch(`${BASE}/r/${token}`);

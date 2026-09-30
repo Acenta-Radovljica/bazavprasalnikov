@@ -36,10 +36,15 @@ $('#qprog').replaceChildren(...segmenti.map(s => {
   const d = document.createElement('div'); d.className = 'seg'; d.style.setProperty('--n', s.n);
   d.appendChild(document.createElement('i')); return d;
 }));
+const polno = [];
 function paintProgress(k) {
   $('#qprog').querySelectorAll('.seg').forEach((el, i) => {
     const s = segmenti[i];
-    el.style.setProperty('--p', Math.min(Math.max(k - s.od + 1, 0), s.n) / s.n);
+    const p = Math.min(Math.max(k - s.od + 1, 0), s.n) / s.n;
+    el.style.setProperty('--p', p);
+    // A section that just filled up flashes once (only when moving forward into completion).
+    if (p === 1 && polno[i] === false && !reduce) { el.classList.remove('done'); void el.offsetWidth; el.classList.add('done'); }
+    polno[i] = p === 1;
   });
 }
 
@@ -47,13 +52,42 @@ function paintProgress(k) {
 function show(v) {
   $('#v-landing').hidden = v !== 'landing';
   $('#v-kviz').hidden = v !== 'kviz';
+  if (v === 'landing') document.querySelectorAll('[data-hq-opt].sel').forEach(b => b.classList.remove('sel'));
   window.scrollTo(0, 0);
 }
 function route() {
   if (location.hash === '#kviz') { show('kviz'); zadnjiKorak = null; renderQuiz(); } else show('landing');
 }
 window.addEventListener('hashchange', route);
-document.querySelectorAll('[data-start]').forEach(b => b.addEventListener('click', () => { location.hash = 'kviz'; }));
+
+// Landing -> quiz. From the hero question the card morphs into the quiz step (View Transitions);
+// from any other button only the page cross-fades, so nothing flies in from off-screen.
+const heroQ = $('[data-hq]');
+function vKviz(izHero) {
+  if (heroQ && !izHero) heroQ.style.viewTransitionName = 'none';
+  const zamenjaj = () => { history.pushState(null, '', '#kviz'); show('kviz'); zadnjiKorak = null; renderQuiz(); };
+  if (document.startViewTransition && !reduce) {
+    document.startViewTransition(zamenjaj).finished.finally(() => { if (heroQ) heroQ.style.viewTransitionName = ''; });
+  } else { zamenjaj(); if (heroQ) heroQ.style.viewTransitionName = ''; }
+}
+document.querySelectorAll('[data-start]').forEach(b => b.addEventListener('click', () => vKviz(false)));
+
+// The hero shows question 1 itself: texts refresh from vprasanja.json, a click stores the answer
+// and opens the quiz on the next question.
+const PRVO = VPRASANJA.findIndex(q => q.id === 'uporaba');
+const heroOpts = [...document.querySelectorAll('[data-hq-opt]')];
+if (PRVO >= 0) for (const b of heroOpts) {
+  const o = VPRASANJA[PRVO].moznosti.find(m => m.id === b.dataset.hqOpt);
+  if (!o) { b.hidden = true; continue; }
+  b.querySelector('.tx').textContent = o.text;
+  b.addEventListener('click', () => {
+    b.classList.add('sel');
+    // Someone who already went further (back button, then the hero again) keeps their place.
+    st.odg.uporaba = o.id; st.korak = Math.min(Math.max(st.korak, PRVO + 1), KONTAKT); save();
+    // Only the hero card morphs; the closing copy of the question just cross-fades.
+    setTimeout(() => vKviz(!!b.closest('[data-hq]')), reduce ? 0 : 170);
+  });
+}
 
 // ── contact step ──
 const seg = $('#velikost');
@@ -96,6 +130,7 @@ function napaka(msg) { const e = $('#qerr'); e.textContent = msg || ''; e.hidden
 function renderQuiz() {
   const k = st.korak, kontakt = k === KONTAKT;
   const nov = k !== zadnjiKorak;
+  const nazaj = zadnjiKorak !== null && k < zadnjiKorak;
   napaka('');
   $('#step-kontakt').hidden = !kontakt;
   $('#step-q').hidden = kontakt;
@@ -111,7 +146,7 @@ function renderQuiz() {
     $('#qstage').classList.remove('wide');
     btn.textContent = 'Pokaži moje poročilo'; btn.disabled = false; btn.hidden = false;
     $('#qkeys').textContent = '';
-    if (nov) vstop($('#step-kontakt'), $('#ktitle'));
+    if (nov) vstop($('#step-kontakt'), $('#ktitle'), nazaj);
     zadnjiKorak = k;
     return;
   }
@@ -134,6 +169,7 @@ function renderQuiz() {
     const b = document.createElement('button');
     const on = izbrane.includes(o.id);
     b.type = 'button'; b.className = 'opt' + (q.tip === 'vec' ? ' multi' : '') + (on ? ' sel' : '');
+    b.style.setProperty('--i', Math.min(i, 12));           // entrance stagger
     if (q.tip === 'vec' && izbrane.length >= q.max && !on) b.classList.add('off');
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
     b.innerHTML = '<span class="mk" aria-hidden="true"></span><span class="tx"></span><kbd class="key" aria-hidden="true"></kbd>';
@@ -147,16 +183,18 @@ function renderQuiz() {
   btn.hidden = q.tip !== 'vec' && !cur;
   btn.disabled = q.tip === 'vec' ? izbrane.length === 0 : !cur;
   $('#qkeys').textContent = q.tip === 'vec' ? 'Črka izbere, Enter nadaljuje' : 'Izberite s črko';
-  if (nov) vstop($('#step-q'), $('#qtitle'));
+  if (nov) vstop($('#step-q'), $('#qtitle'), nazaj);
   zadnjiKorak = k;
 }
 
-// New step: short rise-in, focus the heading for screen readers, back to the top on phones.
-function vstop(el, naslov) {
+// New step: rise-in (from above when going back), options stagger in, focus the heading for
+// screen readers, back to the top on phones.
+function vstop(el, naslov, nazaj) {
   window.scrollTo(0, 0);
   naslov.focus({ preventScroll: true });
   if (reduce) return;
-  el.classList.remove('enter'); void el.offsetWidth; el.classList.add('enter');
+  el.classList.remove('enter', 'nazaj'); void el.offsetWidth; el.classList.add('enter');
+  if (nazaj) el.classList.add('nazaj');
 }
 
 function izberi(q, id) {
@@ -178,9 +216,32 @@ const NAPAKE = {
   too_many_requests: 'Iz tega omrežja je bilo v kratkem času oddanih preveč ocen. Poskusite znova čez nekaj minut.',
   invalid_answer: 'Eno od vprašanj nima veljavnega odgovora. Preverite odgovore in poskusite znova.',
 };
+// "Računamo vašo oceno": the four parts of the score tick off while the server scores. Shown
+// for at least ~2 s so the result lands as a result, not a page flash. Honest: the server
+// really computes these four things for this submission.
+function racunam() {
+  const el = $('#qcalc'), lis = [...$('#qcalc-steps').children], pct = $('#qcalc-pct');
+  lis.forEach(l => l.classList.remove('on')); pct.textContent = '0';
+  el.hidden = false; document.body.classList.add('calc');
+  const trajanje = reduce ? 500 : 2100, t0 = performance.now();
+  let raf = 0;
+  const tik = (t) => {
+    const p = Math.min((t - t0) / trajanje, 1);
+    pct.textContent = Math.round(p * 100);
+    lis.forEach((l, i) => l.classList.toggle('on', p >= (i + 1) / (lis.length + .6)));
+    if (p < 1) raf = requestAnimationFrame(tik);
+  };
+  raf = requestAnimationFrame(tik);
+  return {
+    konec: new Promise(r => setTimeout(r, trajanje + 150)),
+    skrij: () => { cancelAnimationFrame(raf); el.hidden = true; document.body.classList.remove('calc'); },
+  };
+}
+
 async function oddaj() {
   const btn = $('#naprej');
   btn.disabled = true; btn.textContent = 'Pripravljamo poročilo …';
+  const calc = racunam();
   try {
     const res = await fetch('/f/ai-business-score', {
       method: 'POST',
@@ -195,7 +256,8 @@ async function oddaj() {
       }),
     });
     const d = await res.json().catch(() => ({}));
-    if (res.ok && d.reportUrl) { sessionStorage.removeItem(KEY); location.href = d.reportUrl; return; }
+    if (res.ok && d.reportUrl) { sessionStorage.removeItem(KEY); await calc.konec; location.href = d.reportUrl; return; }
+    calc.skrij();
     if (res.status === 400 && d.field && POLJA.concat('velikost').includes(d.field)) {
       preveriKontakt();
       $('#' + (d.field === 'velikost' ? 'fld-velikost' : d.field)).closest('.fld')?.classList.add('err');
@@ -206,8 +268,9 @@ async function oddaj() {
       const i = VPRASANJA.findIndex(q => q.id === d.field);
       if (i >= 0) { st.korak = i; save(); renderQuiz(); }
     }
-    napaka(NAPAKE[d.error] || 'Oddaja ni uspela. Poskusite znova ali nas pokličite na 041 669 785.');
+    napaka(NAPAKE[d.error] || 'Oddaja ni uspela. Poskusite znova ali nas pokličite na 031 615 921.');
   } catch {
+    calc.skrij();
     napaka('Povezava ni uspela. Preverite internet in poskusite znova.');
   }
   if (st.korak === KONTAKT) { btn.disabled = false; btn.textContent = 'Pokaži moje poročilo'; }
@@ -221,7 +284,17 @@ $('#nazaj').onclick = () => { if (st.korak > 0) { st.korak--; save(); renderQuiz
 
 // Keyboard: a letter picks an option, Enter goes on. Inputs keep their own keys (Enter submits).
 document.addEventListener('keydown', e => {
-  if ($('#v-kviz').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  // Landing: A–E answer the hero question while it is on screen (its keys are shown on the options).
+  if ($('#v-kviz').hidden) {
+    if (!heroQ || e.target.matches?.('input, textarea') || e.key.length !== 1) return;
+    const r = heroQ.getBoundingClientRect();
+    if (r.bottom < 0 || r.top > innerHeight) return;
+    const b = heroOpts.filter(x => !x.hidden && x.closest('[data-hq]'))[CRKE.indexOf(e.key.toUpperCase())];
+    if (b) { e.preventDefault(); b.click(); }
+    return;
+  }
+  if (!$('#qcalc').hidden) return;
   const btn = $('#naprej');
   if (st.korak === KONTAKT) {
     if (e.key === 'Enter' && e.target.matches?.('#fkontakt input:not([type=checkbox])')) { e.preventDefault(); if (!btn.disabled) btn.click(); }

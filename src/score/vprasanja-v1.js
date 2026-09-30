@@ -23,7 +23,7 @@ export const PODROCJE_NAZIV = {
   marketing: 'Marketing',
 };
 
-// Contact step (asked first). Only `velikost` is scored.
+// Contact step (asked last, after the questions). Only `velikost` is scored.
 export const VELIKOST = [
   { id: '1-5', text: '1–5', fin: 0 },
   { id: '6-20', text: '6–20', fin: 1 },
@@ -35,34 +35,6 @@ export const VELIKOST = [
 // Point keys per option: zre (maturity 0–4), pot (process potential), prip (readiness 0–4),
 // fin (financial potential), sig (process area signal).
 export const VPRASANJA = [
-  {
-    id: 'panoga', word: '1.2', tip: 'ena', text: 'V kateri panogi deluje vaše podjetje?',
-    moznosti: [
-      { id: 'turizem', text: 'Turizem, hotelirstvo, kampi', fin: 2 },
-      { id: 'dmo', text: 'Destinacijska organizacija (DMO)', fin: 1 },
-      { id: 'dmc', text: 'DMC ali turistična agencija', fin: 1 },
-      { id: 'proizvodnja', text: 'Proizvodnja', fin: 2 },
-      { id: 'trgovina', text: 'Trgovina ali distribucija', fin: 2 },
-      { id: 'storitve', text: 'Storitvena dejavnost', fin: 1 },
-      { id: 'gradbenistvo', text: 'Gradbeništvo ali projektiva', fin: 2 },
-      { id: 'zdravstvo', text: 'Zdravstvo ali wellness', fin: 1 },
-      { id: 'izobrazevanje', text: 'Izobraževanje', fin: 1 },
-      { id: 'drugo', text: 'Drugo', fin: 1 },
-    ],
-  },
-  {
-    id: 'vloga', word: '1.3', tip: 'ena', text: 'Kakšna je vaša vloga v podjetju?',
-    moznosti: [
-      { id: 'lastnik', text: 'Lastnik', fin: 2, odlocevalec: true },
-      { id: 'direktor', text: 'Direktor', fin: 2, odlocevalec: true },
-      { id: 'vodja_marketinga', text: 'Vodja marketinga', fin: 1 },
-      { id: 'vodja_prodaje', text: 'Vodja prodaje', fin: 1 },
-      { id: 'vodja_operacij', text: 'Vodja operacij', fin: 1 },
-      { id: 'vodja_administracije', text: 'Vodja administracije ali podpore', fin: 1 },
-      { id: 'zaposleni', text: 'Zaposleni', fin: 0 },
-      { id: 'drugo', text: 'Drugo', fin: 0 },
-    ],
-  },
   {
     id: 'uporaba', word: '2.1', tip: 'ena', text: 'Kako danes uporabljate umetno inteligenco v podjetju?',
     moznosti: [
@@ -236,6 +208,34 @@ export const VPRASANJA = [
       { id: 'priporocilo', text: 'Da, pošljite mi osnovno priporočilo', prip: 1 },
       { id: 'pogovor', text: 'Da, želim 30-minutni pogovor', prip: 4, akcija: true },
       { id: 'diagnostika', text: 'Da, zanima nas AI diagnostika podjetja', prip: 4, akcija: true },
+    ],
+  },
+  {
+    id: 'panoga', word: '1.2', tip: 'ena', text: 'V kateri panogi deluje vaše podjetje?',
+    moznosti: [
+      { id: 'turizem', text: 'Turizem, hotelirstvo, kampi', fin: 2 },
+      { id: 'dmo', text: 'Destinacijska organizacija (DMO)', fin: 1 },
+      { id: 'dmc', text: 'DMC ali turistična agencija', fin: 1 },
+      { id: 'proizvodnja', text: 'Proizvodnja', fin: 2 },
+      { id: 'trgovina', text: 'Trgovina ali distribucija', fin: 2 },
+      { id: 'storitve', text: 'Storitvena dejavnost', fin: 1 },
+      { id: 'gradbenistvo', text: 'Gradbeništvo ali projektiva', fin: 2 },
+      { id: 'zdravstvo', text: 'Zdravstvo ali wellness', fin: 1 },
+      { id: 'izobrazevanje', text: 'Izobraževanje', fin: 1 },
+      { id: 'drugo', text: 'Drugo', fin: 1 },
+    ],
+  },
+  {
+    id: 'vloga', word: '1.3', tip: 'ena', text: 'Kakšna je vaša vloga v podjetju?',
+    moznosti: [
+      { id: 'lastnik', text: 'Lastnik', fin: 2, odlocevalec: true },
+      { id: 'direktor', text: 'Direktor', fin: 2, odlocevalec: true },
+      { id: 'vodja_marketinga', text: 'Vodja marketinga', fin: 1 },
+      { id: 'vodja_prodaje', text: 'Vodja prodaje', fin: 1 },
+      { id: 'vodja_operacij', text: 'Vodja operacij', fin: 1 },
+      { id: 'vodja_administracije', text: 'Vodja administracije ali podpore', fin: 1 },
+      { id: 'zaposleni', text: 'Zaposleni', fin: 0 },
+      { id: 'drugo', text: 'Drugo', fin: 0 },
     ],
   },
 ];

@@ -80,15 +80,44 @@
     swapText(m('priloznost'), p.priloznost);
   }
 
-  let idx = 0, timer = null, meterVisible = false;
-  const zacni = () => { if (!reduce && !timer && meterVisible && !document.hidden) timer = setInterval(() => { idx = (idx + 1) % PROFILI.length; pokazi(PROFILI[idx]); }, 4200); };
+  let idx = 0, timer = null, meterVisible = false, booted = reduce, hoverQ = false;
+  const zacni = () => { if (!reduce && booted && !hoverQ && !timer && meterVisible && !document.hidden) timer = setInterval(() => { idx = (idx + 1) % PROFILI.length; pokazi(PROFILI[idx]); }, 4200); };
   const ustavi = () => { clearInterval(timer); timer = null; };
-  // First paint waits for the headline to land, so the eye goes headline, then number.
-  setTimeout(() => pokazi(PROFILI[0]), reduce ? 0 : 900);
+
+  // Power-on: the dial sweeps to full and every tick lights in a wave (a self-test), then the
+  // first profile settles. Starts once the headline has landed, so the eye goes words, then number.
+  if (reduce) pokazi(PROFILI[0]);
+  else setTimeout(() => {
+    meter.classList.add('boot');
+    m('ring').style.strokeDashoffset = 0;
+    countTo('skupno', m('skupno'), 100, 800);
+    DIMS.forEach(d => { countTo(d, m(d), 100, 800); $$('i', m('t-' + d)).forEach(t => t.classList.add('on')); });
+    setTimeout(() => {
+      pokazi(PROFILI[0]);
+      setTimeout(() => { meter.classList.remove('boot'); booted = true; root.querySelector('[data-hero]').classList.add('live'); zacni(); }, 900);
+    }, 950);
+  }, 850);
   new IntersectionObserver(([e]) => { meterVisible = e.isIntersecting; meterVisible ? zacni() : ustavi(); }, { threshold: .4 }).observe(meter);
   document.addEventListener('visibilitychange', () => (document.hidden ? ustavi() : zacni()));
   meter.addEventListener('pointerenter', ustavi);
   meter.addEventListener('pointerleave', zacni);
+
+  // ── The first question drives the instrument: hovering an answer previews a company like that.
+  // Illustrative only (the card says "Primer poročila"); the real score needs all 16 answers.
+  const PREDOGLED = { ne: 2, posamezniki: 0, vec_zaposlenih: 4, oddelki: 1, procesi: 3 };
+  let pustiT = 0;
+  $$('[data-hq] [data-hq-opt]').forEach(b => {
+    const on = () => {
+      if (!booted) return;
+      clearTimeout(pustiT); hoverQ = true; ustavi();
+      meter.classList.add('linked');
+      const i = PREDOGLED[b.dataset.hqOpt];
+      if (i !== undefined && i !== idx) { idx = i; pokazi(PROFILI[i]); }
+    };
+    const off = () => { pustiT = setTimeout(() => { hoverQ = false; meter.classList.remove('linked'); zacni(); }, 250); };
+    b.addEventListener('pointerenter', on); b.addEventListener('focus', on);
+    b.addEventListener('pointerleave', off); b.addEventListener('blur', off);
+  });
 
   // ── Pointer physics: tilt on the instrument, magnetic pull on primary buttons ──
   if (!reduce && finePointer) {
@@ -104,6 +133,19 @@
     });
     meter.addEventListener('pointerleave', () => { meter.style.setProperty('--rx', '0deg'); meter.style.setProperty('--ry', '0deg'); });
 
+    // Cursor light over the hero (transform only, one rAF per frame)
+    const hero = $('[data-hero]'), spot = $('[data-spot]');
+    let r3 = 0;
+    hero.addEventListener('pointermove', e => {
+      cancelAnimationFrame(r3);
+      r3 = requestAnimationFrame(() => {
+        const r = hero.getBoundingClientRect();
+        spot.style.transform = `translate(${(e.clientX - r.left).toFixed(0)}px, ${(e.clientY - r.top).toFixed(0)}px)`;
+        spot.classList.add('on');
+      });
+    });
+    hero.addEventListener('pointerleave', () => spot.classList.remove('on'));
+
     $$('[data-magnetic]').forEach(btn => {
       let r2 = 0;
       btn.addEventListener('pointermove', e => {
@@ -118,16 +160,35 @@
     });
   }
 
-  // ── Argument text: each word lights up as it crosses the upper half of the viewport ──
-  const scrub = $('[data-scrub]');
-  scrub.innerHTML = scrub.textContent.trim().split(/\s+/).map(w => `<span class="sw">${w}</span>`).join(' ');
-  if (!reduce) {
-    const io = new IntersectionObserver(es => es.forEach(e => {
-      // Lit once it is above the line; unlit again only if it drops back below (scrolling up).
-      const above = e.boundingClientRect.top < e.rootBounds.bottom;
-      e.target.classList.toggle('lit', e.isIntersecting || above);
-    }), { rootMargin: '0px 0px -42% 0px' });
-    $$('.sw', scrub).forEach(w => io.observe(w));
+  // ── Story: the step in the middle band of the viewport picks the scene of the pinned report ──
+  const story = $('[data-story]');
+  if (story) {
+    const steps = $$('[data-step]', story), scenes = $$('[data-scene]', story), dots = $$('.lp-dev-dots i', story);
+    let aktiven = -1;
+    const stej = (el, od, to, ms, pred = '') => {
+      if (reduce) { el.textContent = pred + to; return; }
+      const t0 = performance.now();
+      const k = now => { const p = Math.min(1, (now - t0) / ms); el.textContent = pred + Math.round(od + (to - od) * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(k); };
+      requestAnimationFrame(k);
+    };
+    const nastavi = i => {
+      if (i === aktiven) return;
+      aktiven = i;
+      steps.forEach((s, k) => s.classList.toggle('on', k === i));
+      scenes.forEach((s, k) => s.classList.toggle('on', k === i));
+      dots.forEach((d, k) => d.classList.toggle('on', k <= i));
+      const sc = scenes[i];
+      if (!sc) return;
+      $$('b[data-to]', sc).forEach((b, k) => setTimeout(() => stej(b, 0, +b.dataset.to, 700, '+'), reduce ? 0 : 250 + k * 140));
+      $$('strong[data-to]', sc).forEach(b => setTimeout(() => stej(b, +b.dataset.from, +b.dataset.to, 900), reduce ? 0 : 750));
+      const dial = $('.lp-sc-dial strong', sc);
+      if (dial) stej(dial, 0, 46, 1100);
+    };
+    nastavi(0);
+    // A thin band across the middle of the viewport: whichever step crosses it is the active one.
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) nastavi(+e.target.dataset.step); }),
+      { rootMargin: '-48% 0px -48% 0px' });
+    steps.forEach(s => io.observe(s));
   }
 
   // ── One-shot reveals ──
@@ -138,7 +199,5 @@
     $$(sel).forEach(el => io.observe(el));
   };
   once('[data-reveal]', 'in', { rootMargin: '0px 0px -12% 0px' });
-  once('[data-card]', 'on', { threshold: .45 });
-  once('[data-flow]', 'on', { threshold: .5 });
   once('[data-final]', 'on', { threshold: .3 });
 })();

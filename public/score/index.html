@@ -22,12 +22,17 @@
       <img src="/ai-business-score/logo_acenta.svg" alt="Acenta" width="124" height="20">
       <span class="lp-sp"></span>
       <button class="lp-btn lp-btn-sm" data-start data-nav-cta tabindex="-1">Začnite oceno</button>
-      <a class="lp-tel" href="tel:+38641669785">041 669 785</a>
+      <a class="lp-tel" href="tel:+38631615921">031 615 921</a>
     </div>
   </header>
 
-  <!-- Hero: value prop left, the live report instrument right -->
+  <!-- Hero: value prop + the first question left, the live report instrument right -->
   <section class="lp-hero" data-hero>
+    <div class="lp-fx" aria-hidden="true">
+      <div class="lp-fx-grid"></div>
+      <div class="lp-fx-dial"><i class="lp-fx-bezel"></i><i class="lp-fx-sweep"></i><i class="lp-fx-inner"></i></div>
+      <div class="lp-fx-spot" data-spot></div>
+    </div>
     <div class="lp-wrap lp-hero-grid">
       <div class="lp-hero-copy">
         <p class="lp-eyebrow lp-in" style="--d:0">AI Business Score</p>
@@ -43,9 +48,18 @@
           <span class="w" aria-hidden="true"><span style="--i:8">denar?</span></span>
         </h1>
         <p class="lp-lead lp-in" style="--d:6">16 vprašanj, okoli 3 minute. Takoj izveste, kako vaše podjetje uporablja AI in kje je največ potenciala.</p>
-        <div class="lp-cta lp-in" style="--d:8">
-          <button class="lp-btn" data-start data-magnetic><span>Začnite oceno</span><i class="lp-arrow" aria-hidden="true"></i></button>
-          <span class="lp-free">Brezplačno</span>
+        <!-- The first quiz question itself: a click answers it and opens the quiz on question 2.
+             Option ids match src/score/vprasanja-v1.js; kviz.js refreshes the texts from vprasanja.json. -->
+        <div class="lp-q lp-in" style="--d:8" data-hq>
+          <div class="lp-q-head"><span>Vprašanje 1 od 16</span><span>Brezplačno</span></div>
+          <p class="lp-q-title" id="hq-title">Kako danes uporabljate umetno inteligenco v podjetju?</p>
+          <div class="lp-q-opts" role="group" aria-labelledby="hq-title">
+            <button type="button" class="lp-q-opt" data-hq-opt="ne" style="--k:0"><span class="mk" aria-hidden="true"></span><span class="tx">Sploh je ne uporabljamo</span><kbd aria-hidden="true">A</kbd></button>
+            <button type="button" class="lp-q-opt" data-hq-opt="posamezniki" style="--k:1"><span class="mk" aria-hidden="true"></span><span class="tx">Posamezniki jo občasno uporabljajo</span><kbd aria-hidden="true">B</kbd></button>
+            <button type="button" class="lp-q-opt" data-hq-opt="vec_zaposlenih" style="--k:2"><span class="mk" aria-hidden="true"></span><span class="tx">Več zaposlenih jo redno uporablja</span><kbd aria-hidden="true">C</kbd></button>
+            <button type="button" class="lp-q-opt" data-hq-opt="oddelki" style="--k:3"><span class="mk" aria-hidden="true"></span><span class="tx">Uporabljamo jo v posameznih oddelkih</span><kbd aria-hidden="true">D</kbd></button>
+            <button type="button" class="lp-q-opt" data-hq-opt="procesi" style="--k:4"><span class="mk" aria-hidden="true"></span><span class="tx">AI je že del naših poslovnih procesov</span><kbd aria-hidden="true">E</kbd></button>
+          </div>
         </div>
       </div>
 
@@ -80,77 +94,105 @@
     </div>
   </section>
 
-  <!-- Argument: read line by line as it scrolls into focus -->
-  <section class="lp-argue">
-    <div class="lp-wrap">
-      <h2 class="lp-h2">AI uporablja že večina. Redko pa tam, kjer šteje.</h2>
-      <p class="lp-scrub" data-scrub>Večina podjetij AI uporablja za e-pošto in povzetke. Največ prihranka pa nastane, ko AI prevzame del konkretnega procesa: pripravo ponudb, primerjavo dobaviteljev, odgovore strankam ali poročila za vodstvo.</p>
-    </div>
-  </section>
-
-  <!-- What the report shows: four compact tiles, each animates as it arrives -->
-  <section class="lp-report">
-    <div class="lp-wrap">
-      <h2 class="lp-h2 lp-report-title" data-reveal>Kaj izveste v poročilu</h2>
-      <div class="lp-bento">
-        <article class="lp-card lp-c-level" data-card>
-          <div class="lp-card-copy">
-            <h3>Vašo AI zrelost</h3>
-            <p>Pet stopenj, od posameznih poskusov do AI v procesih.</p>
+  <!-- What the report shows, told while scrolling: steps on the left, a pinned example report on
+       the right that builds itself one scene per step (IntersectionObserver + CSS, no scroll events).
+       On phones the report pins on top and the steps scroll underneath. -->
+  <section class="lp-story" data-story aria-labelledby="story-title">
+    <div class="lp-wrap"><p class="lp-eyebrow lp-story-title" id="story-title">Kaj izveste v poročilu</p></div>
+    <div class="lp-wrap lp-story-grid">
+      <div class="lp-story-stage">
+        <figure class="lp-dev" aria-hidden="true">
+          <div class="lp-dev-head">
+            <span>Primer poročila</span>
+            <span class="lp-dev-dots"><i></i><i></i><i></i><i></i><i></i></span>
           </div>
-          <ol class="lp-levels" aria-label="Stopnje AI zrelosti">
-            <li>AI začetnik</li>
-            <li class="on">AI raziskovalec</li>
-            <li>AI uporabnik</li>
-            <li>AI pospeševalec</li>
-            <li>AI-first kandidat</li>
-          </ol>
+          <div class="lp-dev-body">
+            <!-- 0: where most use AI vs where the savings are -->
+            <div class="lp-scene lp-sc-contrast" data-scene="0">
+              <div class="lp-sc-col dim">
+                <small>Kjer AI uporablja večina</small>
+                <ul><li style="--k:0">E-pošta</li><li style="--k:1">Povzetki</li></ul>
+              </div>
+              <div class="lp-sc-col hot">
+                <small>Kjer nastane največ prihranka</small>
+                <ul><li style="--k:0">Priprava ponudb</li><li style="--k:1">Primerjava dobaviteljev</li><li style="--k:2">Odgovori strankam</li><li style="--k:3">Poročila za vodstvo</li></ul>
+              </div>
+            </div>
+            <!-- 1: score and maturity level -->
+            <div class="lp-scene lp-sc-score" data-scene="1">
+              <div class="lp-sc-dial">
+                <svg viewBox="0 0 200 200"><circle class="t" cx="100" cy="100" r="86"/><circle class="v" cx="100" cy="100" r="86"/></svg>
+                <div><strong>46</strong><small>od 100</small></div>
+              </div>
+              <div class="lp-sc-lvl">
+                <span class="lp-chip">AI raziskovalec</span>
+                <ol class="lp-sc-ladder"><li></li><li class="on"></li><li></li><li></li><li></li></ol>
+                <p>AI že uporabljate, uporaba še ni sistemska.</p>
+              </div>
+            </div>
+            <!-- 2: where time goes, which process wins -->
+            <div class="lp-scene lp-sc-time" data-scene="2">
+              <ul class="lp-sc-chips">
+                <li class="pick" style="--k:0">Priprava ponudb</li><li>Administracija</li>
+                <li class="pick" style="--k:1">Odgovarjanje na povpraševanja</li><li>Delo z dokumenti</li>
+                <li class="pick" style="--k:2">Priprava poročil</li><li>Iskanje informacij</li>
+              </ul>
+              <div class="lp-sc-win"><small>Proces z največ potenciala</small><b>Prodaja</b><i></i></div>
+            </div>
+            <!-- 3: what would raise the score -->
+            <div class="lp-scene lp-sc-vz" data-scene="3">
+              <ol>
+                <li style="--k:0"><p>Pripravite osnovna priporočila za varno uporabo AI.</p><b data-to="10">+10</b></li>
+                <li style="--k:1"><p>Imenujte osebo, ki skrbi za razvoj uporabe AI.</p><b data-to="5">+5</b></li>
+                <li style="--k:2"><p>Organizirajte kratko delavnico za zaposlene.</p><b data-to="5">+5</b></li>
+              </ol>
+              <div class="lp-sc-sum"><small>Skupna ocena z vsemi koraki</small><span>46</span><i>→</i><strong data-from="46" data-to="51">51</strong></div>
+            </div>
+            <!-- 4: how the first project would work -->
+            <div class="lp-scene lp-sc-flow" data-scene="4">
+              <small>AI pomočnik za prodajo in pripravo ponudb</small>
+              <ol>
+                <li style="--k:0"><b>AI prebere povpraševanje</b><span>in poišče podobne pretekle ponudbe.</span></li>
+                <li style="--k:1"><b>Pripravi osnutek ponudbe</b><span>v vašem tonu, s pravimi postavkami.</span></li>
+                <li style="--k:2"><b>Prodajalec pregleda in pošlje</b><span>Nič ne gre ven brez človeka.</span></li>
+              </ol>
+            </div>
+          </div>
+        </figure>
+      </div>
+
+      <div class="lp-story-steps">
+        <article class="lp-stp" data-step="0">
+          <span class="lp-stp-n">01</span>
+          <h2 class="lp-h2">AI uporablja že večina. Redko pa tam, kjer šteje.</h2>
+          <p>Večina podjetij AI uporablja za e-pošto in povzetke. Največ prihranka pa nastane, ko AI prevzame del konkretnega procesa.</p>
         </article>
-
-        <article class="lp-card lp-c-time" data-card>
-          <div class="lp-card-copy">
-            <h3>Kje vam odteka čas</h3>
-            <p>Opravila, ki ekipi vzamejo največ ur.</p>
-          </div>
-          <ul class="lp-chips" aria-label="Primer izbranih opravil">
-            <li class="pick" style="--k:0">Priprava ponudb</li>
-            <li>Administracija</li>
-            <li class="pick" style="--k:1">Odgovarjanje na povpraševanja</li>
-            <li>Delo z dokumenti</li>
-            <li class="pick" style="--k:2">Priprava poročil</li>
-            <li>Iskanje informacij</li>
-          </ul>
+        <article class="lp-stp" data-step="1">
+          <span class="lp-stp-n">02</span>
+          <h3>Vaša ocena in stopnja AI zrelosti</h3>
+          <p>Pet stopenj, od posameznih poskusov do AI v procesih. Vidite, kje ste danes.</p>
         </article>
-
-        <article class="lp-card lp-c-area" data-card>
-          <div class="lp-card-copy">
-            <h3>Proces z največ potenciala</h3>
-            <p>Kje se AI pri vas najhitreje obrestuje.</p>
-          </div>
-          <ul class="lp-areas" aria-label="Področja, ki jih ocena primerja">
-            <li>Nabava</li>
-            <li class="on">Prodaja</li>
-            <li>Administracija in interno znanje</li>
-            <li>Vodstvo in odločanje</li>
-            <li>Podpora strankam in gostom</li>
-          </ul>
+        <article class="lp-stp" data-step="2">
+          <span class="lp-stp-n">03</span>
+          <h3>Kje vam odteka čas</h3>
+          <p>Opravila, ki ekipi vzamejo največ ur, in proces, kjer se AI pri vas najhitreje obrestuje.</p>
         </article>
-
-        <article class="lp-card lp-c-step" data-card>
-          <div class="lp-card-copy">
-            <h3>Prvi konkreten korak</h3>
-            <p>Priporočilo, ki ga lahko začnete izvajati.</p>
-          </div>
-          <div class="lp-step">
-            <small>Priporočilo za področje Prodaja</small>
-            <p class="lp-step-rec"><span>AI pomočnik za prodajo</span> <span>in pripravo ponudb</span></p>
-          </div>
+        <article class="lp-stp" data-step="3">
+          <span class="lp-stp-n">04</span>
+          <h3>Kako do višje ocene</h3>
+          <p>Konkretni koraki, vsak z izračunanim učinkom na vašo oceno. Brez splošnih nasvetov.</p>
+        </article>
+        <article class="lp-stp" data-step="4">
+          <span class="lp-stp-n">05</span>
+          <h3>Kako bi to delovalo pri vas</h3>
+          <p>Prvi projekt za vaš proces, korak za korakom. Odločitve ostanejo pri vas.</p>
         </article>
       </div>
     </div>
   </section>
 
-  <!-- Closing: how it goes, who is behind it, one CTA. The dial motif fills as it arrives. -->
+  <!-- Closing: the first question again, so the page ends in an answer, not a button.
+       Same ids as the hero; kviz.js stores the answer and opens the quiz on question 2. -->
   <section class="lp-final" data-final>
     <svg class="lp-final-ring" viewBox="0 0 400 400" aria-hidden="true">
       <circle cx="200" cy="200" r="180" class="lp-final-track"/>
@@ -158,13 +200,16 @@
     </svg>
     <div class="lp-wrap lp-final-in">
       <h2 class="lp-h2 lp-final-h" data-reveal>Preverite, kaj bi AI že danes lahko naredil za vaše podjetje.</h2>
-      <ol class="lp-steps" data-flow aria-label="Kako poteka">
-        <li style="--k:0"><span class="lp-node" aria-hidden="true"></span><h3>16 vprašanj</h3><p>Brez tehničnih izrazov, okoli 3 minute.</p></li>
-        <li style="--k:1"><span class="lp-node" aria-hidden="true"></span><h3>Poročilo takoj</h3><p>Ocena, stopnja zrelosti in proces z največ potenciala.</p></li>
-        <li style="--k:2"><span class="lp-node" aria-hidden="true"></span><h3>Po želji pogovor</h3><p>30 minut z našo ekipo o prvem procesu.</p></li>
-      </ol>
-      <div data-reveal style="--d:2">
-        <button class="lp-btn" data-start data-magnetic><span>Začnite oceno</span><i class="lp-arrow" aria-hidden="true"></i></button>
+      <div class="lp-fq" data-reveal style="--d:1">
+        <p class="lp-fq-title" id="fq-title">Začnite s prvim vprašanjem: kako danes uporabljate AI v podjetju?</p>
+        <div class="lp-fq-opts" role="group" aria-labelledby="fq-title">
+          <button type="button" class="lp-fq-opt" data-hq-opt="ne" style="--k:0"><span class="tx">Sploh je ne uporabljamo</span></button>
+          <button type="button" class="lp-fq-opt" data-hq-opt="posamezniki" style="--k:1"><span class="tx">Posamezniki jo občasno uporabljajo</span></button>
+          <button type="button" class="lp-fq-opt" data-hq-opt="vec_zaposlenih" style="--k:2"><span class="tx">Več zaposlenih jo redno uporablja</span></button>
+          <button type="button" class="lp-fq-opt" data-hq-opt="oddelki" style="--k:3"><span class="tx">Uporabljamo jo v posameznih oddelkih</span></button>
+          <button type="button" class="lp-fq-opt" data-hq-opt="procesi" style="--k:4"><span class="tx">AI je že del naših poslovnih procesov</span></button>
+        </div>
+        <p class="lp-fq-meta">16 vprašanj · okoli 3 minute · poročilo takoj · po želji 30-minutni pogovor</p>
       </div>
       <p class="lp-note" data-reveal style="--d:3">Pripravila Acenta, digitalna agencija iz Ljubljane in Google Partner. AI rešitve razvijamo in uporabljamo tudi sami.</p>
     </div>
@@ -220,6 +265,24 @@
   </section>
 
   <p class="qerr" id="qerr" role="alert" hidden></p>
+  </div>
+
+  <!-- Shown while the server scores the submission (and at least ~2 s, so the result lands) -->
+  <div class="qcalc" id="qcalc" hidden role="status" aria-live="polite">
+    <div class="qcalc-in">
+      <div class="qcalc-dial" aria-hidden="true">
+        <svg viewBox="0 0 200 200"><circle class="qcalc-track" cx="100" cy="100" r="86"/><circle class="qcalc-arc" cx="100" cy="100" r="86"/></svg>
+        <span class="qcalc-pct" id="qcalc-pct">0</span>
+      </div>
+      <p class="qeyebrow">Pripravljamo poročilo</p>
+      <h2>Računamo vašo oceno</h2>
+      <ul class="qcalc-steps" id="qcalc-steps">
+        <li>AI zrelost</li>
+        <li>Potencial v procesih</li>
+        <li>Pripravljenost za korak</li>
+        <li>Proces z največ potenciala</li>
+      </ul>
+    </div>
   </div>
 
   <!-- Anti-spam trap, kept OUTSIDE the form and with a meaningless name: browser autofill filled the

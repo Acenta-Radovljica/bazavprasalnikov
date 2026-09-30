@@ -20,7 +20,7 @@
     <div class="wrap rep-nav-in">
       <img src="/ai-business-score/logo_acenta.svg" alt="Acenta" width="124" height="20">
       <span class="sp"></span>
-      <a class="rep-tel" href="tel:+38641669785">041 669 785</a>
+      <a class="rep-tel" href="tel:+38631615921">031 615 921</a>
     </div>
   </header>
 
@@ -56,7 +56,7 @@
   <!-- Where you are and where to start -->
   <section class="rep-sec">
     <div class="wrap bento">
-      <article class="card c-level">
+      <article class="card c-level" data-reveal>
         <div>
           <h3>Vaša AI zrelost</h3>
           <p class="sub">Pet stopenj, od posameznih poskusov do AI v procesih. Stopnja izhaja iz tega, kako sistematično AI uporabljate danes.</p>
@@ -69,19 +69,51 @@
           <li>AI-first kandidat</li>
         </ol>
       </article>
-      <article class="card c-opp" id="r-opp"></article>
+      <article class="card c-opp" id="r-opp" data-reveal style="--d:1"></article>
+    </div>
+  </section>
+
+  <!-- How the recommended first project would work, for the strongest process -->
+  <section class="rep-sec" id="r-scen-sec" hidden>
+    <div class="wrap">
+      <article class="card c-scen" data-reveal>
+        <div class="scen-head">
+          <p class="eyebrow">Kako bi to delovalo pri vas</p>
+          <h3 id="r-scen-naslov"></h3>
+          <p class="scen-danes"><small>Pogosto danes</small><span id="r-scen-danes"></span></p>
+        </div>
+        <ol class="scen-flow" id="r-scen-flow"></ol>
+      </article>
+    </div>
+  </section>
+
+  <!-- What would raise the score: real rescoring of one answer at a time (src/score/vzvodi.js) -->
+  <section class="rep-sec" id="r-vz-sec" hidden>
+    <div class="wrap">
+      <article class="card c-vz" data-reveal>
+        <div class="vz-head">
+          <div>
+            <p class="eyebrow">Kako do višje ocene</p>
+            <h3 id="r-vz-naslov">Koraki, ki vam najbolj dvignejo AI zrelost</h3>
+            <p class="sub">Izračunano z isto logiko kot vaša ocena: vsak korak je en odgovor višje.</p>
+          </div>
+          <div class="vz-sum" id="r-vz-sum"></div>
+        </div>
+        <ol class="vz-list" id="r-vzvodi"></ol>
+      </article>
     </div>
   </section>
 
   <section class="rep-story">
     <div class="wrap">
-      <p class="eyebrow">Kaj smo izvedeli o vas</p>
-      <p class="story" id="r-odstavek"></p>
+      <p class="eyebrow" data-reveal>Kaj smo izvedeli o vas</p>
+      <p class="story" id="r-odstavek" data-reveal></p>
+      <div class="said" id="r-said" data-reveal hidden></div>
     </div>
   </section>
 
   <section class="rep-sec">
-    <div class="wrap three">
+    <div class="wrap three" data-reveal>
       <div class="card"><h3>Kaj delate dobro</h3><ul class="pts" id="r-dobro"></ul></div>
       <div class="card"><h3>Kje se zatika</h3><ul class="pts warn" id="r-zatika"></ul></div>
       <div class="card"><h3>Vaše priložnosti</h3><ul class="pts" id="r-prilo"></ul></div>
@@ -89,16 +121,24 @@
   </section>
 
   <div class="wrap">
-    <section class="closing">
+    <section class="closing" data-reveal>
       <div>
-        <h2>Naslednji korak: izbor pravega procesa</h2>
-        <p>Vaš rezultat kaže, da največji potencial ni v splošni uporabi AI, ampak v izboru pravega poslovnega procesa. Zato je naslednji korak ugotoviti, kje lahko AI najhitreje prihrani čas, zniža stroške ali izboljša prihodke.</p>
+        <h2 id="r-close-h">Naslednji korak: izbor pravega procesa</h2>
+        <p id="r-close-p">Vaš rezultat kaže, da največji potencial ni v splošni uporabi AI, ampak v izboru pravega poslovnega procesa. Zato je naslednji korak ugotoviti, kje lahko AI najhitreje prihrani čas, zniža stroške ali izboljša prihodke.</p>
       </div>
       <div class="acts">
         <a class="btn" id="r-booking" href="#" target="_blank" rel="noopener" hidden>Rezervirajte 30-minutni pogovor</a>
-        <a class="tel" id="r-tel" href="tel:+38641669785">ali pokličite 041 669 785</a>
+        <a class="tel" id="r-tel" href="tel:+38631615921">ali pokličite 031 615 921</a>
       </div>
     </section>
+
+    <!-- Keep or pass on the report (e.g. to the director) -->
+    <div class="share" data-reveal>
+      <span>Poročilo za sodelavce ali vodstvo:</span>
+      <button type="button" class="ghost" id="r-copy">Kopiraj povezavo</button>
+      <button type="button" class="ghost" id="r-pdf">Shrani kot PDF</button>
+      <span class="share-ok" id="r-copy-ok" role="status" aria-live="polite"></span>
+    </div>
   </div>
 
   <footer class="foot">

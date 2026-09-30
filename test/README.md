@@ -41,13 +41,14 @@ node test/ujemanje.test.mjs          # 51 trditev (ujemanje podjetij: domena, kr
 
 ```bash
 node test/score.test.mjs             # 39 trditev (cista funkcija tockovanja, brez streznika in baze)
+node test/vzvodi.test.mjs            # 21 trditev ("Kako do visje ocene" = pravi tockovalnik, odgovori nazaj samo kot besedila)
 # score-api rabi streznik z lazno MailerLite (test sam odpre mock na :3397):
 #   MAILERLITE_API_URL=http://127.0.0.1:3397 MAILERLITE_API_KEY=test-ml MAILERLITE_GROUP_ID=999
 #   SCORE_OUTBOX_MS=500 SCORE_MAX_V_OKNU=100 ANTHROPIC_API_KEY=
-node test/score-api.test.mjs         # 44 trditev (oddaja, porocilo, outbox, kvalifikacija, CSV)
+node test/score-api.test.mjs         # 46 trditev (oddaja, porocilo z vzvodi in izbranim, outbox, kvalifikacija, CSV)
 ```
 
-Skupaj 706 trditev (623 + 83 za Score). Zadnji zeleni zagon: 29. 9. 2026.
+Skupaj 729 trditev (623 + 106 za Score). Zadnji zeleni zagon Score: 30. 9. 2026.
 
 `TEST_DB_URL` prepiše bazo (privzeto port 5435). Pozor: na 5435 zna teči baza
 katerega drugega projekta (25. 9. 2026 je bila tam Zlata Ribica) — preveri

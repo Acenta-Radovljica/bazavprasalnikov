@@ -15,6 +15,59 @@ const STOPNJE = ['AI začetnik', 'AI raziskovalec', 'AI uporabnik', 'AI pospeše
 const TICKS = 20;
 const OBSEG = 540.35;                 // 2πr for r = 86 in the dial SVG
 
+// How the recommended first project works, per strongest process (proces.id from the scorer).
+// "Danes" is framed as "often today", not as a claim about this company; no numbers promised.
+const SCENARIJ = {
+  nabava: {
+    danes: 'Ponudbe dobaviteljev primerjate ročno, po e-pošti in v tabelah.',
+    koraki: [
+      ['AI prebere ponudbe', 'Iz PDF-jev in e-pošte izlušči cene, roke in pogoje.'],
+      ['Pripravi primerjavo', 'Vse ponudbe v eni tabeli, odstopanja od preteklih nakupov označena.'],
+      ['Nabavnik odloči', 'Pregleda predlog in izbere. Odločitev ostane pri človeku.'],
+    ],
+  },
+  prodaja: {
+    danes: 'Vsako ponudbo in odgovor na povpraševanje pripravite ročno.',
+    koraki: [
+      ['AI prebere povpraševanje', 'Poišče podobne pretekle ponudbe in vaše cenike.'],
+      ['Pripravi osnutek', 'Ponudbo in odgovor v vašem tonu, s pravimi postavkami.'],
+      ['Prodajalec pošlje', 'Pregleda, popravi in pošlje. Nič ne gre ven brez človeka.'],
+    ],
+  },
+  administracija: {
+    danes: 'Podatke iz dokumentov prepisujete ročno, odgovori so raztreseni po mapah.',
+    koraki: [
+      ['AI prebere dokumente', 'Iz računov, pogodb in e-pošte izlušči podatke.'],
+      ['Odgovarja iz vašega znanja', 'Na interna vprašanja odgovori iz vaših navodil in dokumentov.'],
+      ['Zaposleni potrdi', 'Vnos ali odgovor potrdi, preden gre naprej.'],
+    ],
+  },
+  vodstvo: {
+    danes: 'Številke za odločanje zbirate iz več virov in tabel.',
+    koraki: [
+      ['AI zbere številke', 'Iz sistemov, ki jih že uporabljate.'],
+      ['Pripravi povzetek', 'Kaj se je spremenilo in kaj zahteva vašo odločitev.'],
+      ['Direktor vpraša naprej', 'Pregled na eni strani, dodatna vprašanja kar v pogovoru.'],
+    ],
+  },
+  podpora: {
+    danes: 'Na ista vprašanja strank ali gostov odgovarjate znova in znova.',
+    koraki: [
+      ['AI odgovori na pogosta vprašanja', 'Iz vaših vsebin, podnevi in ponoči.'],
+      ['Zahtevnejše preda naprej', 'Zaposleni dobi primer s povzetkom pogovora.'],
+      ['Ekipa dopolni vsebine', 'Vidi, katera vprašanja se ponavljajo, in jih doda.'],
+    ],
+  },
+  marketing: {
+    danes: 'Vsako objavo in sporočilo pripravite od začetka.',
+    koraki: [
+      ['AI pripravi osnutke', 'Objave, e-poštna sporočila in oglase iz vaših tem.'],
+      ['Prilagodi kanalu', 'Dolžino in obliko za vsak kanal, v vašem tonu.'],
+      ['Marketing objavi', 'Pregleda, uredi in objavi po svojem urniku.'],
+    ],
+  },
+};
+
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
 function li(ul, arr) { ul.replaceChildren(...arr.map(t => el('li', '', t))); }
 
@@ -36,14 +89,22 @@ function stej(node, cilj) {
 }
 
 const res = await fetch(`/r/${encodeURIComponent(token)}/podatki`).catch(() => null);
-if (!res || res.status === 404) napaka('Poročila ne najdemo. Preverite povezavo ali nas pokličite na 041 669 785.');
-else if (res.status === 410) napaka('To poročilo ni več na voljo. Za novo oceno nas pokličite na 041 669 785.');
+if (!res || res.status === 404) napaka('Poročila ne najdemo. Preverite povezavo ali nas pokličite na 031 615 921.');
+else if (res.status === 410) napaka('To poročilo ni več na voljo. Za novo oceno nas pokličite na 031 615 921.');
 else if (!res.ok) napaka('Poročila trenutno ne moremo prikazati. Poskusite znova čez nekaj minut.');
 else {
   const d = await res.json();
   const root = $('#v-porocilo');
   document.title = `AI Business Score za ${d.podjetje || 'vaše podjetje'} | Acenta`;
-  $('#r-naslov').textContent = `AI Business Score za ${d.podjetje || 'vaše podjetje'}`;
+  // Title words rise one after another (same as the landing headline); screen readers get the line.
+  const naslov = `AI Business Score za ${d.podjetje || 'vaše podjetje'}`;
+  const h1 = $('#r-naslov');
+  h1.setAttribute('aria-label', naslov);
+  h1.replaceChildren(...naslov.split(/\s+/).flatMap((w, i) => {
+    const o = el('span', 'w'); o.setAttribute('aria-hidden', 'true');
+    const s = el('span', '', w); s.style.setProperty('--i', i); o.append(s);
+    return i ? [document.createTextNode(' '), o] : [o];
+  }));
   // No copy is e-mailed until MailerLite is configured, so do not promise one here.
   $('#r-meta').textContent = `Izpolnjeno ${d.datum}. Povezavo si shranite, da se lahko k poročilu vrnete.`;
   $('#r-podrocje').textContent = d.proces ? d.proces.naziv : '';
@@ -85,10 +146,66 @@ else {
   li($('#r-zatika'), d.besedilo.zatika);
   li($('#r-prilo'), d.besedilo.priloznosti);
 
+  // How it would work, for the strongest process
+  const sc = d.proces && SCENARIJ[d.proces.id];
+  if (sc) {
+    $('#r-scen-naslov').textContent = d.proces.priporocilo;
+    $('#r-scen-danes').textContent = sc.danes;
+    $('#r-scen-flow').replaceChildren(...sc.koraki.map(([b, t], k) => {
+      const n = el('li'); n.style.setProperty('--k', k); n.append(el('b', '', b), el('span', '', t)); return n;
+    }));
+    $('#r-scen-sec').hidden = false;
+  }
+
+  // What would raise the score (real rescoring, one answer up at a time)
+  if (d.vzvodi?.length) {
+    $('#r-vz-naslov').textContent = d.vzvodi.length === 1 ? 'Korak, ki vam dvigne AI zrelost' : `${['', '', 'Dva koraka', 'Trije koraki'][d.vzvodi.length]}, ki vam najbolj dvignejo AI zrelost`;
+    $('#r-vzvodi').replaceChildren(...d.vzvodi.map((v, k) => {
+      const n = el('li'); n.style.setProperty('--k', k);
+      const pts = el('span', 'vz-pts'); pts.append(el('b', '', `+${v.zrelost}`), el('small', '', 'AI zrelost'));
+      n.append(el('p', '', v.korak), pts);
+      return n;
+    }));
+    const sum = $('#r-vz-sum');
+    const nums = el('div', 'nums');
+    const hi = el('b', 'hi', String(d.skupaj.skupno)); hi.dataset.od = d.skupno;
+    nums.append(el('b', '', String(d.skupno)), el('i', '', '→'), hi);
+    sum.replaceChildren(el('small', '', d.vzvodi.length > 1 ? 'Skupna ocena z vsemi koraki' : 'Skupna ocena s tem korakom'), nums);
+    if (d.skupaj.novaStopnja) sum.append(el('span', 'lvl', `in stopnja ${d.skupaj.stopnja}`));
+    $('#r-vz-sec').hidden = false;
+  }
+
+  // Their own words back
+  const said = $('#r-said'), bloki = [];
+  const blok = (naslov, items) => {
+    if (!items?.length) return;
+    const b = el('div'); const ul = el('ul');
+    items.forEach((t, k) => { const x = el('li', '', t); x.style.setProperty('--k', k); ul.append(x); });
+    b.append(el('small', '', naslov), ul); bloki.push(b);
+  };
+  blok('Kje izgubite največ časa', d.izbrano?.cas);
+  blok('Kje nastajajo nepotrebni stroški', d.izbrano?.stroski);
+  blok('Odziv na novo povpraševanje', d.izbrano?.odziv ? [d.izbrano.odziv] : []);
+  if (bloki.length) { said.replaceChildren(...bloki); said.hidden = false; }
+
+  // Closing: someone who asked for a 30-minute talk gets that as the headline.
+  if (d.izbrano?.zeliPogovor) {
+    $('#r-close-h').textContent = 'Želeli ste 30-minutni pogovor. Dogovorimo se.';
+    $('#r-close-p').textContent = `V pogovoru skupaj pogledamo vaš rezultat in izberemo proces, kjer bi AI pri vas najhitreje pokazal učinek${d.proces ? `: najverjetneje ${d.proces.naziv.toLowerCase()}` : ''}.`;
+  }
   // Booking button only when a real link is configured (no dead controls); otherwise the
   // phone number becomes the primary action.
   if (d.rezervacija) { const b = $('#r-booking'); b.href = d.rezervacija; b.hidden = false; }
-  else { const t = $('#r-tel'); t.textContent = 'Pokličite 041 669 785'; t.className = 'btn'; }
+  else { const t = $('#r-tel'); t.textContent = 'Pokličite 031 615 921'; t.className = 'btn'; }
+
+  // Share: copy the private link, or save as PDF (print styles are light)
+  $('#r-copy').addEventListener('click', async () => {
+    const ok = $('#r-copy-ok');
+    try { await navigator.clipboard.writeText(location.href); ok.textContent = 'Povezava je kopirana.'; }
+    catch { ok.textContent = `Kopirajte povezavo iz naslovne vrstice: ${location.href}`; }
+    setTimeout(() => { ok.textContent = ''; }, 5000);
+  });
+  $('#r-pdf').addEventListener('click', () => window.print());
 
   // Entrance: dial fills, ticks light, the number counts up, the ladder rises to your level.
   if (!reduce) root.classList.add('anim');
@@ -100,5 +217,25 @@ else {
     root.classList.add('in');
     stej($('#r-score'), skupno);
   };
-  if (reduce) zazeni(); else requestAnimationFrame(() => requestAnimationFrame(zazeni));
+  if (reduce) zazeni(); else requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(zazeni, 350)));
+
+  // Sections rise as they arrive; the lever numbers count up once visible.
+  const odkrij = (n) => {
+    n.classList.add('in');
+    n.querySelectorAll?.('.vz-pts b, .vz-sum .nums b.hi').forEach(b => {
+      const m = b.textContent.match(/^(\+?)(\d+)$/);
+      if (!m || reduce) return;
+      const cilj = +m[2], od = +(b.dataset.od || 0), t0 = performance.now();
+      const korak = (t) => { const p = Math.min((t - t0) / 900, 1); b.textContent = m[1] + Math.round(od + (cilj - od) * (1 - Math.pow(1 - p, 3))); if (p < 1) requestAnimationFrame(korak); };
+      requestAnimationFrame(korak);
+    });
+  };
+  const razkrij = [...root.querySelectorAll('[data-reveal]')];
+  if (reduce || !('IntersectionObserver' in window)) razkrij.forEach(odkrij);
+  else {
+    const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { odkrij(e.target); io.unobserve(e.target); } }), { rootMargin: '0px 0px -10% 0px' });
+    razkrij.forEach(n => io.observe(n));
+  }
+  // Printing (Shrani kot PDF) must show everything, also parts not scrolled to yet.
+  addEventListener('beforeprint', () => razkrij.forEach(n => n.classList.add('in')));
 }

@@ -10,6 +10,7 @@ import { dirname, join } from 'node:path';
 import { dbQuery } from '../db.js';
 import { javnaVprasanja, besedilaOdgovorov, SCORE_SLUG } from '../score/oddaja.js';
 import { sestaviPredlogo } from '../score/predloga.js';
+import { izracunajVzvode, povzetekOdgovorov } from '../score/vzvodi.js';
 import { VELIKOST } from '../score/vprasanja-v1.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
@@ -40,8 +41,9 @@ javniRouter.get('/r/:token', (req, res) => {
   res.sendFile(join(PUBLIC_DIR, 'porocilo.html'));
 });
 
-// Minimised data for the public report: no raw answers, no lead class, no financial
-// potential, no internal signals.
+// Minimised data for the public report: no raw answer ids, no lead class, no financial
+// potential, no internal signals. `izbrano` echoes only the TEXTS the respondent picked for
+// time/cost/response speed (their own words back, shown on a link only they received).
 javniRouter.get('/r/:token/podatki', async (req, res) => {
   zasebneGlave(res);
   if (!TOKEN_RE.test(req.params.token)) return res.status(404).json({ error: 'not_found' });
@@ -66,6 +68,9 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
     dimenzije: { zrelost: rez.dimenzije.zrelost, potencial: rez.dimenzije.potencial, pripravljenost: rez.dimenzije.pripravljenost },
     stopnja: rez.stopnja,
     proces: rez.proces,
+    // Recomputed on read from the stored answers with the current scorer (pure, cheap).
+    ...izracunajVzvode(raw.odgovori || {}, raw.velikost || null),
+    izbrano: povzetekOdgovorov(raw.odgovori || {}),
     // Booking link is not decided yet; without it the page shows only the phone number.
     rezervacija: /^https:\/\//.test(process.env.SCORE_BOOKING_URL || '') ? process.env.SCORE_BOOKING_URL : null,
     besedilo: {
