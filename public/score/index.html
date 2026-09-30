@@ -9,7 +9,7 @@
 <link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Geist:wght@400..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/ai-business-score/score.css">
 <link rel="stylesheet" href="/ai-business-score/landing.css">
 <script>document.documentElement.classList.add('js');</script>
@@ -180,13 +180,33 @@
 </main>
 
 <!-- ═════════════ QUIZ ═════════════ -->
+<!-- Questions first, contact last: nothing is sent until "Pokaži moje poročilo". -->
 <main id="v-kviz" class="quiz" hidden>
-  <div class="qbar"><img src="/ai-business-score/logo_acenta.svg" alt="Acenta"><span class="sp"></span><span class="count" id="qcount"></span></div>
-  <div class="qprog"><div id="qprog"></div></div>
+  <header class="qbar">
+    <img src="/ai-business-score/logo_acenta.svg" alt="Acenta" width="112" height="18">
+    <span class="sp"></span>
+    <span class="count" id="qcount"></span>
+  </header>
+  <div class="qprog" id="qprog" aria-hidden="true"></div>
 
-  <section class="qbody" id="step-kontakt">
-    <h2>Najprej nekaj podatkov o vas</h2>
-    <p class="qhint">Poročilo vidite takoj po zadnjem vprašanju. Polja z * so obvezna.</p>
+  <div class="qstage" id="qstage">
+  <section class="qbody" id="step-q">
+    <p class="qeyebrow" id="qsklop"></p>
+    <h2 id="qtitle" tabindex="-1"></h2>
+    <p class="qhint" id="qhint"></p>
+    <div class="opts" id="qopts" role="group" aria-labelledby="qtitle"></div>
+  </section>
+
+  <section class="qbody" id="step-kontakt" hidden>
+    <p class="qeyebrow">Zadnji korak</p>
+    <h2 id="ktitle" tabindex="-1">Za koga pripravljamo poročilo?</h2>
+    <p class="qhint">Odgovorili ste na vsa vprašanja. Poročilo se odpre takoj po oddaji. Polja z * so obvezna.</p>
+    <ul class="kdobite" aria-label="Kaj je v poročilu">
+      <li>Skupna ocena</li>
+      <li>Stopnja zrelosti</li>
+      <li>Proces z največ potenciala</li>
+      <li>Prvi korak</li>
+    </ul>
     <form class="form" id="fkontakt" novalidate>
       <div class="fld"><label for="ime">Ime <i>*</i></label><input id="ime" autocomplete="given-name"><div class="e">Vpišite ime.</div></div>
       <div class="fld"><label for="priimek">Priimek <i>*</i></label><input id="priimek" autocomplete="family-name"><div class="e">Vpišite priimek.</div></div>
@@ -199,24 +219,21 @@
     </form>
   </section>
 
+  <p class="qerr" id="qerr" role="alert" hidden></p>
+  </div>
+
   <!-- Anti-spam trap, kept OUTSIDE the form and with a meaningless name: browser autofill filled the
        old in-form "company_url" field for real visitors and every submission was dropped as spam. -->
   <div aria-hidden="true" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden">
     <input type="text" id="hp_sidro" name="hp_sidro" tabindex="-1" autocomplete="off" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other">
   </div>
 
-  <section class="qbody" id="step-q" hidden>
-    <h2 id="qtitle"></h2>
-    <p class="qhint" id="qhint"></p>
-    <p class="qerr" id="qerr" role="alert" hidden></p>
-    <div class="opts" id="qopts"></div>
-  </section>
-
-  <div class="qfoot">
-    <button class="linkbtn" id="nazaj">← Nazaj</button>
+  <footer class="qfoot">
+    <button class="linkbtn" id="nazaj" type="button">← Nazaj</button>
     <span class="sp"></span>
-    <button class="btn" id="naprej">Začni oceno</button>
-  </div>
+    <span class="qkeys" id="qkeys"></span>
+    <button class="btn" id="naprej" type="button">Naprej</button>
+  </footer>
 </main>
 
 <script src="/ai-business-score/landing.js" defer></script>
