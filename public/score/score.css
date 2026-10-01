@@ -67,7 +67,12 @@ a { color: var(--teal-hi); }
   font: 500 16px/1.35 var(--sans); color: var(--text); cursor: pointer;
   transition: border-color .2s, background-color .2s;
 }
-.opt:hover { border-color: rgb(47 211 192 / .55); background: rgb(47 211 192 / .05); }
+/* Hover only with a real mouse, and not until it moves after a new question appears: after the
+   auto-advance the pointer sits on the new option at the same spot, and the hover tint read as a
+   pre-selected answer (Matjaž, 1. 10. 2026). Touch screens keep :hover after a tap, so never there. */
+@media (hover: hover) and (pointer: fine) {
+  .qbody:not(.miruj) .opt:not(.off):hover { border-color: rgb(47 211 192 / .55); background: rgb(47 211 192 / .05); }
+}
 .opt:focus-visible { outline: 2px solid var(--teal-hi); outline-offset: 2px; }
 .opt .tx { flex: 1; }
 .opt .mk { flex: none; width: 22px; height: 22px; border: 1.5px solid rgb(255 255 255 / .28); border-radius: 50%; display: grid; place-items: center; transition: background-color .2s, border-color .2s; }
@@ -79,7 +84,6 @@ a { color: var(--teal-hi); }
 .opt.multi.sel .mk::after { width: 10px; height: 6px; background: none; border: 2px solid var(--on-teal); border-top: 0; border-right: 0; border-radius: 0; transform: rotate(-45deg) translate(1px, -1px); }
 .opt.sel .key { color: var(--teal-hi); border-color: rgb(47 211 192 / .4); }
 .opt.off { opacity: .4; cursor: not-allowed; }
-.opt.off:hover { border-color: var(--line-2); background: rgb(255 255 255 / .025); }
 
 .qfoot {
   position: sticky; bottom: 0; z-index: 5; display: flex; align-items: center; gap: 16px; padding: 14px 32px;
@@ -108,7 +112,7 @@ a { color: var(--teal-hi); }
 .fld.err .e { display: block; }
 .seg { display: flex; flex-wrap: wrap; gap: 8px; }
 .seg button { padding: 11px 16px; border: 1px solid var(--line-2); border-radius: 999px; background: rgb(255 255 255 / .03); font: 500 15px var(--sans); color: var(--text); cursor: pointer; white-space: nowrap; transition: border-color .2s, background-color .2s; }
-.seg button:hover { border-color: rgb(47 211 192 / .55); }
+@media (hover: hover) and (pointer: fine) { .qbody:not(.miruj) .seg button:hover { border-color: rgb(47 211 192 / .55); } }
 .seg button:focus-visible { outline: 2px solid var(--teal-hi); outline-offset: 2px; }
 .seg button.sel { border-color: var(--teal-hi); background: var(--teal-hi); color: var(--on-teal); font-weight: 600; }
 .fld.err .seg button { border-color: rgb(255 107 147 / .6); }
@@ -291,12 +295,6 @@ ul.pts.warn li::before { background: var(--err); }
 .vz-pts b { font: 600 22px/1 var(--sans); letter-spacing: -.03em; color: var(--teal-hi); font-variant-numeric: tabular-nums; }
 .vz-pts small { font: 500 11px/1 var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
 
-/* What you told us */
-.said { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 36px; }
-.said > div { padding: 20px; border-radius: var(--r-md); border: 1px solid var(--line); }
-.said small { display: block; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
-.said ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
-.said li { padding: 7px 12px; border-radius: 999px; border: 1px solid rgb(47 211 192 / .3); background: rgb(47 211 192 / .07); font-size: 14px; }
 
 /* Share */
 .share { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: -56px 0 80px; font-size: 14px; color: var(--muted); }
@@ -320,8 +318,6 @@ ul.pts.warn li::before { background: var(--err); }
   .rep.anim .c-scen.in .scen-flow li { opacity: 1; translate: 0 0; }
   .rep.anim .vz-list li { opacity: 0; translate: 0 14px; transition: opacity .7s var(--out), translate .8s var(--out); transition-delay: calc(.2s + var(--k) * .14s); }
   .rep.anim .c-vz.in .vz-list li { opacity: 1; translate: 0 0; }
-  .rep.anim .said li { opacity: 0; scale: .9; transition: opacity .5s var(--out), scale .6s var(--out); transition-delay: calc(.2s + var(--k) * 60ms); }
-  .rep.anim .said.in li { opacity: 1; scale: 1; }
   .dial-val { filter: drop-shadow(0 0 6px rgb(47 211 192 / .45)); }
 }
 @keyframes r-rise { to { translate: 0 0; } }
@@ -405,7 +401,7 @@ ul.pts.warn li::before { background: var(--err); }
 @media print {
   :root { color-scheme: light; --bg: #fff; --bg-2: #fff; --line: #dfe6e4; --line-2: #cfd9d6; --text: #0a1f1d; --muted: #41524f; --dim: #6a7a77; --teal-hi: #007e72; --on-teal: #fff; }
   .rep-hero::before, .rep-nav .rep-tel, .closing .acts .btn, .share { display: none; }
-  [data-reveal], .rep.anim [data-reveal], .rep.anim .meter, .rep.anim .scen-flow li, .rep.anim .vz-list li, .rep.anim .said li { opacity: 1 !important; translate: none !important; scale: none !important; }
+  [data-reveal], .rep.anim [data-reveal], .rep.anim .meter, .rep.anim .scen-flow li, .rep.anim .vz-list li { opacity: 1 !important; translate: none !important; scale: none !important; }
   .meter, .card, .closing { box-shadow: none; background: #fff !important; break-inside: avoid; }
   .dial-val, .ticks i, .levels li { transition: none !important; }
 }

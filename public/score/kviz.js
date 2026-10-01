@@ -192,6 +192,17 @@ function renderQuiz() {
 function vstop(el, naslov, nazaj) {
   window.scrollTo(0, 0);
   naslov.focus({ preventScroll: true });
+  // No hover tint until the mouse actually moves: otherwise the option that lands under a still
+  // pointer looks pre-selected (see score.css). A real move is >3 px from the first reading.
+  el.classList.add('miruj');
+  let x0 = null, y0 = null;
+  const premik = (e) => {
+    if (x0 === null) { x0 = e.clientX; y0 = e.clientY; return; }
+    if (Math.abs(e.clientX - x0) + Math.abs(e.clientY - y0) > 3) { el.classList.remove('miruj'); removeEventListener('pointermove', premik); }
+  };
+  removeEventListener('pointermove', vstop.premik || (() => {}));
+  vstop.premik = premik;
+  addEventListener('pointermove', premik);
   if (reduce) return;
   el.classList.remove('enter', 'nazaj'); void el.offsetWidth; el.classList.add('enter');
   if (nazaj) el.classList.add('nazaj');

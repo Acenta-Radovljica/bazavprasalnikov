@@ -5,7 +5,7 @@
 //  2. Levers are sorted by maturity gain, at most 3, only for questions not yet maxed out.
 //  3. "All three together" is rescored for real and flags a level change correctly.
 //  4. A fully mature company gets no levers; empty input does not throw.
-//  5. Echoed answers are option TEXTS only, neutral "Ne vem" left out, no ids or points.
+//  5. No answers are echoed back (1. 10. 2026); only the "wants a talk" flag.
 //
 // Run: node test/vzvodi.test.mjs   (no server, no DB)
 import { izracunajVzvode, povzetekOdgovorov } from '../src/score/vzvodi.js';
@@ -60,14 +60,12 @@ try { prazno = izracunajVzvode({}, null); } catch (e) { prazno = e; }
 t('prazen vhod ne vrže', !(prazno instanceof Error) && prazno.vzvodi.length === 3, String(prazno));
 t('smeti ne vržejo', izracunajVzvode({ pravila: 'xx', uporaba: 42 }, 'zz').vzvodi.length === 3);
 
-console.log('\n5. Odgovori nazaj v poročilu');
+console.log('\n5. Poročilo ne vrača odgovorov, samo "želi pogovor"');
 const p = povzetekOdgovorov(ZACETNIK);
-t('čas: besedila izbranih', JSON.stringify(p.cas) === JSON.stringify(['Priprava ponudb', 'Odgovarjanje na povpraševanja']), JSON.stringify(p.cas));
-t('Ne vem izpuščen', p.stroski.length === 0, JSON.stringify(p.stroski));
-t('odziv kot besedilo', p.odziv === 'V 2–3 dneh', p.odziv);
+t('samo zeliPogovor', JSON.stringify(Object.keys(p)) === '["zeliPogovor"]', JSON.stringify(p));
 t('želi pogovor iz hitrosti', p.zeliPogovor === true);
+t('želi pogovor iz razlage rezultata', povzetekOdgovorov({ ...ZACETNIK, hitrost: '1-3m', interpretacija: 'pogovor' }).zeliPogovor === true);
 t('brez pogovora', povzetekOdgovorov({ ...ZACETNIK, hitrost: '1-3m' }).zeliPogovor === false);
-t('brez ids in točk', !JSON.stringify(p).match(/"(zre|pot|prip|fin|sig)"|ponudbe"|povprasevanja"/), JSON.stringify(p));
 
 console.log(`\n${ok} OK, ${fail} FAIL`);
 if (fail) { console.log('Padli:', padli.join(' | ')); process.exit(1); }

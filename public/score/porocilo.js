@@ -107,7 +107,6 @@ else {
   }));
   // No copy is e-mailed until MailerLite is configured, so do not promise one here.
   $('#r-meta').textContent = `Izpolnjeno ${d.datum}. Povezavo si shranite, da se lahko k poročilu vrnete.`;
-  $('#r-podrocje').textContent = d.proces ? d.proces.naziv : '';
   $('#r-levelh').textContent = d.stopnja.naziv;
   $('#r-levelp').textContent = d.stopnja.opis;
 
@@ -149,7 +148,6 @@ else {
   // How it would work, for the strongest process
   const sc = d.proces && SCENARIJ[d.proces.id];
   if (sc) {
-    $('#r-scen-naslov').textContent = d.proces.priporocilo;
     $('#r-scen-danes').textContent = sc.danes;
     $('#r-scen-flow').replaceChildren(...sc.koraki.map(([b, t], k) => {
       const n = el('li'); n.style.setProperty('--k', k); n.append(el('b', '', b), el('span', '', t)); return n;
@@ -175,21 +173,8 @@ else {
     $('#r-vz-sec').hidden = false;
   }
 
-  // Their own words back
-  const said = $('#r-said'), bloki = [];
-  const blok = (naslov, items) => {
-    if (!items?.length) return;
-    const b = el('div'); const ul = el('ul');
-    items.forEach((t, k) => { const x = el('li', '', t); x.style.setProperty('--k', k); ul.append(x); });
-    b.append(el('small', '', naslov), ul); bloki.push(b);
-  };
-  blok('Kje izgubite največ časa', d.izbrano?.cas);
-  blok('Kje nastajajo nepotrebni stroški', d.izbrano?.stroski);
-  blok('Odziv na novo povpraševanje', d.izbrano?.odziv ? [d.izbrano.odziv] : []);
-  if (bloki.length) { said.replaceChildren(...bloki); said.hidden = false; }
-
   // Closing: someone who asked for a 30-minute talk gets that as the headline.
-  if (d.izbrano?.zeliPogovor) {
+  if (d.zeliPogovor) {
     $('#r-close-h').textContent = 'Želeli ste 30-minutni pogovor. Dogovorimo se.';
     $('#r-close-p').textContent = `V pogovoru skupaj pogledamo vaš rezultat in izberemo proces, kjer bi AI pri vas najhitreje pokazal učinek${d.proces ? `: najverjetneje ${d.proces.naziv.toLowerCase()}` : ''}.`;
   }

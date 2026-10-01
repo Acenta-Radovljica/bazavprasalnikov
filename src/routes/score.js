@@ -42,8 +42,8 @@ javniRouter.get('/r/:token', (req, res) => {
 });
 
 // Minimised data for the public report: no raw answer ids, no lead class, no financial
-// potential, no internal signals. `izbrano` echoes only the TEXTS the respondent picked for
-// time/cost/response speed (their own words back, shown on a link only they received).
+// potential, no internal signals. Since 1. 10. no answer texts either: echoing them back was what
+// made the report read as "only what I ticked" (Matjaž); only the "wants a talk" flag is sent.
 javniRouter.get('/r/:token/podatki', async (req, res) => {
   zasebneGlave(res);
   if (!TOKEN_RE.test(req.params.token)) return res.status(404).json({ error: 'not_found' });
@@ -58,7 +58,7 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
   if (v.revoked_at) return res.status(410).json({ error: 'revoked' });
 
   const rez = v.rezultat, raw = v.raw_data || {};
-  const predloga = sestaviPredlogo(rez, raw.podjetje);
+  const predloga = sestaviPredlogo(rez, raw.podjetje, raw.odgovori || {});
   const ai = v.besedilo;
   res.json({
     podjetje: raw.podjetje || '',
@@ -70,14 +70,15 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
     proces: rez.proces,
     // Recomputed on read from the stored answers with the current scorer (pure, cheap).
     ...izracunajVzvode(raw.odgovori || {}, raw.velikost || null),
-    izbrano: povzetekOdgovorov(raw.odgovori || {}),
+    zeliPogovor: povzetekOdgovorov(raw.odgovori || {}).zeliPogovor,
     // Booking link is not decided yet; without it the page shows only the phone number.
     rezervacija: /^https:\/\//.test(process.env.SCORE_BOOKING_URL || '') ? process.env.SCORE_BOOKING_URL : null,
     besedilo: {
       odstavek: ai?.odstavek || predloga.odstavek,
       dobro: ai?.dobro || predloga.dobro,
       zatika: ai?.zatika || predloga.zatika,
-      priloznosti: predloga.priloznosti,       // always deterministic
+      // AI v2 writes its own opportunities; older AI rows (v1, no "moznosti") use the template.
+      priloznosti: ai?.moznosti || predloga.priloznosti,
     },
   });
 });

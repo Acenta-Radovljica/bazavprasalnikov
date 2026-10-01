@@ -2,8 +2,8 @@
 //
 // For each maturity question the respondent has not maxed out, move the answer ONE level up,
 // rescore with the real scorer and report the gain. No invented numbers: every point shown is
-// what izracunajScore() would give for that changed answer. Also returns what the report
-// may show of the respondent's own answers (option texts only, never ids or points).
+// what izracunajScore() would give for that changed answer. Also tells whether the respondent
+// asked for a talk (povzetekOdgovorov).
 
 import { izracunajScore } from './izracunaj.js';
 import { VPRASANJA } from './vprasanja-v1.js';
@@ -87,19 +87,8 @@ export function izracunajVzvode(odgovori = {}, velikost = null, max = 3) {
   };
 }
 
-// What the report may echo back: the texts the respondent picked, nothing else.
-const besedila = (id, v) => {
-  const q = Q[id];
-  if (!q || v === undefined || v === null) return [];
-  const ids = Array.isArray(v) ? v : [v];
-  return q.moznosti.filter(o => ids.includes(o.id) && !o.nevtralno).map(o => o.text);
-};
+// The report no longer echoes answer texts (1. 10. 2026, Matjaž: "only what I ticked");
+// only whether the respondent asked for a talk, which changes the report's closing.
 export function povzetekOdgovorov(odgovori = {}) {
-  const pogovor = odgovori.hitrost === 'pogovor' || odgovori.interpretacija === 'pogovor';
-  return {
-    cas: besedila('izguba_casa', odgovori.izguba_casa),
-    stroski: besedila('stroski', odgovori.stroski),
-    odziv: besedila('odziv', odgovori.odziv)[0] || null,
-    zeliPogovor: pogovor,
-  };
+  return { zeliPogovor: odgovori.hitrost === 'pogovor' || odgovori.interpretacija === 'pogovor' };
 }

@@ -110,10 +110,10 @@ t('glave: noindex, no-referrer, no-store',
 const pds = JSON.stringify(pd);
 t('brez lead razreda, financnega potenciala, signalov in odgovorov',
   !/"lead"|"financni"|"signali"|"odgovori"|"telefon"|"razlogi"/.test(pds), pds.slice(0, 200));
-// Since 30. 9. the report echoes the respondent's own picks, as option TEXTS only.
-t('izbrano: samo besedila, brez oznak odgovorov',
-  Array.isArray(pd.izbrano?.cas) && pd.izbrano.cas.every(x => typeof x === 'string' && /\s|[A-ZČŠŽ]/.test(x))
-  && !/"cim_prej"|"pilot"|"proizvodnja"|"zre"|"prip"|"sig"/.test(pds), JSON.stringify(pd.izbrano));
+// Since 1. 10. no answer texts are echoed (Matjaž: "only what I ticked"); only the talk flag.
+t('brez besedil odgovorov, samo zeliPogovor',
+  !('izbrano' in pd) && typeof pd.zeliPogovor === 'boolean'
+  && !/"cim_prej"|"pilot"|"proizvodnja"|"zre"|"prip"|"sig"/.test(pds), JSON.stringify({ izbrano: pd.izbrano, zeliPogovor: pd.zeliPogovor }));
 t('vzvodi: najvec 3 z besedilom in tockami',
   Array.isArray(pd.vzvodi) && pd.vzvodi.length <= 3 && pd.vzvodi.every(v => v.korak && v.zrelost > 0) && typeof pd.skupaj?.skupno === 'number',
   JSON.stringify(pd.vzvodi));
@@ -134,7 +134,9 @@ t('mock: skupina + polja', JSON.stringify(klic?.body?.groups) === '["999"]' && k
   && klic?.body?.fields?.abs_report_url?.endsWith(`/r/${token}`), JSON.stringify(klic?.body));
 const aiRow = (await db.query('SELECT ai_status, besedilo FROM score_results WHERE token = $1', [token])).rows[0];
 t('brez AI kljuca: ai_status failed, besedilo prazno', aiRow.ai_status === 'failed' && aiRow.besedilo === null);
-t('porocilo ima besedilo iz predloge', pd.besedilo?.odstavek?.includes(`Kovinar Test ${sufiks}`) && pd.besedilo.priloznosti.length >= 2);
+t('porocilo ima besedilo iz predloge (v2: 5 priloznosti, dobro in zatika vsaj 3)',
+  pd.besedilo?.odstavek?.includes(`Kovinar Test ${sufiks}`) && pd.besedilo.zatika.length >= 3 && pd.besedilo.priloznosti.length === 5 && pd.besedilo.dobro.length >= 3,
+  JSON.stringify(pd.besedilo));
 
 console.log('\n6. Odpornost outboxa');
 const y = await post(oddaja({ email: `pade-${sufiks}@primer.si`, podjetje: `Pade ${sufiks}` }));
