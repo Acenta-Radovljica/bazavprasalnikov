@@ -6,11 +6,17 @@
 // LOCKED keeps two workers from taking the same row.
 //
 // MailerLite runs first: the score e-mail must not wait for the AI text.
+//
+// Rows run in parallel, up to VZPOREDNO at a time (1. 10. 2026): one AI text takes ~20 to 40 s and
+// the report page waits only 60 s, so a burst of submissions after a mailing must not queue
+// behind each other. Each call claims only as many rows as there are free slots; the row lock
+// (FOR UPDATE SKIP LOCKED + locked_at) keeps two passes off the same row.
 
 import { dbQuery } from '../db.js';
 import { besedilaOdgovorov } from './oddaja.js';
 import { generirajBesedilo, imaAI } from './besedilo.js';
 import { imaMailerLite, sestaviSubscriber, upsertSubscriber } from './mailerlite.js';
+import { izracunajVzvode } from './vzvodi.js';
 
 const ML_BACKOFF_MIN = [1, 5, 30, 120, 720];  // then 'failed'
 const AI_MAX = 3;
@@ -66,13 +72,19 @@ async function obdelajVrstico(v) {
   if (['pending', 'retry'].includes(v.ai_status)) {
     if (!imaAI()) {
       upd.ai_status = 'failed';            // report keeps the template text
-      napake.push('AI: ANTHROPIC_API_KEY ni nastavljen, porocilo uporablja predlogo');
+      napake.push('AI: ni nastavljen (CLAUDE_SDK=1 ali ANTHROPIC_API_KEY), porocilo uporablja predlogo');
     } else {
-      const b = await generirajBesedilo(v.rezultat, besedilaOdgovorov(raw.odgovori), kontakt.podjetje || 'vaše podjetje');
+      // The model is told what the rest of the report already shows (same data as /podatki).
+      const zeDrugje = {
+        opisStopnje: v.rezultat.stopnja?.opis,
+        vzvodi: izracunajVzvode(raw.odgovori || {}, raw.velikost || null).vzvodi,
+      };
+      const g = await generirajBesedilo(v.rezultat, besedilaOdgovorov(raw.odgovori), kontakt.podjetje || 'vaše podjetje', zeDrugje);
       upd.attempts_ai = v.attempts_ai + 1;
-      if (b) { upd.ai_status = 'ok'; upd.besedilo = b; }
-      else if (upd.attempts_ai >= AI_MAX) { upd.ai_status = 'failed'; napake.push('AI: neveljaven odgovor, porocilo uporablja predlogo'); }
-      else { upd.ai_status = 'retry'; naslednji.push(upd.attempts_ai); }
+      if (g.besedilo) { upd.ai_status = 'ok'; upd.besedilo = g.besedilo; }
+      else if (upd.attempts_ai >= AI_MAX) { upd.ai_status = 'failed'; napake.push(`AI: neveljaven odgovor (${g.razlogi.join('; ')}), porocilo uporablja predlogo`); }
+      else { upd.ai_status = 'retry'; naslednji.push(upd.attempts_ai); napake.push(`AI zavrnjen: ${g.razlogi.join('; ')}`); }
+      console.log(`[score/outbox] vrstica ${v.id}: AI ${g.besedilo ? 'sprejet' : 'zavrnjen'} v ${g.sekund} s, poskusov ${g.poskusov}${g.razlogi.length ? `, zavrnjeno: ${g.razlogi.join('; ')}` : ''}${g.izpusceno?.length ? `, izpuščeno: ${g.izpusceno.join('; ')}` : ''}`);
     }
   }
 
@@ -89,21 +101,23 @@ async function obdelajVrstico(v) {
   );
 }
 
-let tece = false;
+const VZPOREDNO = Math.max(1, parseInt(process.env.SCORE_OUTBOX_VZPOREDNO || '4', 10));
+let vTeku = 0;                  // rows being processed (or slots reserved for a claim in flight)
 export async function obdelajZapadle() {
-  if (tece) return 0;           // one pass at a time per process
-  tece = true;
-  try {
-    const vrstice = await prevzemi();
-    for (const v of vrstice) {
-      try { await obdelajVrstico(v); }
-      catch (e) {
-        console.error('[score/outbox] vrstica', v.id, e.message);
-        await dbQuery('UPDATE score_results SET locked_at = NULL, last_error = $2 WHERE id = $1', [v.id, e.message.slice(0, 300)]);
-      }
-    }
-    return vrstice.length;
-  } finally { tece = false; }
+  const prosto = VZPOREDNO - vTeku;
+  if (prosto <= 0) return 0;
+  vTeku += prosto;              // reserve before the async claim, so parallel calls cannot overbook
+  let vrstice = [];
+  try { vrstice = await prevzemi(prosto); }
+  finally { vTeku -= prosto - vrstice.length; }
+  await Promise.all(vrstice.map(async (v) => {
+    try { await obdelajVrstico(v); }
+    catch (e) {
+      console.error('[score/outbox] vrstica', v.id, e.message);
+      await dbQuery('UPDATE score_results SET locked_at = NULL, last_error = $2 WHERE id = $1', [v.id, e.message.slice(0, 300)]).catch(() => {});
+    } finally { vTeku--; }
+  }));
+  return vrstice.length;
 }
 
 // Kick right after a submission, without waiting for the interval.

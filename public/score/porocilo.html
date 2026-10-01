@@ -52,36 +52,42 @@
     </div>
   </section>
 
-  <!-- Where you are and where to start -->
-  <section class="rep-sec">
-    <div class="wrap bento">
-      <article class="card c-level" data-reveal>
-        <div>
-          <h3>Vaša AI zrelost</h3>
-          <p class="sub" id="r-levelp"></p>
-        </div>
-        <ol class="levels" id="r-levels" aria-label="Stopnje AI zrelosti">
-          <li>AI začetnik</li>
-          <li>AI raziskovalec</li>
-          <li>AI uporabnik</li>
-          <li>AI pospeševalec</li>
-          <li>AI-first kandidat</li>
-        </ol>
-      </article>
-      <article class="card c-opp" id="r-opp" data-reveal style="--d:1"></article>
+  <!-- What the answers mean (AI diagnosis): right under the score, like the Panta Rei report.
+       While the AI text is still being written the section shows a waiting state (porocilo.js). -->
+  <section class="rep-story" id="r-story-sec">
+    <div class="wrap">
+      <p class="eyebrow" data-reveal>Kaj smo izvedeli o vas</p>
+      <p class="story" id="r-odstavek" data-reveal></p>
+      <div class="pisemo" id="r-pisemo" role="status" aria-live="polite" hidden>
+        <span class="pisemo-l">Pišemo vašo analizo</span>
+        <span class="pisemo-c"></span><span class="pisemo-c"></span><span class="pisemo-c k"></span>
+        <small id="r-pisemo-s">Običajno v pol minute. Rezultat in koraki spodaj so že pripravljeni.</small>
+      </div>
     </div>
   </section>
 
-  <!-- How the recommended first project would work, for the strongest process -->
-  <section class="rep-sec" id="r-scen-sec" hidden>
+  <section class="rep-sec" id="r-tri-sec">
+    <div class="wrap three" data-reveal>
+      <div class="card"><h3>Kaj delate dobro</h3><ul class="pts" id="r-dobro"></ul></div>
+      <div class="card"><h3>Kje se zatika</h3><ul class="pts warn" id="r-zatika"></ul></div>
+      <div class="card"><h3>Vaše priložnosti</h3><ul class="pts" id="r-prilo"></ul></div>
+    </div>
+  </section>
+
+  <!-- First project: the strongest area, the recommended step and how it would work (one block) -->
+  <section class="rep-sec">
     <div class="wrap">
-      <article class="card c-scen" data-reveal>
+      <article class="card c-scen c-proj" id="r-proj" data-reveal>
         <div class="scen-head">
-          <p class="eyebrow">Kako bi to delovalo pri vas</p>
-          <h3>Prvi projekt, korak za korakom</h3>
-          <p class="scen-danes"><small>Pogosto danes</small><span id="r-scen-danes"></span></p>
+          <p class="eyebrow">Prvi projekt</p>
+          <h3 class="opp-name" id="r-proj-naziv"></h3>
+          <p class="sub" id="r-proj-p"></p>
+          <div class="rec" id="r-proj-rec"></div>
         </div>
-        <ol class="scen-flow" id="r-scen-flow"></ol>
+        <div class="scen-body" id="r-scen-body" hidden>
+          <p class="scen-danes"><small>Pogosto danes</small><span id="r-scen-danes"></span></p>
+          <ol class="scen-flow" id="r-scen-flow"></ol>
+        </div>
       </article>
     </div>
   </section>
@@ -103,18 +109,23 @@
     </div>
   </section>
 
-  <section class="rep-story">
-    <div class="wrap">
-      <p class="eyebrow" data-reveal>Kaj smo izvedeli o vas</p>
-      <p class="story" id="r-odstavek" data-reveal></p>
-    </div>
-  </section>
-
+  <!-- The maturity ladder with the level description (text from Matjaž's scoring document) -->
   <section class="rep-sec">
-    <div class="wrap three" data-reveal>
-      <div class="card"><h3>Kaj delate dobro</h3><ul class="pts" id="r-dobro"></ul></div>
-      <div class="card"><h3>Kje se zatika</h3><ul class="pts warn" id="r-zatika"></ul></div>
-      <div class="card"><h3>Vaše priložnosti</h3><ul class="pts" id="r-prilo"></ul></div>
+    <div class="wrap">
+      <article class="card c-level solo" data-reveal>
+        <div>
+          <p class="eyebrow">Lestvica AI zrelosti</p>
+          <h3>Vaša AI zrelost</h3>
+          <p class="sub" id="r-levelp"></p>
+        </div>
+        <ol class="levels" id="r-levels" aria-label="Stopnje AI zrelosti">
+          <li>AI začetnik</li>
+          <li>AI raziskovalec</li>
+          <li>AI uporabnik</li>
+          <li>AI pospeševalec</li>
+          <li>AI-first kandidat</li>
+        </ol>
+      </article>
     </div>
   </section>
 

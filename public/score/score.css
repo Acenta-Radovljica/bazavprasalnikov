@@ -220,8 +220,10 @@ body.calc { overflow: hidden; }
 .card h3 { font-weight: 600; font-size: clamp(22px, 1.9vw, 27px); line-height: 1.2; letter-spacing: -.03em; margin-bottom: 8px; }
 .card .sub { color: var(--muted); font-size: 15px; }
 .c-level { grid-column: span 7; display: grid; align-content: space-between; gap: 40px; }
+.c-level.solo { grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); align-items: end; gap: 48px; margin-top: 16px; }
+.c-level.solo h3 { margin-top: 14px; }
 .c-opp { grid-column: span 5; display: grid; align-content: start; gap: 12px; background: linear-gradient(135deg, #10332d, #0b221f); border-color: rgb(47 211 192 / .25); }
-.c-opp .opp-name { font-weight: 620; font-size: clamp(28px, 2.7vw, 38px); line-height: 1.08; letter-spacing: -.035em; }
+.c-opp .opp-name, .c-proj .opp-name { font-weight: 620; font-size: clamp(28px, 2.7vw, 38px); line-height: 1.08; letter-spacing: -.035em; }
 .c-opp p { color: var(--muted); font-size: 15px; }
 .rec { margin-top: 10px; padding: 18px 20px; border-radius: var(--r-md); border: 1px solid rgb(47 211 192 / .25); background: rgb(47 211 192 / .07); font-size: 16px; font-weight: 500; line-height: 1.4; }
 .rec small { display: block; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--teal-hi); margin-bottom: 8px; }
@@ -240,7 +242,8 @@ body.calc { overflow: hidden; }
 .levels li.on { background: var(--teal-hi); border-color: transparent; color: var(--on-teal); font-weight: 600; }
 .levels li.on::before { content: 'Vi ste tu'; position: absolute; left: 0; right: 0; top: -28px; text-align: center; font: 500 12px var(--mono); color: var(--teal-hi); }
 
-.rep-story { padding: 88px 0 72px; }
+/* The analysis sits right under the score (v3), so less air above it than between sections */
+.rep-story { padding: 24px 0 56px; }
 .rep-story .story { margin-top: 22px; font-weight: 500; font-size: clamp(20px, 2vw, 28px); line-height: 1.4; letter-spacing: -.015em; max-width: 36ch; color: var(--text); }
 
 .three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
@@ -251,6 +254,22 @@ ul.pts li { display: flex; gap: 12px; font-size: 16px; color: var(--muted); }
 ul.pts li::before { content: ''; flex: none; width: 7px; height: 7px; border-radius: 50%; margin-top: 9px; background: var(--teal-hi); }
 ul.pts.warn li::before { background: var(--err); }
 
+/* Waiting for the AI text (~20 s): a quiet "writing" state, same footprint as the text */
+.pisemo { margin-top: 22px; max-width: 36ch; display: grid; gap: 14px; }
+.pisemo-l { font: 500 12px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--teal-hi); }
+.pisemo-c { display: block; height: 22px; border-radius: 6px; background: linear-gradient(90deg, rgb(255 255 255 / .05), rgb(47 211 192 / .14), rgb(255 255 255 / .05)); background-size: 200% 100%; }
+.pisemo-c.k { width: 62%; }
+.pisemo small { color: var(--dim); font-size: 14px; }
+ul.pts li.skel { height: 14px; margin: 5px 0 9px 19px; border-radius: 4px; background: linear-gradient(90deg, rgb(255 255 255 / .05), rgb(255 255 255 / .1), rgb(255 255 255 / .05)); background-size: 200% 100%; }
+ul.pts li.skel::before { display: none; }
+ul.pts li.skel:nth-child(2) { width: 82%; } ul.pts li.skel:nth-child(3) { width: 64%; }
+@media (prefers-reduced-motion: no-preference) {
+  .pisemo-c, ul.pts li.skel { animation: r-tece 1.6s linear infinite; }
+  .prihod { animation: r-prihod .8s var(--out); }
+}
+@keyframes r-tece { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@keyframes r-prihod { from { opacity: 0; translate: 0 8px; } }
+
 .closing { position: relative; margin: 72px 0 88px; padding: 56px; border-radius: var(--r-lg); overflow: clip; border: 1px solid rgb(47 211 192 / .25); background: linear-gradient(135deg, #10332d, #0a1d1a); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 40px; align-items: center; }
 .closing h2 { font-weight: 620; font-size: clamp(28px, 2.8vw, 40px); line-height: 1.08; letter-spacing: -.035em; margin-bottom: 14px; text-wrap: balance; }
 .closing p { color: var(--muted); max-width: 38em; }
@@ -260,6 +279,13 @@ ul.pts.warn li::before { background: var(--err); }
 
 /* How it would work for you: "often today" vs a three-step flow on a line that draws itself */
 .c-scen { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: center; margin-top: 16px; }
+/* First project (v3): the former "Največja priložnost" card and the scenario in one block */
+.c-proj { background: linear-gradient(135deg, #10332d, #0b221f); border-color: rgb(47 211 192 / .25); align-items: start; }
+.c-proj .opp-name { margin: 14px 0 10px; }
+.c-proj .sub { margin-bottom: 18px; }
+.c-proj.solo { grid-template-columns: minmax(0, 1fr); }
+.c-proj.solo .scen-head { max-width: 40em; }
+.scen-body { display: grid; gap: 24px; }
 .scen-head h3 { font-size: clamp(24px, 2.2vw, 32px); margin: 14px 0 20px; }
 .scen-danes { padding: 16px 18px; border-radius: var(--r-md); border: 1px dashed var(--line-2); color: var(--muted); font-size: 15px; }
 .scen-danes small { display: block; font: 500 11px/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin-bottom: 8px; }
@@ -349,6 +375,7 @@ ul.pts.warn li::before { background: var(--err); }
   .closing { grid-template-columns: 1fr; padding: 40px 32px; }
   .closing .acts { justify-items: start; }
   .c-scen { grid-template-columns: 1fr; gap: 28px; }
+  .c-level.solo { grid-template-columns: 1fr; gap: 32px; }
 }
 @media (max-width: 767px) {
   body { font-size: 16px; }
@@ -384,7 +411,7 @@ ul.pts.warn li::before { background: var(--err); }
   .levels { grid-template-columns: minmax(0, 1fr); height: auto; gap: 6px; align-items: start; padding: 0; }
   .levels li { height: 40px; width: calc(38% + var(--n) * 15.5%); align-items: center; padding: 0 12px; font-size: 13px; border-radius: 6px 12px 12px 6px; transform-origin: left; }
   .levels li.on::before { top: 0; left: calc(100% + 10px); right: auto; line-height: 40px; text-align: left; white-space: nowrap; }
-  .rep-story { padding: 64px 0 48px; }
+  .rep-story { padding: 8px 0 40px; }
   .closing { margin: 48px 0 64px; padding: 32px 20px; }
   .vz-head { grid-template-columns: 1fr; gap: 20px; }
   .vz-sum { justify-items: start; text-align: left; }
@@ -404,4 +431,5 @@ ul.pts.warn li::before { background: var(--err); }
   [data-reveal], .rep.anim [data-reveal], .rep.anim .meter, .rep.anim .scen-flow li, .rep.anim .vz-list li { opacity: 1 !important; translate: none !important; scale: none !important; }
   .meter, .card, .closing { box-shadow: none; background: #fff !important; break-inside: avoid; }
   .dial-val, .ticks i, .levels li { transition: none !important; }
+  .pisemo, ul.pts li.skel { display: none !important; }
 }

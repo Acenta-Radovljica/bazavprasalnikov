@@ -48,7 +48,7 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
   zasebneGlave(res);
   if (!TOKEN_RE.test(req.params.token)) return res.status(404).json({ error: 'not_found' });
   const r = await dbQuery(
-    `SELECT s.rezultat, s.besedilo, s.revoked_at, s.created_at, r.raw_data
+    `SELECT s.rezultat, s.besedilo, s.ai_status, s.revoked_at, s.created_at, r.raw_data
        FROM score_results s JOIN responses r ON r.id = s.response_id
       WHERE s.token = $1`,
     [req.params.token],
@@ -58,8 +58,13 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
   if (v.revoked_at) return res.status(410).json({ error: 'revoked' });
 
   const rez = v.rezultat, raw = v.raw_data || {};
-  const predloga = sestaviPredlogo(rez, raw.podjetje, raw.odgovori || {});
+  // Levers first: the template leaves their topics out of "zatika" (one topic, one place).
+  const vz = izracunajVzvode(raw.odgovori || {}, raw.velikost || null);
+  const predloga = sestaviPredlogo(rez, raw.podjetje, raw.odgovori || {}, vz.vzvodi);
   const ai = v.besedilo;
+  // The AI text arrives ~20 s after the submission, the report opens after ~2 s: the page shows
+  // the score at once and waits for the text while this says 'pripravlja'.
+  const besediloStanje = ai ? 'ai' : (['pending', 'retry'].includes(v.ai_status) ? 'pripravlja' : 'predloga');
   res.json({
     podjetje: raw.podjetje || '',
     email: raw.email || '',
@@ -69,10 +74,11 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
     stopnja: rez.stopnja,
     proces: rez.proces,
     // Recomputed on read from the stored answers with the current scorer (pure, cheap).
-    ...izracunajVzvode(raw.odgovori || {}, raw.velikost || null),
+    ...vz,
     zeliPogovor: povzetekOdgovorov(raw.odgovori || {}).zeliPogovor,
     // Booking link is not decided yet; without it the page shows only the phone number.
     rezervacija: /^https:\/\//.test(process.env.SCORE_BOOKING_URL || '') ? process.env.SCORE_BOOKING_URL : null,
+    besediloStanje,
     besedilo: {
       odstavek: ai?.odstavek || predloga.odstavek,
       dobro: ai?.dobro || predloga.dobro,

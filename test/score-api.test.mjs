@@ -137,6 +137,18 @@ t('brez AI kljuca: ai_status failed, besedilo prazno', aiRow.ai_status === 'fail
 t('porocilo ima besedilo iz predloge (v2: 5 priloznosti, dobro in zatika vsaj 3)',
   pd.besedilo?.odstavek?.includes(`Kovinar Test ${sufiks}`) && pd.besedilo.zatika.length >= 3 && pd.besedilo.priloznosti.length === 5 && pd.besedilo.dobro.length >= 3,
   JSON.stringify(pd.besedilo));
+// v3: the page waits for the AI text while the API says 'pripravlja' (the text arrives ~20 s
+// after the report opens). Driven straight in the DB; next_attempt_at keeps the worker off the row.
+const stanje = async () => (await (await fetch(`${BASE}/r/${token}/podatki`)).json());
+t('besediloStanje: brez AI = predloga', (await stanje()).besediloStanje === 'predloga');
+await db.query(`UPDATE score_results SET ai_status = 'pending', next_attempt_at = NOW() + INTERVAL '1 hour' WHERE token = $1`, [token]);
+const caka = await stanje();
+t('besediloStanje: AI še piše = pripravlja, besedilo je predloga (stran nikoli prazna)', caka.besediloStanje === 'pripravlja' && caka.besedilo?.odstavek?.length > 50, caka.besediloStanje);
+const aiBes = { odstavek: 'AI odstavek za test.', dobro: ['a'], zatika: ['b'], moznosti: ['c'] };
+await db.query(`UPDATE score_results SET ai_status = 'ok', besedilo = $2 WHERE token = $1`, [token, JSON.stringify(aiBes)]);
+const gotovo = await stanje();
+t('besediloStanje: AI gotov = ai, besedilo iz AI', gotovo.besediloStanje === 'ai' && gotovo.besedilo.odstavek === aiBes.odstavek && gotovo.besedilo.priloznosti[0] === 'c', JSON.stringify(gotovo.besedilo).slice(0, 120));
+await db.query(`UPDATE score_results SET ai_status = 'failed', besedilo = NULL, next_attempt_at = NOW() WHERE token = $1`, [token]);
 
 console.log('\n6. Odpornost outboxa');
 const y = await post(oddaja({ email: `pade-${sufiks}@primer.si`, podjetje: `Pade ${sufiks}` }));

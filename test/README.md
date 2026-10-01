@@ -41,15 +41,18 @@ node test/ujemanje.test.mjs          # 51 trditev (ujemanje podjetij: domena, kr
 
 ```bash
 node test/score.test.mjs             # 39 trditev (cista funkcija tockovanja, brez streznika in baze)
-node test/porocilo-besedilo.test.mjs # 38 trditev (predloga v2 brez odmeva in ponavljanja, preverjanje AI besedila 5+5+5)
+node test/porocilo-besedilo.test.mjs # 54 trditev (v3: ena tema en prostor; slaba alineja se izpusti, slab odstavek zavrne; predloga prestane isto preverjanje)
+node test/claude-sdk.test.mjs        # 14 trditev (CLAUDE_SDK=1: narocnina prek Agent SDK, lazni query(), brez klicev in brez API kljuca)
 node test/vzvodi.test.mjs            # 19 trditev ("Kako do visje ocene" = pravi tockovalnik, porocilo ne vraca odgovorov)
 # score-api rabi streznik z lazno MailerLite (test sam odpre mock na :3397):
 #   MAILERLITE_API_URL=http://127.0.0.1:3397 MAILERLITE_API_KEY=test-ml MAILERLITE_GROUP_ID=999
 #   SCORE_OUTBOX_MS=500 SCORE_MAX_V_OKNU=100 ANTHROPIC_API_KEY=
-node test/score-api.test.mjs         # 46 trditev (oddaja, porocilo z vzvodi in izbranim, outbox, kvalifikacija, CSV)
+node test/score-api.test.mjs         # 49 trditev (oddaja, porocilo z vzvodi in izbranim, outbox, kvalifikacija, CSV)
 ```
 
-Skupaj 765 trditev (623 + 142 za Score). Zadnji zeleni zagon Score: 1. 10. 2026.
+Skupaj 798 trditev. Zadnji zeleni zagon vseh: 1. 10. 2026 (v3 porocila + Agent SDK).
+
+`test/porocilo-kakovost.mjs` NI del zagona: 6 pravih klicev Sonnet (pregled besedil na eni strani). Samo na Maksovo besedo in s streznikom na narocnini (CLAUDE_SDK=1).
 
 `TEST_DB_URL` prepiše bazo (privzeto port 5435). Pozor: na 5435 zna teči baza
 katerega drugega projekta (25. 9. 2026 je bila tam Zlata Ribica) — preveri

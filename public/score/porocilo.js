@@ -71,6 +71,25 @@ const SCENARIJ = {
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
 function li(ul, arr) { ul.replaceChildren(...arr.map(t => el('li', '', t))); }
 
+// AI text: the report opens ~2 s after the submission, the AI text is ready after ~20 s. While the
+// API says 'pripravlja' the analysis shows a waiting state and the page asks again; after
+// CAKAJ_MS (or 'predloga') it keeps the template text it already has.
+const VPRASAJ_MS = 3000, CAKAJ_MS = 90000;   // a retried draft can take ~60 s
+function skel(ul, n) {
+  ul.replaceChildren(...Array.from({ length: n }, () => { const e = el('li', 'skel'); e.setAttribute('aria-hidden', 'true'); return e; }));
+}
+function napolniBesedilo(b, mehko) {
+  const deli = ['#r-odstavek', '#r-dobro', '#r-zatika', '#r-prilo'].map(s => $(s));
+  $('#r-odstavek').textContent = b.odstavek;
+  li($('#r-dobro'), b.dobro);
+  li($('#r-zatika'), b.zatika);
+  li($('#r-prilo'), b.priloznosti);
+  $('#r-pisemo').hidden = true;
+  $('#r-odstavek').hidden = false;
+  ['#r-story-sec', '#r-tri-sec'].forEach(s => $(s).removeAttribute('aria-busy'));
+  if (mehko && !reduce) deli.forEach(n => { n.classList.remove('prihod'); void n.offsetWidth; n.classList.add('prihod'); });
+}
+
 function napaka(msg) {
   $('#v-porocilo').hidden = true;
   const e = $('#r-napaka'); e.textContent = msg; e.hidden = false;
@@ -108,7 +127,7 @@ else {
   // No copy is e-mailed until MailerLite is configured, so do not promise one here.
   $('#r-meta').textContent = `Izpolnjeno ${d.datum}. Povezavo si shranite, da se lahko k poročilu vrnete.`;
   $('#r-levelh').textContent = d.stopnja.naziv;
-  $('#r-levelp').textContent = d.stopnja.opis;
+  $('#r-levelp').textContent = d.stopnja.opis;   // Matjaž's level text, shown once, at the ladder
 
   $('#r-bars').replaceChildren(...DIM.map(([id, naziv, zakaj]) => {
     const v = d.dimenzije[id];
@@ -129,30 +148,49 @@ else {
     if (i === stopnja) n.setAttribute('aria-current', 'step');
   });
 
-  const rec = el('div', 'rec');
-  rec.append(el('small', '', 'Priporočen prvi korak'), document.createTextNode(d.proces ? d.proces.priporocilo : d.stopnja.priporocilo));
-  $('#r-opp').replaceChildren(
-    el('p', 'eyebrow', 'Največja priložnost'),
-    el('h3', 'opp-name', d.proces ? d.proces.naziv : 'Še ni jasna'),
-    el('p', '', d.proces
-      ? 'Na tem področju ste označili največ izgubljenega časa ali nepotrebnih stroškov.'
-      : 'Iz odgovorov še ne izstopa en sam proces. To je pogosto pri podjetjih, ki z AI šele začenjajo.'),
-    rec,
-  );
-
-  $('#r-odstavek').textContent = d.besedilo.odstavek;
-  li($('#r-dobro'), d.besedilo.dobro);
-  li($('#r-zatika'), d.besedilo.zatika);
-  li($('#r-prilo'), d.besedilo.priloznosti);
-
-  // How it would work, for the strongest process
+  // First project: the strongest area, the recommended step and, where we have one, how it works.
+  // States the conclusion, not "what you ticked" (Matjaž, 1. 10.).
+  $('#r-proj-naziv').textContent = d.proces ? d.proces.naziv : 'Še ni izbran';
+  $('#r-proj-p').textContent = d.proces
+    ? 'Tu je pri vas največ dela, ki ga AI lahko prevzame, zato predlagamo, da začnete tukaj.'
+    : 'Iz odgovorov še ne izstopa en sam proces. Prvega skupaj izberemo v kratkem pogovoru.';
+  $('#r-proj-rec').replaceChildren(el('small', '', 'Priporočen prvi korak'), document.createTextNode(d.proces ? d.proces.priporocilo : d.stopnja.priporocilo));
   const sc = d.proces && SCENARIJ[d.proces.id];
   if (sc) {
     $('#r-scen-danes').textContent = sc.danes;
     $('#r-scen-flow').replaceChildren(...sc.koraki.map(([b, t], k) => {
       const n = el('li'); n.style.setProperty('--k', k); n.append(el('b', '', b), el('span', '', t)); return n;
     }));
-    $('#r-scen-sec').hidden = false;
+    $('#r-scen-body').hidden = false;
+  } else $('#r-proj').classList.add('solo');
+
+  // Analysis: AI text if ready, otherwise a waiting state that swaps in the text when it arrives.
+  let caka = d.besediloStanje === 'pripravlja';
+  let zadnje = d.besedilo;
+  if (!caka) napolniBesedilo(d.besedilo, false);
+  else {
+    $('#r-odstavek').hidden = true;
+    $('#r-pisemo').hidden = false;
+    ['#r-story-sec', '#r-tri-sec'].forEach(s => $(s).setAttribute('aria-busy', 'true'));
+    skel($('#r-dobro'), 3); skel($('#r-zatika'), 3); skel($('#r-prilo'), 3);
+    const t0 = Date.now();
+    const konec = (b) => { if (!caka) return; caka = false; napolniBesedilo(b, true); };
+    const vprasaj = async () => {
+      if (!caka) return;
+      try {
+        const r = await fetch(`/r/${encodeURIComponent(token)}/podatki`);
+        if (r.ok) {
+          const n = await r.json();
+          zadnje = n.besedilo;
+          if (n.besediloStanje !== 'pripravlja') return konec(n.besedilo);
+        }
+      } catch { /* network hiccup: try again on the next tick */ }
+      if (Date.now() - t0 >= CAKAJ_MS) return konec(zadnje);
+      setTimeout(vprasaj, VPRASAJ_MS);
+    };
+    setTimeout(vprasaj, VPRASAJ_MS);
+    // Saving as PDF while the AI is still writing: print the text we have (the template).
+    addEventListener('beforeprint', () => konec(zadnje));
   }
 
   // What would raise the score (real rescoring, one answer up at a time)

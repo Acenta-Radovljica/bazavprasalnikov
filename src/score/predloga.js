@@ -7,6 +7,9 @@
 //   ocene" (vzvodi.js) and the first project is in the opportunity card + scenario, so neither
 //   is repeated here, and the strongest area itself is left out of the list;
 // - no numbers, no promises, nothing beyond what the respondent answered.
+// v3 (1. 10. 2026, plan-abs-porocilo-v3): same "one topic, one place" rule as the AI validator:
+// topics of the steps shown in "Kako do višje ocene" stay out of the lists, the first-project area
+// stays out of all lists, and the paragraph no longer says where "your answers" piled up.
 
 const AREA = {          // topic key -> process area (for leaving out the strongest area)
   ponudbe: 'prodaja', povprasevanja: 'prodaja', followup: 'prodaja',
@@ -60,10 +63,17 @@ const OVIRA = {
 const eno = (o, id) => (Array.isArray(o?.[id]) ? o[id][0] : o?.[id]) ?? null;
 const vec = (o, id) => (Array.isArray(o?.[id]) ? o[id] : o?.[id] ? [o[id]] : []).filter(x => x !== 'ne_vem');
 
-export function sestaviPredlogo(rezultat, podjetje = '', odgovori = {}) {
+// Lever question id -> "zatika" topic key it would repeat.
+const VZVOD_TEMA = { pravila: 'pravila', odgovorna_oseba: 'oseba', razumevanje: 'razumevanje' };
+// First-project area -> topic keys owned by the project card.
+const PODROCJE_TEME = { nabava: ['nabava'], prodaja: ['odziv'] };
+
+export function sestaviPredlogo(rezultat, podjetje = '', odgovori = {}, vzvodi = []) {
   const { dimenzije: d, stopnja, proces } = rezultat;
   const kdo = podjetje ? `V podjetju ${podjetje}` : 'V vašem podjetju';
-  const rabljeno = new Set();
+  const rabljeno = new Set(PODROCJE_TEME[rezultat.proces?.id] || []);
+  // A shown step owns its topic: neither "dobro" nor "zatika" talks about it.
+  for (const v of vzvodi) if (VZVOD_TEMA[v.id]) rabljeno.add(VZVOD_TEMA[v.id]);
   const a = (id) => eno(odgovori, id);
 
   const uporablja = ['posamezniki', 'vec_zaposlenih', 'oddelki', 'procesi'].includes(a('uporaba'));
@@ -91,7 +101,7 @@ export function sestaviPredlogo(rezultat, podjetje = '', odgovori = {}) {
   } else if (!bolecine) {
     st.push('Iz odgovorov še ne izstopa opravilo, ki bi vam vzelo izrazito veliko časa.');
   }
-  if (proces) st.push(`Največ priložnosti vidimo na področju „${proces.naziv.toLowerCase()}“, kjer se je zbralo največ vaših odgovorov o izgubljenem času in stroških.`);
+  if (proces) st.push(`Največ priložnosti vidimo na področju „${proces.naziv.toLowerCase()}“.`);
   if (OVIRA[a('ovira')]) { st.push(OVIRA[a('ovira')]); rabljeno.add('ovira'); }
   st.push(akcija
     ? 'Ker želite ukrepati v kratkem, ni razloga, da bi s prvim korakom čakali.'
@@ -126,22 +136,26 @@ export function sestaviPredlogo(rezultat, podjetje = '', odgovori = {}) {
 
   // ── Where it gets stuck (diagnosis; the actions are in "Kako do višje ocene") ──
   const zatika = [];
-  doda(zatika, 'pravila', brezPravil ? 'Brez pravil za varno uporabo obstaja tveganje, da občutljivi podatki končajo v javnih orodjih.' : null);
-  doda(zatika, 'oseba', brezOsebe ? 'Nihče ni zadolžen za razvoj uporabe AI, zato pobude hitro zastanejo.' : (a('odgovorna_oseba') === 'brez_odgovornosti' ? 'Oseba za AI obstaja, a brez jasne odgovornosti in cilja.' : null));
-  doda(zatika, 'odziv', pocasenOdziv ? 'Odziv na nova povpraševanja je počasen ali ni določen, kar pomeni izgubljene priložnosti.' : null);
-  doda(zatika, 'nabava', slabaNabava ? 'Cen dobaviteljev ne primerjate sistematično, zato so prihranki pri nabavi neizkoriščeni.' : null);
-  doda(zatika, 'sistematicnost', ['ni', 'vsak_po_svoje'].includes(a('sistematicnost')) ? 'Ni dogovorjenega načina uporabe, zato so rezultati odvisni od tega, kdo dela.' : null);
-  doda(zatika, 'uporaba', { ne: 'AI v podjetju še ne uporabljate, zato zaposleni nimajo izkušenj, na katerih bi gradili.', oddelki: 'Oddelki AI uporabljajo vsak po svoje, izkušnje se med njimi ne delijo.' }[a('uporaba')]);
-  doda(zatika, 'razumevanje', ['zelo_slabo', 'slabo'].includes(a('razumevanje')) ? 'Zaposleni še ne vidijo, kako bi jim AI pomagal pri njihovem delu.' : null);
-  doda(zatika, 'casneznan', vec(odgovori, 'izguba_casa').length === 0 && Array.isArray(odgovori.izguba_casa) ? 'Ni jasno, kje se izgublja največ časa, zato je težko izbrati, kje začeti.' : null);
-  doda(zatika, 'ovira', OVIRA[a('ovira')]);
-  doda(zatika, 'razumevanje', a('razumevanje') === 'povprecno' ? 'Razumevanje AI med zaposlenimi je povprečno, zato uporaba ostaja pri preprostih opravilih.' : null);
-  doda(zatika, 'vgradnja', a('uporaba') !== 'procesi' ? 'AI še ni vgrajen v procese, zato je korist odvisna od tega, ali se ga kdo spomni uporabiti.' : null);
-  doda(zatika, 'deljenje', a('uporaba') !== 'procesi' && a('sistematicnost') !== 'strategija' ? 'Izkušnje posameznikov z AI se še ne zbirajo, zato se dobre rešitve ne razširijo.' : null);
-  doda(zatika, 'cilji', 'Uporaba AI še ni povezana z merljivimi cilji, zato je učinek težko pokazati.');
-  doda(zatika, 'povezovanje', d.zrelost >= 75 ? 'Naslednji izziv ni več uporaba, ampak povezovanje AI z vašimi sistemi in podatki.' : null);
-  doda(zatika, 'zamik', a('hitrost') === '3-6m' ? 'Naslednji korak načrtujete čez nekaj mesecev, orodja pa se medtem hitro razvijajo.' : null);
-  doda(zatika, 'ponavljanje', d.potencial >= 50 ? 'Precej časa gre v ponavljajoča se opravila, ki bi jih lahko prevzela orodja.' : null);
+  const dodaZ = (key, s) => doda(zatika, key, s);
+  dodaZ('pravila', brezPravil ? 'Brez pravil za varno uporabo obstaja tveganje, da občutljivi podatki končajo v javnih orodjih.' : null);
+  dodaZ('oseba', brezOsebe ? 'Nihče ni zadolžen za razvoj uporabe AI, zato pobude hitro zastanejo.' : (a('odgovorna_oseba') === 'brez_odgovornosti' ? 'Oseba za AI obstaja, a brez jasne odgovornosti in cilja.' : null));
+  dodaZ('odziv', pocasenOdziv ? 'Odziv na nova povpraševanja je počasen ali ni določen, kar pomeni izgubljene priložnosti.' : null);
+  dodaZ('nabava', slabaNabava ? 'Cen dobaviteljev ne primerjate sistematično, zato so prihranki pri nabavi neizkoriščeni.' : null);
+  dodaZ('sistematicnost', ['ni', 'vsak_po_svoje'].includes(a('sistematicnost')) ? 'Ni dogovorjenega načina uporabe, zato so rezultati odvisni od tega, kdo dela.' : null);
+  dodaZ('uporaba', { ne: 'AI v podjetju še ne uporabljate, zato zaposleni nimajo izkušenj, na katerih bi gradili.', oddelki: 'Oddelki AI uporabljajo vsak po svoje, izkušnje se med njimi ne delijo.' }[a('uporaba')]);
+  dodaZ('razumevanje', ['zelo_slabo', 'slabo'].includes(a('razumevanje')) ? 'Zaposleni še ne vidijo, kako bi jim AI pomagal pri njihovem delu.' : null);
+  dodaZ('casneznan', vec(odgovori, 'izguba_casa').length === 0 && Array.isArray(odgovori.izguba_casa) ? 'Ni jasno, kje se izgublja največ časa, zato je težko izbrati, kje začeti.' : null);
+  dodaZ('ovira', OVIRA[a('ovira')]);
+  dodaZ('razumevanje', a('razumevanje') === 'povprecno' ? 'Razumevanje AI med zaposlenimi je povprečno, zato uporaba ostaja pri preprostih opravilih.' : null);
+  dodaZ('vgradnja', a('uporaba') !== 'procesi' ? 'AI še ni vgrajen v procese, zato je korist odvisna od tega, ali se ga kdo spomni uporabiti.' : null);
+  dodaZ('deljenje', a('uporaba') !== 'procesi' && a('sistematicnost') !== 'strategija' ? 'Izkušnje z AI se še ne zbirajo na enem mestu, zato se dobre rešitve ne razširijo.' : null);
+  dodaZ('cilji', 'Uporaba AI še ni povezana z merljivimi cilji, zato je učinek težko pokazati.');
+  dodaZ('povezovanje', d.zrelost >= 75 ? 'Naslednji izziv ni več uporaba, ampak povezovanje AI z vašimi sistemi in podatki.' : null);
+  dodaZ('zamik', a('hitrost') === '3-6m' ? 'Naslednji korak načrtujete čez nekaj mesecev, orodja pa se medtem hitro razvijajo.' : null);
+  dodaZ('ponavljanje', d.potencial >= 50 ? 'Precej časa gre v ponavljajoča se opravila, ki bi jih lahko prevzela orodja.' : null);
+  // Fallbacks, only when the steps and the first project took the usual points.
+  if (zatika.length < 3) dodaZ('odvisnost', ['posamezniki', 'vec_zaposlenih'].includes(a('uporaba')) ? 'Ko AI pri delu uporablja le del ekipe, se ob odsotnosti teh ljudi delo vrne na star način.' : null);
+  if (zatika.length < 3) dodaZ('podatki', 'AI je toliko koristen, kolikor so urejeni podatki in dokumenti, iz katerih dela.');
 
   // ── Opportunities: process topics from their own answers, strongest area left out ──
   const priloznosti = [];
@@ -149,8 +163,11 @@ export function sestaviPredlogo(rezultat, podjetje = '', odgovori = {}) {
   if (pocasenOdziv) teme.push('povprasevanja');
   for (const id of ['izguba_casa', 'stroski', 'potencial']) for (const o of vec(odgovori, id)) if (TEMA[id][o]) teme.push(TEMA[id][o]);
   if (slabaNabava) teme.push('nabava');
+  // An opportunity on a topic already named in "zatika" would say the same thing twice.
+  const vZatiki = { nabava: 'nabava', povprasevanja: 'odziv' };
   for (const t of teme) {
     if (proces && AREA[t] === proces.id) continue;
+    if (vZatiki[t] && zatika.length && rabljeno.has(vZatiki[t])) continue;
     doda(priloznosti, 'p-' + t, PRILOZNOST[t]);
   }
   doda(priloznosti, 'p-prenos', 'Ko prvi projekt deluje, isti pristop prenesite na naslednje opravilo, ki vam jemlje čas.');
@@ -158,6 +175,8 @@ export function sestaviPredlogo(rezultat, podjetje = '', odgovori = {}) {
   if (!rabljeno.has('p-podpora')) doda(priloznosti, 'p-posta', 'AI lahko razvrsti dohodno e-pošto in pripravi osnutke odgovorov na vprašanja, ki se ponavljajo.');
   if (!['p-ponudbe', 'p-marketing', 'p-povprasevanja'].some(k => rabljeno.has(k))) doda(priloznosti, 'p-osnutki', 'Prve osnutke besedil, kot so ponudbe, odgovori in objave, lahko pripravi AI, zaposleni jih le uredijo.');
   if (!rabljeno.has('deljenje')) doda(priloznosti, 'p-znanje', 'Dobre primere uporabe zberite na enem mestu, da jih lahko uporabljajo vsi zaposleni.');
+  doda(priloznosti, 'p-sestanki', PRILOZNOST.sestanki);
+  doda(priloznosti, 'p-dokumenti', PRILOZNOST.dokumenti);
 
   return { odstavek, dobro, zatika, priloznosti };
 }
