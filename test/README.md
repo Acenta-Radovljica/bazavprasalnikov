@@ -42,7 +42,7 @@ node test/ujemanje.test.mjs          # 51 trditev (ujemanje podjetij: domena, kr
 ```bash
 node test/score.test.mjs             # 39 trditev (cista funkcija tockovanja, brez streznika in baze)
 node test/porocilo-besedilo.test.mjs # 38 trditev (predloga v2 brez odmeva in ponavljanja, preverjanje AI besedila 5+5+5)
-node test/vzvodi.test.mjs            # 19 trditev ("Kako do visje ocene" = pravi tockovalnik, odgovori nazaj samo kot besedila)
+node test/vzvodi.test.mjs            # 19 trditev ("Kako do visje ocene" = pravi tockovalnik, porocilo ne vraca odgovorov)
 # score-api rabi streznik z lazno MailerLite (test sam odpre mock na :3397):
 #   MAILERLITE_API_URL=http://127.0.0.1:3397 MAILERLITE_API_KEY=test-ml MAILERLITE_GROUP_ID=999
 #   SCORE_OUTBOX_MS=500 SCORE_MAX_V_OKNU=100 ANTHROPIC_API_KEY=
