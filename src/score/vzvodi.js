@@ -53,9 +53,11 @@ function naslednja(q, trenutna) {
   return q.moznosti.slice(i + 1).find(o => (o.zre ?? 0) > zdaj) || null;
 }
 
-export function izracunajVzvode(odgovori = {}, velikost = null, max = 3) {
+// `verzija`: the score version of the submission (maturity questions are the same in v1 and v2,
+// the rest of the score is not), so the gains match the score shown on the report.
+export function izracunajVzvode(odgovori = {}, velikost = null, max = 3, verzija = 'v1') {
   const vhod = { ...odgovori, velikost };
-  const osnova = izracunajScore(vhod);
+  const osnova = izracunajScore(vhod, verzija);
   const vzvodi = [];
   for (const id of RED) {
     const q = Q[id];
@@ -63,7 +65,7 @@ export function izracunajVzvode(odgovori = {}, velikost = null, max = 3) {
     const trenutna = q.moznosti.find(o => o.id === String(odgovori[id] ?? '')) || null;
     const cilj = naslednja(q, trenutna);
     if (!cilj || !KORAK[id]?.[cilj.id]) continue;
-    const nov = izracunajScore({ ...vhod, [id]: cilj.id });
+    const nov = izracunajScore({ ...vhod, [id]: cilj.id }, verzija);
     const zrelost = nov.dimenzije.zrelost - osnova.dimenzije.zrelost;
     if (zrelost <= 0) continue;
     vzvodi.push({ id, cilj: cilj.id, korak: KORAK[id][cilj.id], zrelost, skupno: nov.skupno - osnova.skupno });
@@ -73,7 +75,7 @@ export function izracunajVzvode(odgovori = {}, velikost = null, max = 3) {
 
   // All chosen steps together, rescored for real (not a sum of rounded deltas).
   const skupaj = izbrani.length
-    ? izracunajScore({ ...vhod, ...Object.fromEntries(izbrani.map(v => [v.id, v.cilj])) })
+    ? izracunajScore({ ...vhod, ...Object.fromEntries(izbrani.map(v => [v.id, v.cilj])) }, verzija)
     : osnova;
 
   return {

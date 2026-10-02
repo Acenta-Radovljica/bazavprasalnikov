@@ -10,6 +10,11 @@
 // v3 (1. 10. 2026, plan-abs-porocilo-v3): same "one topic, one place" rule as the AI validator:
 // topics of the steps shown in "Kako do višje ocene" stay out of the lists, the first-project area
 // stays out of all lists, and the paragraph no longer says where "your answers" piled up.
+// v4 (2. 10. 2026, questions v2): the paragraph adds what the follow-up block means (one
+// consequence sentence, dejstva.js) and whether AI is used where time is lost; both topics are
+// then taken, so no list repeats them. v1 answers have no follow-up block and get neither.
+
+import { stavekPodrocja, primerjavaNalog } from './dejstva.js';
 
 const AREA = {          // topic key -> process area (for leaving out the strongest area)
   ponudbe: 'prodaja', povprasevanja: 'prodaja', followup: 'prodaja',
@@ -96,12 +101,16 @@ export function sestaviPredlogo(rezultat, podjetje = '', odgovori = {}, vzvodi =
     st.push('Kljub dobri osnovi vam še vedno veliko časa vzamejo opravila, ki bi jih AI lahko prevzel.');
     rabljeno.add('ponavljanje');
   } else if (d.zrelost < 50 && d.potencial >= 50) {
-    st.push('Hkrati ste prepoznali več opravil, ki vam jemljejo čas, zato bo korist prvih korakov hitro vidna.');
+    st.push('Hkrati vam več opravil jemlje čas, zato bo korist prvih korakov hitro vidna.');
     rabljeno.add('ponavljanje'); rabljeno.add('poznavanje');
   } else if (!bolecine) {
     st.push('Iz odgovorov še ne izstopa opravilo, ki bi vam vzelo izrazito veliko časa.');
   }
   if (proces) st.push(`Največ priložnosti vidimo na področju „${proces.naziv.toLowerCase()}“.`);
+  const dejstvo = stavekPodrocja(odgovori);
+  if (dejstvo) { st.push(dejstvo.stavek); rabljeno.add(dejstvo.kljuc); rabljeno.add('p-' + dejstvo.kljuc); }
+  const naloge = primerjavaNalog(odgovori);
+  if (naloge === 'vrzel') { st.push('AI pri vas danes pomaga pri drugih opravilih, ne tam, kjer izgubite največ časa.'); rabljeno.add('naloge'); }
   if (OVIRA[a('ovira')]) { st.push(OVIRA[a('ovira')]); rabljeno.add('ovira'); }
   st.push(akcija
     ? 'Ker želite ukrepati v kratkem, ni razloga, da bi s prvim korakom čakali.'
@@ -118,6 +127,7 @@ export function sestaviPredlogo(rezultat, podjetje = '', odgovori = {}, vzvodi =
     oddelki: 'AI je že del dela v posameznih oddelkih.',
     procesi: 'AI je pri vas že vgrajen v poslovne procese.',
   }[a('uporaba')]);
+  doda(dobro, 'naloge', naloge === 'ujemanje' ? 'AI že uporabljate tudi tam, kjer izgubite največ časa, zato ima prvi projekt na čem graditi.' : null);
   doda(dobro, 'sistematicnost', {
     priporocila: 'Imate prva interna priporočila za uporabo, kar olajša širjenje na druge.',
     po_oddelkih: 'Načine uporabe AI imate dogovorjene po oddelkih.',

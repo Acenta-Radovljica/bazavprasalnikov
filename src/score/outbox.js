@@ -17,6 +17,8 @@ import { besedilaOdgovorov } from './oddaja.js';
 import { generirajBesedilo, imaAI } from './besedilo.js';
 import { imaMailerLite, sestaviSubscriber, upsertSubscriber } from './mailerlite.js';
 import { izracunajVzvode } from './vzvodi.js';
+import { izracunano } from './dejstva.js';
+import { sestaviPredlogo } from './predloga.js';
 
 const ML_BACKOFF_MIN = [1, 5, 30, 120, 720];  // then 'failed'
 const AI_MAX = 3;
@@ -34,7 +36,7 @@ async function prevzemi(limit = 10) {
            AND (locked_at IS NULL OR locked_at < NOW() - INTERVAL '5 minutes')
          ORDER BY id LIMIT $1
          FOR UPDATE SKIP LOCKED)
-      RETURNING id, token, rezultat, marketing_soglasje, ai_status, ml_status, attempts_ai, attempts_ml, created_at,
+      RETURNING id, token, score_version, rezultat, marketing_soglasje, ai_status, ml_status, attempts_ai, attempts_ml, created_at,
                 (SELECT raw_data FROM responses WHERE responses.id = score_results.response_id) AS raw`,
     [limit],
   );
@@ -75,16 +77,22 @@ async function obdelajVrstico(v) {
       napake.push('AI: ni nastavljen (CLAUDE_SDK=1 ali ANTHROPIC_API_KEY), porocilo uporablja predlogo');
     } else {
       // The model is told what the rest of the report already shows (same data as /podatki).
+      // Numbers computed from the follow-up answers (v2) are the only numbers the AI may add.
+      // The template lists are the reserve when a list comes out too short after dropping repeats.
+      const vzvodi = izracunajVzvode(raw.odgovori || {}, raw.velikost || null, 3, v.score_version).vzvodi;
+      const p = sestaviPredlogo(v.rezultat, raw.podjetje, raw.odgovori || {}, vzvodi);
       const zeDrugje = {
         opisStopnje: v.rezultat.stopnja?.opis,
-        vzvodi: izracunajVzvode(raw.odgovori || {}, raw.velikost || null).vzvodi,
+        vzvodi,
+        izracunano: izracunano(raw.odgovori || {}),
+        rezerva: { dobro: p.dobro, zatika: p.zatika, moznosti: p.priloznosti },
       };
       const g = await generirajBesedilo(v.rezultat, besedilaOdgovorov(raw.odgovori), kontakt.podjetje || 'vaše podjetje', zeDrugje);
       upd.attempts_ai = v.attempts_ai + 1;
       if (g.besedilo) { upd.ai_status = 'ok'; upd.besedilo = g.besedilo; }
       else if (upd.attempts_ai >= AI_MAX) { upd.ai_status = 'failed'; napake.push(`AI: neveljaven odgovor (${g.razlogi.join('; ')}), porocilo uporablja predlogo`); }
       else { upd.ai_status = 'retry'; naslednji.push(upd.attempts_ai); napake.push(`AI zavrnjen: ${g.razlogi.join('; ')}`); }
-      console.log(`[score/outbox] vrstica ${v.id}: AI ${g.besedilo ? 'sprejet' : 'zavrnjen'} v ${g.sekund} s, poskusov ${g.poskusov}${g.razlogi.length ? `, zavrnjeno: ${g.razlogi.join('; ')}` : ''}${g.izpusceno?.length ? `, izpuščeno: ${g.izpusceno.join('; ')}` : ''}`);
+      console.log(`[score/outbox] vrstica ${v.id}: AI ${g.besedilo ? 'sprejet' : 'zavrnjen'} v ${g.sekund} s, poskusov ${g.poskusov}${g.razlogi.length ? `, zavrnjeno: ${g.razlogi.join('; ')}` : ''}${g.dopolnjeno?.length ? `, iz predloge: ${g.dopolnjeno.length}` : ''}${g.izpusceno?.length ? `, izpuščeno: ${g.izpusceno.join('; ')}` : ''}`);
     }
   }
 

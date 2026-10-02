@@ -7,7 +7,6 @@
 import { randomBytes } from 'node:crypto';
 import { dbQuery } from '../db.js';
 import { izracunajScore } from './izracunaj.js';
-import { SCORE_VERSION } from './vprasanja-v1.js';
 
 const LEAD_V_KVALIFIKACIJO = { A: 'hot', B: 'warm', C: 'cold' };
 
@@ -15,7 +14,8 @@ export const novToken = () => randomBytes(16).toString('base64url'); // 128 bit,
 
 // Returns { responseId, token, rezultat } or null on DB failure.
 export async function shraniOddajo({ companyId, questionnaireId, payload, ipHash, snap, oddaja }) {
-  const rezultat = izracunajScore({ ...oddaja.odgovori, velikost: oddaja.kontakt.velikost });
+  // Scored with the version the respondent answered (v2, or v1 from a page opened before the deploy).
+  const rezultat = izracunajScore({ ...oddaja.odgovori, velikost: oddaja.kontakt.velikost }, oddaja.verzija);
   const token = novToken();
 
   // raw_data keeps contact fields at top level (dedup and CSV read raw_data->>'email').
@@ -32,7 +32,7 @@ export async function shraniOddajo({ companyId, questionnaireId, payload, ipHash
      SELECT id, $7, $8, $9, $10 FROM resp
      RETURNING response_id`,
     [companyId, questionnaireId, JSON.stringify(raw), ipHash, snap.questions, snap.customHtml,
-     token, SCORE_VERSION, JSON.stringify(rezultat), oddaja.marketing],
+     token, rezultat.score_version, JSON.stringify(rezultat), oddaja.marketing],
   );
   const responseId = r?.rows?.[0]?.response_id;
   if (!responseId) return null;

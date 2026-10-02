@@ -44,13 +44,16 @@ node test/score.test.mjs             # 39 trditev (cista funkcija tockovanja, br
 node test/porocilo-besedilo.test.mjs # 54 trditev (v3: ena tema en prostor; slaba alineja se izpusti, slab odstavek zavrne; predloga prestane isto preverjanje)
 node test/claude-sdk.test.mjs        # 14 trditev (CLAUDE_SDK=1: narocnina prek Agent SDK, lazni query(), brez klicev in brez API kljuca)
 node test/vzvodi.test.mjs            # 19 trditev ("Kako do visje ocene" = pravi tockovalnik, porocilo ne vraca odgovorov)
+node test/score-v2.test.mjs          # 85 trditev (v2: vprasanja iz Matjazevega Worda, razvejitev po 11.1, dejstva, ena tema en prostor, dopolnitev iz predloge)
 # score-api rabi streznik z lazno MailerLite (test sam odpre mock na :3397):
 #   MAILERLITE_API_URL=http://127.0.0.1:3397 MAILERLITE_API_KEY=test-ml MAILERLITE_GROUP_ID=999
 #   SCORE_OUTBOX_MS=500 SCORE_MAX_V_OKNU=100 ANTHROPIC_API_KEY=
-node test/score-api.test.mjs         # 49 trditev (oddaja, porocilo z vzvodi in izbranim, outbox, kvalifikacija, CSV)
+node test/score-api.test.mjs         # 58 trditev (oddaja v1 iz starega zavihka + oddaja v2, porocilo z vzvodi, outbox, kvalifikacija, CSV)
 ```
 
-Skupaj 798 trditev. Zadnji zeleni zagon vseh: 1. 10. 2026 (v3 porocila + Agent SDK).
+Zadnji zeleni zagon AI Business Score naborov: 2. 10. 2026 (vprasanja v2): score 39, porocilo-besedilo 54,
+claude-sdk 14, vzvodi 19, score-v2 85, score-api 58. Prehod skozi kviz v Chromu (7 poti x racunalnik in telefon)
+je bil v scratchpadu seje (e2e-v2.cjs, 138/0), ni v repu.
 
 `test/porocilo-kakovost.mjs` NI del zagona: 6 pravih klicev Sonnet (pregled besedil na eni strani). Samo na Maksovo besedo in s streznikom na narocnini (CLAUDE_SDK=1).
 

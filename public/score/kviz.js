@@ -1,42 +1,74 @@
 // AI Business Score: landing <-> quiz on one page (hash #kviz), one POST at the end.
 // Question texts come from /ai-business-score/vprasanja.json (no points: scoring is server-side).
-// Flow: questions 0..N-1 first, contact step N last. Nothing is sent before the final button,
+// Flow: the visible questions first, the contact step last. Nothing is sent before the final button,
 // so asking for contact at the end changes only the order, not what the server receives.
 
+import { vidnaVprasanja } from './razvejitev.js';
+
 const $ = (s) => document.querySelector(s);
-const KEY = 'abs-kviz-v2';           // v1 stored the old order (contact = -1); do not reuse it
+const KEY = 'abs-kviz-v3';           // v2 stored the v1 question set (29. 9.); do not reuse it
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let st = load() || { korak: 0, kontakt: {}, odg: {} };
 function load() { try { return JSON.parse(sessionStorage.getItem(KEY)); } catch { return null; } }
 function save() { try { sessionStorage.setItem(KEY, JSON.stringify(st)); } catch {} }
 
-const { velikost: VELIKOST, vprasanja: VPRASANJA } = await fetch('/ai-business-score/vprasanja.json').then(r => r.json());
-const N = VPRASANJA.length;
-const KONTAKT = N;
-if (!(st.korak >= 0 && st.korak <= KONTAKT)) st.korak = 0;
+const JS = await fetch('/ai-business-score/vprasanja.json').then(r => r.json());
+const { velikost: VELIKOST, vprasanja: VPRASANJA } = JS;
+// v2: after "one process in 90 days" the respondent gets only the follow-up block of that area.
+// The same rule (razvejitev.js) decides on the server which answers are required.
+const PODROCJA = JS.podrocja || [];
+const NAZIV = JS.podrocjeNaziv || {};
+const vidna = () => vidnaVprasanja(VPRASANJA, st.odg, PODROCJA);
+const kontaktKorak = () => vidna().length;     // the contact step comes after the last question
+// Before the area is picked, the counter and the bar already include its 3 questions.
+const BLOK = 3;
+const cakaPodrocje = () => VPRASANJA.some(q => q.id === 'proces90') && !st.odg.proces90;
+if (!(st.korak >= 0 && st.korak <= kontaktKorak())) st.korak = 0;
 
 // Section labels for the progress bar. Display only: scoring never sees them. A question id that
 // is not listed simply joins the previous section, so adding a question cannot break the bar.
+// Follow-up questions are labelled with their area's name.
 const SKLOP = {
-  panoga: 'O podjetju', vloga: 'O podjetju',
-  uporaba: 'AI danes', sistematicnost: 'AI danes', odgovorna_oseba: 'AI danes', razumevanje: 'AI danes', pravila: 'AI danes',
-  izguba_casa: 'Čas in stroški', stroski: 'Čas in stroški', potencial: 'Čas in stroški',
+  uporaba: 'Uporaba AI', naloge: 'Uporaba AI', sistematicnost: 'Uporaba AI', odgovorna_oseba: 'Uporaba AI',
+  razumevanje: 'Znanje in pravila', pravila: 'Znanje in pravila', ovira: 'Znanje in pravila',
+  izguba_casa: 'Procesi', stroski: 'Procesi', potencial: 'Procesi', proces90: 'Procesi',
   odziv: 'Procesi', nabavne_cene: 'Procesi',
-  ovira: 'Naslednji korak', hitrost: 'Naslednji korak', pomoc: 'Naslednji korak', interpretacija: 'Naslednji korak',
+  cilj: 'Naslednji korak', hitrost: 'Naslednji korak', pomoc: 'Naslednji korak', interpretacija: 'Naslednji korak',
+  panoga: 'O podjetju', vloga: 'O podjetju',
 };
-const imeSklopa = [];
-VPRASANJA.forEach((q, i) => { imeSklopa[i] = SKLOP[q.id] || imeSklopa[i - 1] || ''; });
-const segmenti = [];                 // consecutive runs: { ime, od, n }
-imeSklopa.forEach((ime, i) => {
-  const zadnji = segmenti[segmenti.length - 1];
-  if (zadnji && zadnji.ime === ime) zadnji.n++; else segmenti.push({ ime, od: i, n: 1 });
-});
-segmenti.push({ ime: 'Poročilo', od: KONTAKT, n: 1 });
-$('#qprog').replaceChildren(...segmenti.map(s => {
-  const d = document.createElement('div'); d.className = 'seg'; d.style.setProperty('--n', s.n);
-  d.appendChild(document.createElement('i')); return d;
-}));
-const polno = [];
+let segmenti = [], imeSklopa = [], polno = [], podpis = '';
+function zgradiNapredek() {
+  const vid = vidna();
+  const p = vid.map(q => q.id).join() + '|' + cakaPodrocje();
+  if (p === podpis) return;
+  podpis = p;
+  imeSklopa = [];
+  vid.forEach((q, i) => { imeSklopa[i] = (q.podrocje && NAZIV[q.podrocje]) || SKLOP[q.id] || imeSklopa[i - 1] || ''; });
+  segmenti = [];                     // consecutive runs: { ime, od, n }
+  imeSklopa.forEach((ime, i) => {
+    const zadnji = segmenti[segmenti.length - 1];
+    if (zadnji && zadnji.ime === ime) zadnji.n++; else segmenti.push({ ime, od: i, n: 1 });
+  });
+  // Area not picked yet: a placeholder section right after "Procesi", later sections shift by 3.
+  if (cakaPodrocje()) {
+    const i90 = vid.findIndex(q => q.id === 'proces90');
+    const za = segmenti.findIndex(s => s.od > i90);
+    segmenti.forEach(s => { if (s.od > i90) s.od += BLOK; });
+    segmenti.splice(za < 0 ? segmenti.length : za, 0, { ime: 'Vaše področje', od: i90 + 1, n: BLOK });
+  }
+  segmenti.push({ ime: 'Poročilo', od: skupajVprasanj(), n: 1 });
+  polno = [];
+  $('#qprog').replaceChildren(...segmenti.map(s => {
+    const d = document.createElement('div'); d.className = 'seg'; d.style.setProperty('--n', s.n);
+    d.appendChild(document.createElement('i')); return d;
+  }));
+}
+const skupajVprasanj = () => vidna().length + (cakaPodrocje() ? BLOK : 0);
+// Answers of a follow-up block the respondent no longer sees (area changed) are dropped.
+function pocistiSkrite() {
+  const vid = new Set(vidna().map(q => q.id));
+  for (const q of VPRASANJA) if (q.podrocje && !vid.has(q.id)) delete st.odg[q.id];
+}
 function paintProgress(k) {
   $('#qprog').querySelectorAll('.seg').forEach((el, i) => {
     const s = segmenti[i];
@@ -83,7 +115,7 @@ if (PRVO >= 0) for (const b of heroOpts) {
   b.addEventListener('click', () => {
     b.classList.add('sel');
     // Someone who already went further (back button, then the hero again) keeps their place.
-    st.odg.uporaba = o.id; st.korak = Math.min(Math.max(st.korak, PRVO + 1), KONTAKT); save();
+    st.odg.uporaba = o.id; st.korak = Math.min(Math.max(st.korak, PRVO + 1), kontaktKorak()); save();
     // Only the hero card morphs; the closing copy of the question just cross-fades.
     setTimeout(() => vKviz(!!b.closest('[data-hq]')), reduce ? 0 : 170);
   });
@@ -128,7 +160,10 @@ let zadnjiKorak = null;
 function napaka(msg) { const e = $('#qerr'); e.textContent = msg || ''; e.hidden = !msg; }
 
 function renderQuiz() {
-  const k = st.korak, kontakt = k === KONTAKT;
+  zgradiNapredek();
+  const vid = vidna();
+  if (st.korak > vid.length) st.korak = vid.length;
+  const k = st.korak, kontakt = k === vid.length;
   const nov = k !== zadnjiKorak;
   const nazaj = zadnjiKorak !== null && k < zadnjiKorak;
   napaka('');
@@ -136,7 +171,7 @@ function renderQuiz() {
   $('#step-q').hidden = kontakt;
   $('#nazaj').style.visibility = k === 0 ? 'hidden' : 'visible';
   paintProgress(k);
-  $('#qcount').textContent = kontakt ? 'Zadnji korak' : `Vprašanje ${k + 1} od ${N}`;
+  $('#qcount').textContent = kontakt ? 'Zadnji korak' : `Vprašanje ${k + 1} od ${skupajVprasanj()}`;
   const btn = $('#naprej');
 
   if (kontakt) {
@@ -151,7 +186,7 @@ function renderQuiz() {
     return;
   }
 
-  const q = VPRASANJA[k];
+  const q = vid[k];
   $('#qsklop').textContent = imeSklopa[k];
   $('#qtitle').textContent = q.text;
   $('#qhint').textContent = q.tip === 'vec' ? `Izberite največ ${q.max}.` : '';
@@ -215,9 +250,9 @@ function izberi(q, id) {
     if (a.includes(id)) a = a.filter(x => x !== id);
     else if (nevtralno) a = [id];                       // "Ne vem" clears the others
     else { a = a.filter(x => !q.moznosti.find(m => m.id === x)?.nevtralno); if (a.length < q.max) a.push(id); }
-    st.odg[q.id] = a; save(); renderQuiz();
+    st.odg[q.id] = a; pocistiSkrite(); save(); renderQuiz();
   } else {
-    st.odg[q.id] = id; save(); renderQuiz();
+    st.odg[q.id] = id; pocistiSkrite(); save(); renderQuiz();
     const tu = st.korak;
     setTimeout(() => { if (st.korak === tu) { st.korak++; save(); renderQuiz(); } }, 260);
   }
@@ -263,7 +298,8 @@ async function oddaj() {
         gdpr_consent: !!st.kontakt.soglasje,
         marketing_consent: !!st.kontakt.marketing,
         company_url: $('#hp_sidro').value,
-        odgovori: st.odg,
+        // Only what the respondent was shown (an abandoned follow-up block is not sent).
+        odgovori: Object.fromEntries(vidna().filter(q => st.odg[q.id] !== undefined).map(q => [q.id, st.odg[q.id]])),
       }),
     });
     const d = await res.json().catch(() => ({}));
@@ -276,7 +312,7 @@ async function oddaj() {
       return;
     }
     if (res.status === 400 && d.field) {
-      const i = VPRASANJA.findIndex(q => q.id === d.field);
+      const i = vidna().findIndex(q => q.id === d.field);
       if (i >= 0) { st.korak = i; save(); renderQuiz(); }
     }
     napaka(NAPAKE[d.error] || 'Oddaja ni uspela. Poskusite znova ali nas pokličite na 031 615 921.');
@@ -284,11 +320,11 @@ async function oddaj() {
     calc.skrij();
     napaka('Povezava ni uspela. Preverite internet in poskusite znova.');
   }
-  if (st.korak === KONTAKT) { btn.disabled = false; btn.textContent = 'Pokaži moje poročilo'; }
+  if (st.korak === kontaktKorak()) { btn.disabled = false; btn.textContent = 'Pokaži moje poročilo'; }
 }
 
 $('#naprej').onclick = () => {
-  if (st.korak < KONTAKT) { st.korak++; save(); renderQuiz(); return; }
+  if (st.korak < kontaktKorak()) { st.korak++; save(); renderQuiz(); return; }
   if (preveriKontakt()) oddaj();
 };
 $('#nazaj').onclick = () => { if (st.korak > 0) { st.korak--; save(); renderQuiz(); } };
@@ -307,7 +343,7 @@ document.addEventListener('keydown', e => {
   }
   if (!$('#qcalc').hidden) return;
   const btn = $('#naprej');
-  if (st.korak === KONTAKT) {
+  if (st.korak === kontaktKorak()) {
     if (e.key === 'Enter' && e.target.matches?.('#fkontakt input:not([type=checkbox])')) { e.preventDefault(); if (!btn.disabled) btn.click(); }
     return;
   }
@@ -318,7 +354,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   const i = e.key.length === 1 ? CRKE.indexOf(e.key.toUpperCase()) : -1;
-  const q = VPRASANJA[st.korak];
+  const q = vidna()[st.korak];
   if (i >= 0 && q && i < q.moznosti.length) {
     e.preventDefault();
     const b = $('#qopts').children[i];

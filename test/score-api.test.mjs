@@ -14,6 +14,11 @@
 //  7. Qualification: an existing company qualification is NOT overwritten; an empty one is filled.
 //  8. Honeypot stores nothing; double submit returns the same report.
 //  9. CSV export: 401 without auth; BOM, ';' header and the row with auth.
+// 10. Revoked report 410.
+// 11. v2 (2. 10.): a v2 submission is stored as v2 with only the chosen follow-up block, the
+//     report carries the goal and the computed hours, a missing block answer is a 400 on that
+//     field, the CSV has the 90-day process and goal. Sections 2 to 9 submit the v1 set, which
+//     is what a page opened before the v2 deploy sends: it must keep working.
 //
 // Run (see test/README): server with .env.test + the MAILERLITE_* / SCORE_* env below, then
 //   node test/score-api.test.mjs
@@ -68,7 +73,7 @@ let r = await fetch(`${BASE}/ai-business-score/`);
 t('pristajalna 200 + html', r.status === 200 && (await r.text()).includes('AI Business Score'));
 const vj = await (await fetch(`${BASE}/ai-business-score/vprasanja.json`)).json();
 const vjs = JSON.stringify(vj);
-t('vprasanja.json: 16 vprasanj', vj.vprasanja.length === 16, vj.vprasanja.length);
+t('vprasanja.json: v2, 34 vprasanj (16 skupnih + 6 sklopov po 3)', vj.verzija === 'v2' && vj.vprasanja.length === 34 && vj.vprasanja.filter(q => !q.podrocje).length === 16, `${vj.verzija} ${vj.vprasanja.length}`);
 t('vprasanja.json: brez tock in pravil', !/"(zre|pot|prip|fin|sig|odlocevalec|akcija)"/.test(vjs));
 r = await fetch(`${BASE}/f/ai-business-score`, { redirect: 'manual' });
 t('GET /f/ai-business-score -> 302 na pristajalno', r.status === 302 && r.headers.get('location') === '/ai-business-score', r.status);
@@ -200,6 +205,37 @@ t('filter po datumu izloci', !(await (await fetch(`${BASE}/api/score/export.csv?
 console.log('\n10. Preklic porocila');
 await db.query('UPDATE score_results SET revoked_at = NOW() WHERE token = $1', [token]);
 t('preklicano -> 410', (await fetch(`${BASE}/r/${token}/podatki`)).status === 410);
+
+console.log('\n11. Oddaja v2');
+const ODG2 = {
+  uporaba: 'posamezniki', naloge: ['pisanje_poste', 'prevajanje'], sistematicnost: 'vsak_po_svoje',
+  odgovorna_oseba: 'neformalno', razumevanje: 'povprecno', pravila: 'potrebovali', ovira: 'kje_zaceti',
+  izguba_casa: ['nabava', 'porocila', 'ponudbe'], stroski: ['nabava', 'zaloge'], proces90: 'nabava',
+  nabavne_cene: 'obcasno', nabava_ure: '6-10', nabava_agent: 'cim_prej',
+  cilj: 'stroski', hitrost: 'cim_prej', pomoc: 'agent_nabava', interpretacija: 'pogovor',
+  panoga: 'proizvodnja', vloga: 'direktor',
+};
+const oddaja2 = (o = {}) => oddaja({ email: `ana2-${sufiks}@primer.si`, podjetje: `Kovinar V2 ${sufiks}`, odgovori: ODG2, ...o });
+const brezUr = { ...ODG2 }; delete brezUr.nabava_ure;
+const x0 = await post(oddaja2({ odgovori: brezUr }));
+t('manjka vprasanje sklopa -> 400 field=nabava_ure', x0.status === 400 && x0.d.field === 'nabava_ure', JSON.stringify(x0));
+// The marketing block was not shown for "Nabava": its answers must not be stored.
+const x2 = await post(oddaja2({ odgovori: { ...ODG2, marketing_izziv: 'cas' } }));
+t('v2 oddaja 200 + reportUrl', x2.status === 200 && /^\/r\/[A-Za-z0-9_-]{22}$/.test(x2.d.reportUrl || ''), JSON.stringify(x2));
+const token2 = (x2.d.reportUrl || '').split('/').pop();
+const row2 = (await db.query(
+  `SELECT s.*, r.raw_data FROM score_results s JOIN responses r ON r.id = s.response_id WHERE s.token = $1`, [token2])).rows[0];
+const pric2 = izracunajScore({ ...ODG2, velikost: '51-100' }, 'v2');
+t('shranjeno kot v2, rezultat = cista funkcija v2', row2?.score_version === 'v2' && row2?.rezultat?.skupno === pric2.skupno && row2?.rezultat?.proces?.id === 'nabava', `${row2?.score_version} ${row2?.rezultat?.skupno} vs ${pric2.skupno}`);
+t('odgovori drugega sklopa niso shranjeni', row2 && !('marketing_izziv' in row2.raw_data.odgovori) && row2.raw_data.odgovori.nabava_ure === '6-10');
+const pd2 = await (await fetch(`${BASE}/r/${token2}/podatki`)).json();
+t('porocilo: cilj in prvi projekt', pd2.cilj === 'znižanje stroškov' && pd2.proces?.id === 'nabava', JSON.stringify({ cilj: pd2.cilj, proces: pd2.proces }));
+t('porocilo: izracunane ure v besedilu (predloga)', (pd2.besedilo?.odstavek || '').includes('72 do 120 ur na leto'), pd2.besedilo?.odstavek);
+t('porocilo v2: koraki za visjo zrelost', Array.isArray(pd2.vzvodi) && pd2.vzvodi.length > 0);
+const csv2 = await (await fetch(`${BASE}/api/score/export.csv`, { headers: { Authorization: AUTH } })).text();
+t('CSV: stolpca Proces v 90 dneh in Glavni cilj', csv2.split('\r\n')[0].includes('Proces v 90 dneh;Glavni cilj'));
+const vr2 = csv2.split('\r\n').find(l => l.includes(`ana2-${sufiks}@primer.si`)) || '';
+t('CSV vrstica v2: Nabava + Znižanje stroškov', vr2.includes(';Nabava;Znižanje stroškov;'), vr2.slice(0, 220));
 
 // Cleanup: company delete cascades to responses and score_results.
 await db.query(`DELETE FROM companies WHERE naziv_prikaz LIKE $1 OR naziv_prikaz LIKE $2`, [`%${sufiks}`, `Pade ${sufiks}`]);

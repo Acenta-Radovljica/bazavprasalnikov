@@ -151,9 +151,11 @@ else {
   // First project: the strongest area, the recommended step and, where we have one, how it works.
   // States the conclusion, not "what you ticked" (Matjaž, 1. 10.).
   $('#r-proj-naziv').textContent = d.proces ? d.proces.naziv : 'Še ni izbran';
-  $('#r-proj-p').textContent = d.proces
+  // v2 answers carry the goal of the first AI project: the card says what success is measured by.
+  $('#r-proj-p').textContent = (d.proces
     ? 'Tu je pri vas največ dela, ki ga AI lahko prevzame, zato predlagamo, da začnete tukaj.'
-    : 'Iz odgovorov še ne izstopa en sam proces. Prvega skupaj izberemo v kratkem pogovoru.';
+    : 'Iz odgovorov še ne izstopa en sam proces. Prvega skupaj izberemo v kratkem pogovoru.')
+    + (d.cilj ? ` Uspeh prvega projekta merimo po vašem glavnem cilju: ${d.cilj}.` : '');
   $('#r-proj-rec').replaceChildren(el('small', '', 'Priporočen prvi korak'), document.createTextNode(d.proces ? d.proces.priporocilo : d.stopnja.priporocilo));
   const sc = d.proces && SCENARIJ[d.proces.id];
   if (sc) {

@@ -12,6 +12,7 @@ import { javnaVprasanja, besedilaOdgovorov, SCORE_SLUG } from '../score/oddaja.j
 import { sestaviPredlogo } from '../score/predloga.js';
 import { izracunajVzvode, povzetekOdgovorov } from '../score/vzvodi.js';
 import { VELIKOST } from '../score/vprasanja-v1.js';
+import { cilj } from '../score/dejstva.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'public', 'score');
@@ -48,7 +49,7 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
   zasebneGlave(res);
   if (!TOKEN_RE.test(req.params.token)) return res.status(404).json({ error: 'not_found' });
   const r = await dbQuery(
-    `SELECT s.rezultat, s.besedilo, s.ai_status, s.revoked_at, s.created_at, r.raw_data
+    `SELECT s.score_version, s.rezultat, s.besedilo, s.ai_status, s.revoked_at, s.created_at, r.raw_data
        FROM score_results s JOIN responses r ON r.id = s.response_id
       WHERE s.token = $1`,
     [req.params.token],
@@ -59,7 +60,7 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
 
   const rez = v.rezultat, raw = v.raw_data || {};
   // Levers first: the template leaves their topics out of "zatika" (one topic, one place).
-  const vz = izracunajVzvode(raw.odgovori || {}, raw.velikost || null);
+  const vz = izracunajVzvode(raw.odgovori || {}, raw.velikost || null, 3, v.score_version);
   const predloga = sestaviPredlogo(rez, raw.podjetje, raw.odgovori || {}, vz.vzvodi);
   const ai = v.besedilo;
   // The AI text arrives ~20 s after the submission, the report opens after ~2 s: the page shows
@@ -76,6 +77,8 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
     // Recomputed on read from the stored answers with the current scorer (pure, cheap).
     ...vz,
     zeliPogovor: povzetekOdgovorov(raw.odgovori || {}).zeliPogovor,
+    // v2: the goal of the first AI project, so the project card says what success is measured by.
+    cilj: cilj(raw.odgovori || {}),
     // Booking link is not decided yet; without it the page shows only the phone number.
     rezervacija: /^https:\/\//.test(process.env.SCORE_BOOKING_URL || '') ? process.env.SCORE_BOOKING_URL : null,
     besediloStanje,
@@ -115,7 +118,7 @@ adminRouter.get('/export.csv', async (req, res) => {
 
   const glava = ['Datum', 'Ime', 'Priimek', 'E-pošta', 'Telefon', 'Podjetje', 'Zaposleni',
     'AI Business Score', 'Stopnja', 'Proces', 'Lead', 'Razlog', 'Marketinško soglasje',
-    'Največja ovira', 'Kako hitro', 'Kaj bi pomagalo', 'MailerLite', 'Poročilo'];
+    'Največja ovira', 'Kako hitro', 'Kaj bi pomagalo', 'Proces v 90 dneh', 'Glavni cilj', 'MailerLite', 'Poročilo'];
   const base = (process.env.PUBLIC_BASE_URL || 'https://nacrt.deploy.acenta.si').replace(/\/$/, '');
   const vrstice = r.rows.map(v => {
     const raw = v.raw_data || {}, z = v.rezultat, t = besedilaOdgovorov(raw.odgovori);
@@ -125,7 +128,7 @@ adminRouter.get('/export.csv', async (req, res) => {
       VELIKOST.find(x => x.id === raw.velikost)?.text ?? raw.velikost,
       z.skupno, z.stopnja?.naziv, z.proces?.naziv ?? '', z.lead?.razred, (z.lead?.razlogi || []).join(', '),
       v.marketing_soglasje ? 'da' : 'ne',
-      t.ovira, t.hitrost, t.pomoc, v.ml_status, `${base}/r/${v.token}`,
+      t.ovira, t.hitrost, t.pomoc, t.proces90, t.cilj, v.ml_status, `${base}/r/${v.token}`,
     ].map(celica).join(';');
   });
   const ime = `ai-business-score_${od === '2000-01-01' ? 'vse' : od}_${doDan === '2999-12-31' ? 'danes' : doDan}.csv`;
