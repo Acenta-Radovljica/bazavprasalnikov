@@ -86,6 +86,7 @@ export function sestaviVhod(rezultat, besedila, podjetje, zeDrugje = {}) {
     `- Opis stopnje: ${zeDrugje.opisStopnje || rezultat.stopnja.opis || rezultat.stopnja.naziv}`,
     ...(zeDrugje.vzvodi?.length ? [`- Koraki za višjo AI zrelost: ${zeDrugje.vzvodi.map(v => v.korak).join(' ')}`] : []),
     `- Prvi projekt: ${proces ? `${PODROCJE_NAZIV[proces.id] || proces.naziv}. ${proces.priporocilo}` : rezultat.stopnja.priporocilo}`,
+    ...(proces ? [`- Priporočilo za stopnjo: ${rezultat.stopnja.priporocilo}`] : []),
   ];
   const vzTeme = (zeDrugje.vzvodi || []).map(v => IME_TEME[TEMA_VZVODA[v.id]]).filter(Boolean);
   // v1 answers also have 5.1 and 6.1, but as common questions: only v2 (has 11.1) has a block.

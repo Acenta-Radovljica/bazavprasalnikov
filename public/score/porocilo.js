@@ -128,6 +128,13 @@ else {
   $('#r-meta').textContent = `Izpolnjeno ${d.datum}. Povezavo si shranite, da se lahko k poročilu vrnete.`;
   $('#r-levelh').textContent = d.stopnja.naziv;
   $('#r-levelp').textContent = d.stopnja.opis;   // Matjaž's level text, shown once, at the ladder
+  // Each level in Matjaž's document ends with its recommendation. Without a first project the
+  // project card already shows it, so it stays there (one topic, one place).
+  if (d.proces) {
+    const r = $('#r-level-rec');
+    r.replaceChildren(el('small', '', 'Priporočilo za vašo stopnjo'), document.createTextNode(d.stopnja.priporocilo));
+    r.hidden = false;
+  }
 
   $('#r-bars').replaceChildren(...DIM.map(([id, naziv, zakaj]) => {
     const v = d.dimenzije[id];
