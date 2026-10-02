@@ -191,29 +191,38 @@ function renderQuiz() {
   $('#qtitle').textContent = q.text;
   $('#qhint').textContent = q.tip === 'vec' ? `Izberite največ ${q.max}.` : '';
   const box = $('#qopts');
-  // Keep a keyboard user's place on re-render. After a mouse click focus is dropped on purpose,
-  // otherwise Enter would re-press the option (toggling it off) instead of going to "Naprej".
-  const a = document.activeElement;
-  const fokus = !nov && a?.matches(':focus-visible') ? [...box.children].indexOf(a) : -1;
-  box.innerHTML = '';
-  const dolgo = q.moznosti.length > 6;
-  box.classList.toggle('long', dolgo); $('#qstage').classList.toggle('wide', dolgo);
   const cur = st.odg[q.id];
   const izbrane = q.tip === 'vec' ? (cur || []) : (cur ? [cur] : []);
-  q.moznosti.forEach((o, i) => {
-    const b = document.createElement('button');
-    const on = izbrane.includes(o.id);
-    b.type = 'button'; b.className = 'opt' + (q.tip === 'vec' ? ' multi' : '') + (on ? ' sel' : '');
-    b.style.setProperty('--i', Math.min(i, 12));           // entrance stagger
-    if (q.tip === 'vec' && izbrane.length >= q.max && !on) b.classList.add('off');
+  // Buttons are built once per question. A pick only updates them in place: rebuilding them under
+  // the still-active .enter class replayed the entrance on every click, so all options blinked out
+  // and staggered back in (on the 12-option "do 3" question at every click; seen 2. 10. 2026).
+  if (nov || box.dataset.q !== q.id) {
+    box.innerHTML = '';
+    box.dataset.q = q.id;
+    const dolgo = q.moznosti.length > 6;
+    box.classList.toggle('long', dolgo); $('#qstage').classList.toggle('wide', dolgo);
+    q.moznosti.forEach((o, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'opt' + (q.tip === 'vec' ? ' multi' : '');
+      b.style.setProperty('--i', Math.min(i, 12));           // entrance stagger
+      b.innerHTML = '<span class="mk" aria-hidden="true"></span><span class="tx"></span><kbd class="key" aria-hidden="true"></kbd>';
+      b.querySelector('.tx').textContent = o.text;
+      b.querySelector('.key').textContent = CRKE[i] || '';
+      b.onclick = () => izberi(q, o.id);
+      box.appendChild(b);
+    });
+  } else {
+    // After a mouse click focus is dropped on purpose, otherwise Enter would re-press the option
+    // (toggling it off) instead of going to "Naprej". A keyboard user keeps their place.
+    const a = document.activeElement;
+    if (box.contains(a) && !a.matches(':focus-visible')) a.blur();
+  }
+  [...box.children].forEach((b, i) => {
+    const on = izbrane.includes(q.moznosti[i].id);
+    b.classList.toggle('sel', on);
+    b.classList.toggle('off', q.tip === 'vec' && izbrane.length >= q.max && !on);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    b.innerHTML = '<span class="mk" aria-hidden="true"></span><span class="tx"></span><kbd class="key" aria-hidden="true"></kbd>';
-    b.querySelector('.tx').textContent = o.text;
-    b.querySelector('.key').textContent = CRKE[i] || '';
-    b.onclick = () => izberi(q, o.id);
-    box.appendChild(b);
   });
-  if (fokus >= 0) box.children[fokus]?.focus();
   btn.textContent = 'Naprej';
   btn.hidden = q.tip !== 'vec' && !cur;
   btn.disabled = q.tip === 'vec' ? izbrane.length === 0 : !cur;
