@@ -103,7 +103,7 @@
   meter.addEventListener('pointerleave', zacni);
 
   // ── The first question drives the instrument: hovering an answer previews a company like that.
-  // Illustrative only (the card says "Primer poročila"); the real score needs all 16 answers.
+  // Illustrative only (the card says "Primer poročila"); the real score needs all the answers (19, or 16 without a follow-up block).
   const PREDOGLED = { ne: 2, posamezniki: 0, vec_zaposlenih: 4, oddelki: 1, procesi: 3 };
   let pustiT = 0;
   $$('[data-hq] [data-hq-opt]').forEach(b => {
