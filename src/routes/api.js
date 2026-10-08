@@ -5,6 +5,9 @@ import { generirajPovzetek } from '../ai/generate_povzetek.js';
 import { generirajPriporocila } from '../ai/generate_priporocila.js';
 import { sproziPovzetek, sproziPriporocila, sproziInsights } from '../ai/queue.js';
 import { renderiraj as renderirajPdf } from '../pdf/render.js';
+import { vprasalnikVBesedilo } from '../procesi/schema.js';
+import { besediloVprasanja, besedilaOdgovorov } from '../score/oddaja.js';
+import { VELIKOST } from '../score/vprasanja-v1.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -92,6 +95,108 @@ router.get('/companies/:id', async (req, res) => {
     priporocila: priporocila?.rows ?? [],
   });
 });
+
+// GET /api/companies/:id/izvoz — vse, kar vemo o podjetju, v enem odzivu.
+// Iz tega stran podjetja sestavi ZIP za Claude (predlog AI procesov).
+//
+// Streznik vrne PODATKE, besedila Markdown sestavi brskalnik: vprasanja
+// custom_html obrazcev se dajo izlusciti samo z DOMParserjem (app.js), ista
+// koda, ki jih prikazuje na strani odgovora. Kar zna strezik sam (procesne
+// seje, AI Business Score), pride ze kot berljivo besedilo.
+router.get('/companies/:id/izvoz', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+
+  const company = await dbQuery(
+    `SELECT id, naziv_prikaz, status, kvalifikacija, kvalifikacija_razlog,
+            created_at, last_response_at
+       FROM companies WHERE id = $1`, [id]);
+  if (!company) return res.status(500).json({ error: 'db_error' });
+  if (!company.rows.length) return res.status(404).json({ error: 'not_found' });
+
+  // Isti izbor vprasanj kot GET /responses/:id: kopija ob oddaji, sicer danasnja.
+  const [responses, priporocila, seje] = await Promise.all([
+    dbQuery(`
+      SELECT r.id, r.questionnaire_id, q.slug AS q_slug, q.naziv_prikaz AS q_naziv,
+             r.submitted_at, r.raw_data, r.ai_povzetek, r.consent_gdpr,
+             r.questions_snapshot, r.custom_html_snapshot,
+             q.questions AS q_questions, q.custom_html AS q_custom_html,
+             (jsonb_array_length(r.questions_snapshot) > 0
+               OR r.custom_html_snapshot IS NOT NULL) AS ima_snapshot,
+             (q.updated_at > r.submitted_at)          AS vprasalnik_urejen_po_oddaji,
+             sr.rezultat AS score_rezultat
+        FROM responses r
+        JOIN questionnaires q ON q.id = r.questionnaire_id
+        LEFT JOIN score_results sr ON sr.response_id = r.id
+       WHERE r.company_id = $1
+       ORDER BY r.submitted_at`, [id]),
+    dbQuery(`
+      SELECT cp.questionnaire_id, q.naziv_prikaz, cp.vsebina, cp.updated_at
+        FROM company_priporocila cp
+        JOIN questionnaires q ON q.id = cp.questionnaire_id
+       WHERE cp.company_id = $1
+       ORDER BY cp.updated_at`, [id]),
+    dbQuery(`
+      SELECT s.id, q.naziv_prikaz AS q_naziv, s.stranka_naziv, s.proces, s.oddelek,
+             s.svetovalec, s.datum_sestanka, s.status, s.questions_snapshot, s.answers,
+             s.ai_povzetek, s.created_at
+        FROM process_sessions s
+        JOIN questionnaires q ON q.id = s.questionnaire_id
+       WHERE s.company_id = $1
+       ORDER BY COALESCE(s.datum_sestanka, s.created_at::date), s.id`, [id]),
+  ]);
+  if (!responses || !priporocila || !seje) return res.status(500).json({ error: 'db_error' });
+
+  // Vsi uspesni transkripti, ne samo zadnji: sestanek je lahko v dveh delih,
+  // izgubljen del pa je hujsi od podvojenega.
+  const sejaIds = seje.rows.map(s => s.id);
+  const tr = sejaIds.length ? await dbQuery(`
+    SELECT session_id, raw_text, soniox_url, vir, fetched_at
+      FROM process_transcripts
+     WHERE session_id = ANY($1::int[]) AND status = 'ok' AND raw_text IS NOT NULL
+     ORDER BY fetched_at`, [sejaIds]) : { rows: [] };
+  if (!tr) return res.status(500).json({ error: 'db_error' });
+
+  res.json({
+    izvozeno_at: new Date().toISOString(),
+    company: company.rows[0],
+    responses: responses.rows.map(r => {
+      const { questions_snapshot, score_rezultat, ...ostalo } = r;
+      return {
+        ...ostalo,
+        vprasanja_za_prikaz: r.ima_snapshot ? questions_snapshot : r.q_questions,
+        // HTML obrazca enkrat, ne dvakrat: kopija ob oddaji ima prednost.
+        q_custom_html: r.custom_html_snapshot ? null : r.q_custom_html,
+        score: score_rezultat ? scoreZaIzvoz(r.raw_data, score_rezultat) : null,
+      };
+    }),
+    priporocila: priporocila.rows,
+    seje: seje.rows.map(({ questions_snapshot, answers, ...s }) => ({
+      ...s,
+      besedilo: vprasalnikVBesedilo(questions_snapshot, answers),
+      transkripti: tr.rows.filter(t => t.session_id === s.id)
+        .map(({ session_id, ...t }) => t),
+    })),
+  });
+});
+
+// AI Business Score: vprasanja zivijo v kodi (questions je prazen), odgovori so
+// id-ji moznosti. Za izvoz jih prevedemo v besedilo, ki ga je clovek videl.
+function scoreZaIzvoz(raw, rezultat) {
+  const r = raw && typeof raw === 'object' ? raw : {};
+  const velikost = VELIKOST.find(v => v.id === r.velikost)?.text ?? r.velikost;
+  const kontakt = [
+    ['Ime', [r.ime, r.priimek].filter(Boolean).join(' ')],
+    ['E-naslov', r.email],
+    ['Telefon', r.telefon],
+    ['Podjetje', r.podjetje],
+    ['Število zaposlenih', velikost],
+  ].filter(([, v]) => v);
+  const odgovori = Object.entries(besedilaOdgovorov(r.odgovori))
+    .filter(([, v]) => v)
+    .map(([k, v]) => [besediloVprasanja[k] ?? k, v]);
+  return { score_version: rezultat.score_version, rezultat, vrstice: [...kontakt, ...odgovori] };
+}
 
 // PATCH /api/companies/:id — rocno posodobi prodajni status in/ali kvalifikacijo.
 // Body: { status?: <lijak>, kvalifikacija?: 'hot'|'warm'|'cold'|null }

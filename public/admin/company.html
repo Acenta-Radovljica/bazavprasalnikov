@@ -94,7 +94,11 @@
               </div>
             </div>
           </div>
-          <a class="e-btn-soft" href="/admin/podjetja.html">← Vsa podjetja</a>
+          <div class="e-actions">
+            <button type="button" class="e-btn" id="btn-izvoz" onclick="izvoziZaClaude(this)"
+              title="Vsi odgovori, zapisi sestankov in transkripti tega podjetja v enem ZIP-u, z navodili za prodajni predlog AI procesov">Izvoz za Claude (ZIP)</button>
+            <a class="e-btn-soft" href="/admin/podjetja.html">← Vsa podjetja</a>
+          </div>
         </div>
         ${mozniDvojnik ? `
           <div class="e-note warn" id="mozni-dvojnik" style="margin-bottom:16px">
@@ -368,6 +372,34 @@
       });
       if (!res.ok) { alert('Napaka pri sproženju.'); return; }
       alert(`Sproženo. Osveži stran čez ${cas}.`);
+    }
+
+    // Paket za Claude: podatke da streznik, vprasanja custom_html obrazcev pa
+    // se izluscijo tu (DOMParser, ista koda kot na strani odgovora).
+    async function izvoziZaClaude(gumb) {
+      const besedilo = gumb.textContent;
+      gumb.disabled = true;
+      gumb.textContent = 'Pripravljam …';
+      try {
+        const data = await apiFetch(`/api/companies/${id}/izvoz`);
+        if (!data?.company) throw new Error('strežnik ni vrnil podatkov');
+        const { sestaviDatoteke, zip, imeMape } = await import('/admin/izvoz.js');
+        const datoteke = sestaviDatoteke(data, { vprasanjaZa: vprasanjaZaPrikaz, izpolnjevalec });
+        const url = URL.createObjectURL(new Blob([zip(datoteke)], { type: 'application/zip' }));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${imeMape(data)}.zip`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } catch (err) {
+        console.error('[izvoz]', err);
+        alert(`Izvoz ni uspel: ${err.message}`);
+      } finally {
+        gumb.disabled = false;
+        gumb.textContent = besedilo;
+      }
     }
 
     async function odpriMerge() {
