@@ -188,6 +188,45 @@ t('navodila: prepoved izmisljenih stevilk in cen', nav.includes('Ne izmišljujte
 t('navodila: brez pomisljajev (—)', !nav.includes('—'));
 t('navodila: brez splosnih orodij, procesi kot Acentina resitev', nav.includes('Microsoft Copilot') && nav.includes('Acenta za stranko izdela in uvede'));
 
+t('brez kataloga ni datoteke 02', !imena.some(i => i.startsWith('02-')));
+t('navodila brez kataloga ne omenjajo kataloga', !nav.includes('02-acenta-resitve.md') && !nav.includes('Smemo stranko omeniti'));
+
+// ── 5. Katalog in interne opombe ───────────────────────────────────────
+console.log('\n=== 5. Katalog in interne opombe ===');
+const zKatalogom = {
+  ...data,
+  company: { ...data.company, interne_opombe: 'Račun za Claude že imajo.\nCopilota ne uporabljajo.', interne_opombe_updated_at: '2026-10-09T08:12:00Z' },
+  katalog: {
+    resitve: [
+      { naziv: 'Osnutki odgovorov na mnenja', tezava: 'Ni časa za odgovore.', kaj_naredi: 'AI napiše osnutek, človek objavi.', kje: 'Hotel Breza', panoga: 'hoteli', status: 'produkcija', smemo_omeniti: true },
+      { naziv: 'Razpored izmen', tezava: 'Ročni razpored.', kaj_naredi: '', kje: 'Hotel Lipa', panoga: 'hoteli', status: 'pilot', smemo_omeniti: false },
+    ],
+    ne_priporocamo: 'Copilot, naročnine ChatGPT.',
+  },
+};
+const dk = sestaviDatoteke(zKatalogom, { vprasanjaZa: r => r.vprasanja_za_prikaz || [], izpolnjevalec: () => ({ ime: 'X', imaIme: true }) });
+const pk = Object.fromEntries(dk.map(d => [d.ime.split('/').slice(1).join('/'), d.vsebina]));
+const kat = pk['02-acenta-resitve.md'] || '';
+t('katalog je tretja datoteka', dk[2]?.ime.endsWith('/02-acenta-resitve.md'), dk[2]?.ime);
+t('katalog: status z besedo, ne s kljucem', kat.includes('- Status: v produkciji') && kat.includes('- Status: v pilotu') && !kat.includes('Status: pilot'));
+t('katalog: smemo omeniti da/ne', kat.includes('pred drugo stranko: da') && kat.includes('pred drugo stranko: ne (v dokumentu za direktorja je ne imenujte)'));
+t('katalog: prazno polje se ne izpise', !/AI in kaj ostane človeku: $/m.test(kat) && (kat.match(/Kaj naredi AI/g) || []).length === 1);
+t('katalog: cesa ne priporocamo', kat.includes('## Česa ne priporočamo') && kat.includes('Copilot, naročnine ChatGPT.'));
+const navK = pk['00-NAVODILA-ZA-CLAUDE.md'];
+t('navodila: gradivo omeni katalog', navK.includes('`02-acenta-resitve.md`: katalog rešitev'));
+t('navodila: proces poveži z rešitvijo, sicer »nova rešitev«', navK.includes('Vsak proces povežite z rešitvijo iz kataloga') && navK.includes('»nova rešitev«'));
+t('navodila: imena strank samo z dovoljenjem v dokumentu 1', navK.includes('Smemo stranko omeniti: da'));
+t('navodila: prepovedi iz kataloga', navK.includes('Upoštevajte tudi razdelek »Česa ne priporočamo«'));
+t('navodila: interne opombe kot dejstva, ne za direktorja', navK.includes('Interne opombe v `01-podjetje.md` so dejstva'));
+t('navodila: pravila so zaporedno ostevilcena', /\n11\. Interne opombe/.test(navK), (navK.match(/^\d+\. .{0,30}/gm) || []).join(' | '));
+const podK = pk['01-podjetje.md'];
+t('podjetje: interne opombe z datumom', podK.includes('## Interne opombe Acente (9. 10. 2026)') && podK.includes('Copilota ne uporabljajo.'));
+t('podjetje brez opomb nima razdelka', !pod.includes('Interne opombe'));
+const samoPrepovedi = sestaviDatoteke({ ...data, katalog: { resitve: [], ne_priporocamo: 'Copilot' } }, { vprasanjaZa: () => [], izpolnjevalec: () => ({ ime: 'X' }) });
+t('samo prepovedi brez resitev: datoteka 02 vseeno nastane', samoPrepovedi.some(d => d.ime.endsWith('/02-acenta-resitve.md')));
+const prazenKatalog = sestaviDatoteke({ ...data, katalog: { resitve: [], ne_priporocamo: '  ' } }, { vprasanjaZa: () => [], izpolnjevalec: () => ({ ime: 'X' }) });
+t('prazen katalog: brez datoteke 02', !prazenKatalog.some(d => d.ime.endsWith('/02-acenta-resitve.md')));
+
 const samoOdg = sestaviDatoteke({ ...data, seje: [], priporocila: [] }, { vprasanjaZa: r => r.vprasanja_za_prikaz || [], izpolnjevalec: () => ({ ime: 'X', imaIme: true }) });
 const nav2 = samoOdg[0].vsebina;
 t('navodila ne nastejejo virov, ki jih ni', !nav2.includes('procesne-seje/') && !nav2.includes('obstojeca-ai-priporocila/') && nav2.includes('odgovori/'));

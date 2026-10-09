@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acenta — Katalog rešitev</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/admin/admin.css">
+  <style>
+    .kat-ime { font-weight: 800; color: var(--ink); }
+    .kat-pod { display: block; margin-top: 3px; font-size: 10px; font-weight: 700; color: var(--muted-2); }
+    /* Dolgo besedilo se prelomi; brez tega tabela uide cez rob in Status ter
+       Uredi nista vidna. */
+    .kat-tabela .e-table { table-layout: fixed; }
+    .kat-tabela .e-table td { white-space: normal; line-height: 1.45; vertical-align: top; overflow-wrap: anywhere; }
+    .kat-obrazec { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; margin-top: 14px; }
+    .kat-obrazec .cela { grid-column: 1 / -1; }
+    .kat-obrazec .vrsta { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; color: var(--ink-2); }
+    .kat-gumbi { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+    .kat-gumbi .spacer { flex: 1; }
+    .kat-kartice { display: none; }
+    .kat-kartica { padding: 14px 2px; border-top: 1px solid var(--row-line); cursor: pointer; }
+    .kat-kartica:first-child { border-top: 0; }
+    .kat-kartica p { margin: 6px 0 0; color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.45; }
+    .kat-shranjeno { font-size: 10px; font-weight: 700; color: var(--muted-2); }
+    @media (max-width: 760px) {
+      .kat-obrazec { grid-template-columns: 1fr; }
+      .kat-tabela { display: none; }
+      .kat-kartice { display: block; }
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+  <header id="nav"></header>
+
+  <main class="flex-1 min-w-0 flex flex-col">
+    <div class="e-wrap">
+      <div class="e-crumb">Baza vprašalnikov / <strong>Katalog rešitev</strong></div>
+
+      <div class="e-title">
+        <div>
+          <div class="e-eyebrow"><i></i>Delo</div>
+          <h1>Katalog rešitev.</h1>
+          <p>Kaj Acenta zna narediti. To prebere AI, ko pripravlja prodajni predlog.</p>
+        </div>
+        <button type="button" class="e-btn" id="btn-dodaj">Dodaj rešitev</button>
+      </div>
+
+      <section class="e-panel" id="urejanje" hidden>
+        <h2 id="urejanje-naslov">Nova rešitev</h2>
+        <p class="desc">Pišite v jeziku stranke. Status naj bo pošten: AI ga navede tako, kot je zapisan.</p>
+        <form id="obrazec" class="kat-obrazec" autocomplete="off">
+          <div class="cela">
+            <label class="field-label" for="f-naziv">Ime rešitve</label>
+            <input id="f-naziv" class="input" maxlength="200" required placeholder="npr. Osnutki odgovorov na spletna mnenja">
+          </div>
+          <div class="cela">
+            <label class="field-label" for="f-tezava">Težava, ki jo reši</label>
+            <textarea id="f-tezava" class="textarea" rows="2" maxlength="2000" placeholder="npr. Ne utegnemo sproti odgovarjati na mnenja na Bookingu in Googlu."></textarea>
+          </div>
+          <div class="cela">
+            <label class="field-label" for="f-kaj">Kaj naredi AI in kaj ostane človeku</label>
+            <textarea id="f-kaj" class="textarea" rows="2" maxlength="2000" placeholder="npr. AI vsak dan napiše osnutek v tonu hiše, človek ga odobri in objavi."></textarea>
+          </div>
+          <div>
+            <label class="field-label" for="f-kje">Kje že deluje</label>
+            <input id="f-kje" class="input" maxlength="1000" placeholder="npr. več hotelov na Bledu">
+          </div>
+          <div>
+            <label class="field-label" for="f-panoga">Panoga</label>
+            <input id="f-panoga" class="input" maxlength="200" list="panoge" placeholder="npr. hoteli">
+            <datalist id="panoge"></datalist>
+          </div>
+          <div>
+            <label class="field-label" for="f-status">Status</label>
+            <select id="f-status" class="select"></select>
+          </div>
+          <div>
+            <span class="field-label">Referenca</span>
+            <label class="vrsta"><input id="f-omeniti" type="checkbox" class="w-4 h-4 accent-[#0b7a6c]"> Stranko smemo omeniti pred drugo stranko</label>
+            <div class="field-help">Brez kljukice AI stranke iz »Kje že deluje« v dokumentu za direktorja ne imenuje.</div>
+          </div>
+        </form>
+        <div class="kat-gumbi">
+          <button type="button" class="e-btn" id="btn-shrani">Shrani</button>
+          <button type="button" class="e-btn-soft" id="btn-preklici">Prekliči</button>
+          <span class="spacer"></span>
+          <button type="button" class="e-btn-danger" id="btn-izbrisi" hidden>Izbriši</button>
+        </div>
+        <div class="e-note bad" id="napaka" hidden></div>
+      </section>
+
+      <div class="e-toolbar" style="margin-top:16px">
+        <span class="e-lbl">Status</span>
+        <div class="e-periods" id="filterStatus" role="group" aria-label="Filter po statusu"></div>
+        <div class="spacer"></div>
+        <span class="e-lbl">Panoga</span>
+        <select id="filterPanoga" class="e-select" aria-label="Filter po panogi">
+          <option value="">Vse panoge</option>
+        </select>
+      </div>
+
+      <section class="e-panel">
+        <div id="seznam"></div>
+        <div class="e-panel-foot">
+          <span id="foot-count"></span>
+          <span>Klik na vrstico odpre urejanje</span>
+        </div>
+      </section>
+
+      <section class="e-panel">
+        <h2>Česa ne priporočamo</h2>
+        <p class="desc">AI to dobi kot prepoved: tega ne predlaga v nobenem prodajnem predlogu.</p>
+        <textarea id="ne-priporocamo" class="textarea" rows="8" maxlength="5000" style="margin-top:12px"
+          placeholder="npr. Splošnih orodij (Copilot, naročnine ChatGPT, DeepL) kot rešitve; brezplačnih paketov; obljube prihranka."></textarea>
+        <div class="kat-gumbi">
+          <button type="button" class="e-btn" id="btn-shrani-ne">Shrani</button>
+          <span class="kat-shranjeno" id="ne-shranjeno"></span>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/admin/app.js"></script>
+  <script>
+    renderNav('katalog');
+
+    // Ista resnica kot STATUSI v src/routes/katalog.js.
+    const STATUS = {
+      produkcija: { naziv: 'V produkciji', chip: 'ok' },
+      pilot:      { naziv: 'V pilotu', chip: 'cold' },
+      prototip:   { naziv: 'Prototip', chip: 'warn' },
+      ponudba:    { naziv: 'Samo ponudba', chip: 'layer' },
+      ideja:      { naziv: 'Ideja', chip: 'layer' },
+      ustavljeno: { naziv: 'Ustavljeno', chip: 'bad' },
+    };
+
+    let resitve = [];
+    let filterStatus = '';
+    let urejamId = null;   // null = nova rešitev
+
+    const $ = (id) => document.getElementById(id);
+    const statusChip = (s) => `<span class="e-chip ${STATUS[s]?.chip || 'layer'}">${esc(STATUS[s]?.naziv || s)}</span>`;
+
+    function filtrirane() {
+      const panoga = $('filterPanoga').value;
+      return resitve.filter(r => (!filterStatus || r.status === filterStatus) && (!panoga || r.panoga === panoga));
+    }
+
+    function izrisiFiltre() {
+      const st = (s) => resitve.filter(r => r.status === s).length;
+      $('filterStatus').innerHTML = [['', 'Vse', resitve.length], ...Object.keys(STATUS).map(s => [s, STATUS[s].naziv, st(s)])]
+        .filter(([s, , n]) => !s || n)
+        .map(([s, naziv, n]) => `<button type="button" data-status="${s}" class="${s === filterStatus ? 'active' : ''}">${esc(naziv)} ${n}</button>`)
+        .join('');
+      const panoge = [...new Set(resitve.map(r => r.panoga).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sl'));
+      const izbrana = $('filterPanoga').value;
+      $('filterPanoga').innerHTML = '<option value="">Vse panoge</option>' +
+        panoge.map(p => `<option value="${esc(p)}" ${p === izbrana ? 'selected' : ''}>${esc(p)}</option>`).join('');
+      $('panoge').innerHTML = panoge.map(p => `<option value="${esc(p)}">`).join('');
+    }
+
+    function izrisiSeznam() {
+      const vrste = filtrirane();
+      $('foot-count').textContent = resitve.length
+        ? `${vrste.length} od ${resitve.length}` : '';
+      if (!vrste.length) {
+        $('seznam').innerHTML = `<div class="e-empty">${resitve.length
+          ? 'Nobena rešitev ne ustreza filtrom.'
+          : 'Katalog je prazen. Dodajte prvo rešitev: AI bo nato pri vsakem prodajnem predlogu vedel, kaj Acenta zna.'}</div>`;
+        return;
+      }
+      const pod = (r) => `<span class="kat-pod">${r.panoga ? `${esc(r.panoga)} · ` : ''}posodobljeno ${formatDan(r.updated_at)}${r.smemo_omeniti ? ' · smemo omeniti' : ''}</span>`;
+      $('seznam').innerHTML = `
+        <div class="e-table-scroll kat-tabela">
+          <table class="e-table">
+            <colgroup><col style="width:25%"><col style="width:33%"><col style="width:23%"><col style="width:11%"><col style="width:8%"></colgroup>
+            <thead><tr><th>Rešitev</th><th>Težava, ki jo reši</th><th>Kje že deluje</th><th>Status</th><th></th></tr></thead>
+            <tbody>${vrste.map(r => `
+              <tr data-id="${r.id}" class="row-link">
+                <td class="name"><span class="kat-ime">${esc(r.naziv)}</span>${pod(r)}</td>
+                <td>${esc(r.tezava)}</td>
+                <td>${esc(r.kje)}</td>
+                <td>${statusChip(r.status)}</td>
+                <td class="r"><button type="button" class="e-btn-soft" data-id="${r.id}">Uredi</button></td>
+              </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="kat-kartice">${vrste.map(r => `
+          <div class="kat-kartica" data-id="${r.id}">
+            <div class="kat-ime">${esc(r.naziv)}</div>
+            <div style="margin-top:6px">${statusChip(r.status)}</div>
+            ${r.tezava ? `<p>${esc(r.tezava)}</p>` : ''}
+            ${pod(r)}
+          </div>`).join('')}
+        </div>`;
+    }
+
+    function izrisi() { izrisiFiltre(); izrisiSeznam(); }
+
+    function odpriUrejanje(r) {
+      urejamId = r ? r.id : null;
+      $('urejanje-naslov').textContent = r ? `Uredi: ${r.naziv}` : 'Nova rešitev';
+      $('f-naziv').value = r?.naziv ?? '';
+      $('f-tezava').value = r?.tezava ?? '';
+      $('f-kaj').value = r?.kaj_naredi ?? '';
+      $('f-kje').value = r?.kje ?? '';
+      $('f-panoga').value = r?.panoga ?? '';
+      $('f-status').value = r?.status ?? 'ideja';
+      $('f-omeniti').checked = !!r?.smemo_omeniti;
+      $('btn-izbrisi').hidden = !r;
+      $('napaka').hidden = true;
+      $('urejanje').hidden = false;
+      $('urejanje').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      $('f-naziv').focus({ preventScroll: true });
+    }
+
+    function zapriUrejanje() {
+      $('urejanje').hidden = true;
+      urejamId = null;
+    }
+
+    function pokaziNapako(besedilo) {
+      $('napaka').textContent = besedilo;
+      $('napaka').hidden = false;
+    }
+
+    async function shrani() {
+      const telo = {
+        naziv: $('f-naziv').value.trim(),
+        tezava: $('f-tezava').value,
+        kaj_naredi: $('f-kaj').value,
+        kje: $('f-kje').value,
+        panoga: $('f-panoga').value,
+        status: $('f-status').value,
+        smemo_omeniti: $('f-omeniti').checked,
+      };
+      if (!telo.naziv) { pokaziNapako('Vpišite ime rešitve.'); $('f-naziv').focus(); return; }
+      const gumb = $('btn-shrani');
+      gumb.disabled = true;
+      const r = await apiFetch(urejamId ? `/api/katalog/${urejamId}` : '/api/katalog', {
+        method: urejamId ? 'PATCH' : 'POST',
+        body: JSON.stringify(telo),
+      });
+      gumb.disabled = false;
+      if (!r?.ok) { pokaziNapako('Shranjevanje ni uspelo. Poskusite znova.'); return; }
+      const ix = resitve.findIndex(x => x.id === r.resitev.id);
+      if (ix >= 0) resitve[ix] = r.resitev; else resitve.push(r.resitev);
+      zapriUrejanje();
+      izrisi();
+    }
+
+    async function izbrisi() {
+      const r0 = resitve.find(x => x.id === urejamId);
+      if (!r0 || !confirm(`Izbrišem rešitev »${r0.naziv}« iz kataloga?`)) return;
+      const r = await apiFetch(`/api/katalog/${urejamId}`, { method: 'DELETE' });
+      if (!r?.ok) { pokaziNapako('Brisanje ni uspelo.'); return; }
+      resitve = resitve.filter(x => x.id !== urejamId);
+      zapriUrejanje();
+      izrisi();
+    }
+
+    async function shraniNePriporocamo() {
+      const gumb = $('btn-shrani-ne');
+      gumb.disabled = true;
+      $('ne-shranjeno').textContent = 'Shranjujem …';
+      const r = await apiFetch('/api/katalog/ne-priporocamo', {
+        method: 'PUT', body: JSON.stringify({ besedilo: $('ne-priporocamo').value }),
+      });
+      gumb.disabled = false;
+      $('ne-shranjeno').textContent = r?.ok ? `Shranjeno ${formatDatum(r.updated_at)}` : 'Shranjevanje ni uspelo.';
+    }
+
+    // ── Dogodki ──────────────────────────────────────────────────────────
+    $('btn-dodaj').addEventListener('click', () => odpriUrejanje(null));
+    $('btn-shrani').addEventListener('click', shrani);
+    $('btn-preklici').addEventListener('click', zapriUrejanje);
+    $('btn-izbrisi').addEventListener('click', izbrisi);
+    $('btn-shrani-ne').addEventListener('click', shraniNePriporocamo);
+    $('obrazec').addEventListener('submit', (e) => { e.preventDefault(); shrani(); });
+    $('filterPanoga').addEventListener('change', izrisiSeznam);
+    $('filterStatus').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-status]');
+      if (!b) return;
+      filterStatus = b.dataset.status;
+      izrisi();
+    });
+    $('seznam').addEventListener('click', (e) => {
+      const el = e.target.closest('[data-id]');
+      if (el) odpriUrejanje(resitve.find(r => r.id === Number(el.dataset.id)));
+    });
+
+    // ── Zagon ────────────────────────────────────────────────────────────
+    (async () => {
+      $('seznam').innerHTML = '<div class="e-empty">Nalagam …</div>';
+      const d = await apiFetch('/api/katalog');
+      if (!d) { $('seznam').innerHTML = '<div class="e-note bad">Kataloga ni bilo mogoče naložiti.</div>'; return; }
+      resitve = d.resitve || [];
+      $('f-status').innerHTML = (d.statusi || Object.keys(STATUS))
+        .map(s => `<option value="${s}">${esc(STATUS[s]?.naziv || s)}</option>`).join('');
+      $('ne-priporocamo').value = d.ne_priporocamo || '';
+      if (d.ne_priporocamo_updated_at) $('ne-shranjeno').textContent = `Shranjeno ${formatDatum(d.ne_priporocamo_updated_at)}`;
+      izrisi();
+    })();
+  </script>
+</body>
+</html>

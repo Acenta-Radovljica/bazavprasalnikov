@@ -229,6 +229,11 @@ function mdPodjetja(data, kazalo, ljudje) {
   if (c.created_at) L.push(`- V bazi od: ${dan(c.created_at)}`);
   if (c.last_response_at) L.push(`- Zadnji odgovor: ${dan(c.last_response_at)}`);
 
+  if (c.interne_opombe) {
+    L.push('', `## Interne opombe Acente${c.interne_opombe_updated_at ? ` (${dan(c.interne_opombe_updated_at)})` : ''}`, '',
+      '_Kar vemo mi, ne iz odgovorov. Stranka tega ne vidi._', '', String(c.interne_opombe).trim());
+  }
+
   if (ljudje.length) {
     L.push('', `## Kdo je izpolnjeval vprašalnike (${ljudje.length})`, '');
     for (const o of ljudje) L.push(`- ${o.ime}${o.vloga ? `, ${o.vloga}` : ''} (${o.vprasalniki.join(', ')})`);
@@ -241,11 +246,44 @@ function mdPodjetja(data, kazalo, ljudje) {
   return L.join('\n') + '\n';
 }
 
+const STATUS_KATALOGA = {
+  produkcija: 'v produkciji', pilot: 'v pilotu', prototip: 'prototip ali demo',
+  ponudba: 'samo ponudba, še ni zgrajeno', ideja: 'ideja', ustavljeno: 'ustavljeno',
+};
+
+function imaKatalog(k) {
+  return !!(k && ((k.resitve || []).length || String(k.ne_priporocamo || '').trim()));
+}
+
+function mdKataloga(k) {
+  const L = [
+    '# Katalog Acentinih rešitev', '',
+    'Kaj Acenta zna narediti in kje to že deluje. Status je zapisan pošteno: rešitve »v pilotu« ne opisujte kot »v produkciji«.',
+  ];
+  for (const r of k.resitve || []) {
+    L.push('', `## ${r.naziv}`, '', `- Status: ${STATUS_KATALOGA[r.status] || r.status}`);
+    if (r.tezava) L.push(`- Težava, ki jo reši: ${r.tezava}`);
+    if (r.kaj_naredi) L.push(`- Kaj naredi AI in kaj ostane človeku: ${r.kaj_naredi}`);
+    if (r.kje) L.push(`- Kje že deluje: ${r.kje}`);
+    if (r.panoga) L.push(`- Panoga: ${r.panoga}`);
+    L.push(`- Smemo stranko omeniti pred drugo stranko: ${r.smemo_omeniti ? 'da' : 'ne (v dokumentu za direktorja je ne imenujte)'}`);
+  }
+  if (String(k.ne_priporocamo || '').trim()) {
+    L.push('', '## Česa ne priporočamo', '', String(k.ne_priporocamo).trim());
+  }
+  return L.join('\n') + '\n';
+}
+
 function mdNavodil(data, stevci) {
   const ime = data.company.naziv_prikaz;
+  const katalog = imaKatalog(data.katalog);
+  const opombe = !!String(data.company.interne_opombe || '').trim();
   const gradivo = [
-    '- `01-podjetje.md`: osnovni podatki, seznam ljudi, ki so sodelovali, in kazalo vseh virov.',
+    `- \`01-podjetje.md\`: osnovni podatki, ${opombe ? 'interne opombe Acente, ' : ''}seznam ljudi, ki so sodelovali, in kazalo vseh virov.`,
   ];
+  if (katalog) {
+    gradivo.push('- `02-acenta-resitve.md`: katalog rešitev, ki jih Acenta že zna narediti, s poštenim statusom, in seznam, česa ne priporočamo.');
+  }
   if (stevci.odgovori) {
     gradivo.push(`- \`odgovori/\`: oddani vprašalniki (${stevci.odgovori}). Vsaka datoteka pove, kdo je izpolnjeval (ime in vloga, kadar sta znana) in kdaj.`);
   }
@@ -262,6 +300,26 @@ function mdNavodil(data, stevci) {
   const glavniVir = viri.length === 1
     ? 'Odgovori zaposlenih so'
     : `${viri.slice(0, -1).join(', ')} in ${viri.at(-1)} so`;
+
+  const pravila = [
+    `Preberite vse datoteke, preden začnete pisati. ${glavniVir} glavni vir.`,
+    'Izluščite vsak proces ali opravilo, ki ga želi kdo olajšati, pospešiti ali avtomatizirati, tudi kadar tega ne pove naravnost (npr. »vsak teden ročno prepisujemo naročila«). Enake želje različnih ljudi združite v en proces in preštejte, koliko ljudi ga omenja.',
+    'Vsak proces podprite z virom: kdo ga je omenil in kratek dobeseden citat. V dokumentu 2 dodajte še ime datoteke, da Matjaž vir lahko preveri; v dokumentu 1 imen datotek ni.',
+    'Ne izmišljujte številk, cen, rokov ali prihrankov. Številko navedite samo, če jo je dal nekdo v gradivu, in povejte, kdo. Kjer številke ni, napišite, kako jo bomo izmerili (npr. »koliko ur na teden: vprašati vodjo recepcije«).',
+    'Ne obljubljajte rezultatov in ne navajajte cen naših storitev. Ceno pripravi Matjaž.',
+    'Ločite, kar so ljudje povedali, od svojih predpostavk. Predpostavke označite.',
+    'Če si odgovori nasprotujejo ali se želje vodstva in zaposlenih razlikujejo, to izrecno zapišite. Za prodajo je to pomemben podatek.',
+    `Ne predlagajte splošnih orodij, ki jih podjetje lahko kupi samo (Microsoft Copilot, naročnine ChatGPT, DeepL, Canva ipd.), in ne pripravljajte načrta izobraževanja. Acenta za stranko izdela in uvede rešitev za konkreten proces; vsak predlagani proces opišite kot tako rešitev.${stevci.priporocila ? ' Obstoječa AI priporočila v paketu so pogosto prav taka splošna, zato jih v tem delu ne povzemajte.' : ''}${katalog && String(data.katalog.ne_priporocamo || '').trim() ? ' Upoštevajte tudi razdelek »Česa ne priporočamo« v `02-acenta-resitve.md`.' : ''}`,
+  ];
+  if (katalog) {
+    pravila.push(
+      'Vsak proces povežite z rešitvijo iz kataloga, kadar ta obstaja, in njen status navedite tako, kot je zapisan. Proces brez ustrezne rešitve v katalogu označite kot »nova rešitev«.',
+      'Drugo stranko iz kataloga v dokumentu 1 omenite samo, kjer piše »Smemo stranko omeniti: da«. V dokumentu 2 so imena strank dovoljena.',
+    );
+  }
+  if (opombe) {
+    pravila.push('Interne opombe v `01-podjetje.md` so dejstva, ki jih vemo mi (npr. katera orodja podjetje že ima). Upoštevajte jih, v dokumentu 1 pa jih ne navajajte.');
+  }
 
   return `# Navodila za Claude: prodajni predlog AI procesov za ${ime}
 
@@ -280,14 +338,7 @@ ${gradivo.join('\n')}
 
 ## Kako delate
 
-1. Preberite vse datoteke, preden začnete pisati. ${glavniVir} glavni vir.
-2. Izluščite vsak proces ali opravilo, ki ga želi kdo olajšati, pospešiti ali avtomatizirati, tudi kadar tega ne pove naravnost (npr. »vsak teden ročno prepisujemo naročila«). Enake želje različnih ljudi združite v en proces in preštejte, koliko ljudi ga omenja.
-3. Vsak proces podprite z virom: kdo ga je omenil in kratek dobeseden citat. V dokumentu 2 dodajte še ime datoteke, da Matjaž vir lahko preveri; v dokumentu 1 imen datotek ni.
-4. Ne izmišljujte številk, cen, rokov ali prihrankov. Številko navedite samo, če jo je dal nekdo v gradivu, in povejte, kdo. Kjer številke ni, napišite, kako jo bomo izmerili (npr. »koliko ur na teden: vprašati vodjo recepcije«).
-5. Ne obljubljajte rezultatov in ne navajajte cen naših storitev. Ceno pripravi Matjaž.
-6. Ločite, kar so ljudje povedali, od svojih predpostavk. Predpostavke označite.
-7. Če si odgovori nasprotujejo ali se želje vodstva in zaposlenih razlikujejo, to izrecno zapišite. Za prodajo je to pomemben podatek.
-8. Ne predlagajte splošnih orodij, ki jih podjetje lahko kupi samo (Microsoft Copilot, naročnine ChatGPT, DeepL, Canva ipd.), in ne pripravljajte načrta izobraževanja. Acenta za stranko izdela in uvede rešitev za konkreten proces; vsak predlagani proces opišite kot tako rešitev.${stevci.priporocila ? ' Obstoječa AI priporočila v paketu so pogosto prav taka splošna, zato jih v tem delu ne povzemajte.' : ''}
+${pravila.map((p, i) => `${i + 1}. ${p}`).join('\n')}
 
 ## Dokument 1: Seznam procesov za direktorja
 
@@ -388,6 +439,7 @@ export function sestaviDatoteke(data, { vprasanjaZa, izpolnjevalec }) {
   return [
     { ime: `${koren}/00-NAVODILA-ZA-CLAUDE.md`, vsebina: mdNavodil(data, stevci) },
     { ime: `${koren}/01-podjetje.md`, vsebina: mdPodjetja(data, kazalo, [...ljudje.values()]) },
+    ...(imaKatalog(data.katalog) ? [{ ime: `${koren}/02-acenta-resitve.md`, vsebina: mdKataloga(data.katalog) }] : []),
     ...datoteke,
   ];
 }

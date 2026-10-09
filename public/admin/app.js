@@ -342,6 +342,11 @@ const NAV_POSTAVKE = [
     ikona: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
   },
   {
+    // Kaj Acenta zna narediti; bere ga prodajni predlog (migracija 014).
+    kljuc: 'katalog', naslov: 'Katalog', href: '/admin/katalog.html',
+    ikona: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/>',
+  },
+  {
     skupina: 'Analiza',
     kljuc: 'analiza', naslov: 'Primerjava', href: '/admin/analiza.html',
     ikona: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',

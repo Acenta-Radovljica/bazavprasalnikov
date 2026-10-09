@@ -188,11 +188,19 @@
             ${vsebina}
             ${akcije}
           </div>
-          <div class="e-side">
+          <div class="e-side" style="grid-template-rows:auto">
+            ${opombeKartica()}
             ${kvalKartica()}
             ${statusKartica()}
           </div>
         </div>`;
+
+      const polje = document.getElementById('opombe');
+      polje.addEventListener('input', () => {
+        podjetje.interne_opombe = polje.value;
+        nacrtujShranjevanjeOpomb();
+      });
+      polje.addEventListener('blur', shraniOpombe);
 
       // Dolga priporocila se zlozijo; gumb se pokaze samo, ce je res odrezano.
       const wrap = document.getElementById('reco');
@@ -209,6 +217,58 @@
         }
       }
     }
+
+    // ── Interne opombe ────────────────────────────────────────────────────
+    // Kar vemo mi (npr. "racun za Claude ze imajo"). Gre v prodajni predlog
+    // in ZIP kot dejstvo; stranka ga ne vidi. Shrani se samo: ob premoru v
+    // tipkanju in ob odhodu iz polja. Besedilo zivi v `podjetje`, zato ga
+    // ponovni izris zgornjega dela (status, zavihek) ne izgubi.
+    let opombeCasovnik = null;
+    let opombeShranjene = '';     // nazadnje shranjeno besedilo (nastavi ga zagon)
+
+    function stanjeOpomb() {
+      if (!podjetje.interne_opombe_updated_at) return 'Še ni opomb';
+      return `Shranjeno ${formatDatum(podjetje.interne_opombe_updated_at)}`;
+    }
+
+    function opombeKartica() {
+      return `
+        <div class="e-sidecard" style="min-height:0">
+          <div class="label"><label for="opombe">Interne opombe</label> <span class="e-chip layer">samo za nas</span></div>
+          <textarea id="opombe" class="textarea" rows="4" maxlength="5000" style="margin-top:10px"
+            placeholder="Kar veva o podjetju: katera orodja že imajo, kdo odloča, kaj smo že rešili …">${esc(podjetje.interne_opombe || '')}</textarea>
+          <div class="foot"><span id="opombe-stanje">${stanjeOpomb()}</span></div>
+        </div>`;
+    }
+
+    function nacrtujShranjevanjeOpomb() {
+      clearTimeout(opombeCasovnik);
+      const el = document.getElementById('opombe-stanje');
+      if (el) el.textContent = 'Neshranjeno …';
+      opombeCasovnik = setTimeout(shraniOpombe, 900);
+    }
+
+    async function shraniOpombe() {
+      clearTimeout(opombeCasovnik);
+      const besedilo = podjetje.interne_opombe || '';
+      if (besedilo === opombeShranjene) return;
+      const r = await apiFetch(`/api/companies/${id}`, {
+        method: 'PATCH', body: JSON.stringify({ interne_opombe: besedilo }),
+      });
+      const el = document.getElementById('opombe-stanje');
+      if (!r?.ok) { if (el) el.textContent = 'Shranjevanje ni uspelo, poskusite znova'; return; }
+      opombeShranjene = besedilo;
+      podjetje.interne_opombe_updated_at = r.company.interne_opombe_updated_at;
+      if (el && (podjetje.interne_opombe || '') === besedilo) el.textContent = stanjeOpomb();
+    }
+
+    // Opozori, ce uporabnik zapre stran sredi neshranjenih opomb.
+    window.addEventListener('beforeunload', (e) => {
+      if (podjetje && (podjetje.interne_opombe || '') !== opombeShranjene) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    });
 
     function kvalKartica() {
       const k = podjetje.kvalifikacija;
@@ -342,7 +402,10 @@
     async function patchPodjetje(telo) {
       const r = await apiFetch(`/api/companies/${id}`, { method: 'PATCH', body: JSON.stringify(telo) });
       if (!r?.ok) { alert('Napaka pri shranjevanju.'); return false; }
-      Object.assign(podjetje, r.company);
+      // Opomb ne prepisujemo: odziv bi lahko prinesel starejse besedilo od
+      // tistega, ki se se shranjuje (glej shraniOpombe).
+      const { interne_opombe, interne_opombe_updated_at, ...ostalo } = r.company;
+      Object.assign(podjetje, ostalo);
       return true;
     }
 
@@ -440,6 +503,7 @@
         return;
       }
       podjetje    = data.company;
+      opombeShranjene = podjetje.interne_opombe || '';
       mozniDvojnik = data.mozni_dvojnik ?? null;
       odgovori    = data.responses ?? [];
       priporocila = data.priporocila ?? [];

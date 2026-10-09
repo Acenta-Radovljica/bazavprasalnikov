@@ -8,6 +8,7 @@ import { renderiraj as renderirajPdf } from '../pdf/render.js';
 import { vprasalnikVBesedilo } from '../procesi/schema.js';
 import { besediloVprasanja, besedilaOdgovorov } from '../score/oddaja.js';
 import { VELIKOST } from '../score/vprasanja-v1.js';
+import { naloziKatalog } from './katalog.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -16,6 +17,7 @@ const router = express.Router();
 // Validacija v API-ju da prijazno 400 napako; CHECK v bazi je zadnja obramba.
 const STATUSI = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen', 'izgubljen'];
 const KVALIFIKACIJE = ['hot', 'warm', 'cold'];
+const MAX_OPOMB = 5000;
 
 // ── DEL 4: Rute ───────────────────────────────────────────────────────────
 
@@ -109,7 +111,7 @@ router.get('/companies/:id/izvoz', async (req, res) => {
 
   const company = await dbQuery(
     `SELECT id, naziv_prikaz, status, kvalifikacija, kvalifikacija_razlog,
-            created_at, last_response_at
+            created_at, last_response_at, interne_opombe, interne_opombe_updated_at
        FROM companies WHERE id = $1`, [id]);
   if (!company) return res.status(500).json({ error: 'db_error' });
   if (!company.rows.length) return res.status(404).json({ error: 'not_found' });
@@ -157,9 +159,13 @@ router.get('/companies/:id/izvoz', async (req, res) => {
      ORDER BY fetched_at`, [sejaIds]) : { rows: [] };
   if (!tr) return res.status(500).json({ error: 'db_error' });
 
+  const katalog = await naloziKatalog();
+  if (!katalog) return res.status(500).json({ error: 'db_error' });
+
   res.json({
     izvozeno_at: new Date().toISOString(),
     company: company.rows[0],
+    katalog,
     responses: responses.rows.map(r => {
       const { questions_snapshot, score_rezultat, ...ostalo } = r;
       return {
@@ -217,9 +223,14 @@ router.patch('/companies/:id', async (req, res) => {
   // "Ni isto podjetje": opozorilo o moznem dvojniku se da samo zavrniti
   // (null). Nastavi ga le ujemanje ob oddaji.
   const setDvojnik = 'mozni_dvojnik_id' in body;
+  // Interne opombe (migracija 014): prazen niz = izbrisi.
+  const setOpombe = 'interne_opombe' in body;
 
-  if (!setStatus && !setKval && !setDvojnik) {
+  if (!setStatus && !setKval && !setDvojnik && !setOpombe) {
     return res.status(400).json({ error: 'nothing_to_update' });
+  }
+  if (setOpombe && typeof body.interne_opombe !== 'string') {
+    return res.status(400).json({ error: 'invalid_interne_opombe' });
   }
   if (setDvojnik && body.mozni_dvojnik_id !== null) {
     return res.status(400).json({ error: 'invalid_mozni_dvojnik_id', dovoljeno: [null] });
@@ -253,11 +264,18 @@ router.patch('/companies/:id', async (req, res) => {
     sets.push('mozni_dvojnik_id = NULL', 'mozni_dvojnik_razlog = NULL');
   }
 
+  if (setOpombe) {
+    const opombe = body.interne_opombe.trim().slice(0, MAX_OPOMB);
+    sets.push(`interne_opombe = $${i++}`); params.push(opombe || null);
+    sets.push('interne_opombe_updated_at = NOW()');
+  }
+
   params.push(id);
   const upd = await dbQuery(
     `UPDATE companies SET ${sets.join(', ')} WHERE id = $${i}
      RETURNING id, status, kvalifikacija, kvalifikacija_razlog, kvalifikacija_rocna,
-               status_updated_at, kvalifikacija_updated_at, mozni_dvojnik_id`,
+               status_updated_at, kvalifikacija_updated_at, mozni_dvojnik_id,
+               interne_opombe, interne_opombe_updated_at`,
     params
   );
   if (!upd?.rows?.length) return res.status(404).json({ error: 'not_found' });

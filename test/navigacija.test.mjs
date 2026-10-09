@@ -23,10 +23,11 @@ function t(ime, pogoj, dodatek = '') {
 // postavk, ki jih zares uporablja.
 // 25. 9. 2026: Vprasalniki nazaj v skupino Delo (za Podjetja); pod Napredno
 // ostanejo samo Vpogledi.
-const GLAVNE   = ['Danes', 'Procesi', 'Podjetja', 'Vprašalniki', 'Primerjava', 'Iskanje'];
+// 9. 10. 2026: Katalog (Acentine resitve za prodajni predlog) v skupino Delo.
+const GLAVNE   = ['Danes', 'Procesi', 'Podjetja', 'Vprašalniki', 'Katalog', 'Primerjava', 'Iskanje'];
 const NAPREDNE = ['Vpogledi'];
 const POSTAVKE = [...GLAVNE, ...NAPREDNE];
-const KLJUCI   = ['pregled', 'procesi', 'podjetja', 'questionnaires', 'analiza', 'search', 'insights'];
+const KLJUCI   = ['pregled', 'procesi', 'podjetja', 'questionnaires', 'katalog', 'analiza', 'search', 'insights'];
 const V_NAPREDNEM = new Set(['insights']);
 
 const STRANI = [
@@ -36,6 +37,7 @@ const STRANI = [
   ['Procesi',      '/admin/procesi.html',        'procesi'],
   ['Urejanje predloge', '/admin/predloga.html?id=1', 'procesi'],
   ['Vprašalniki',  '/admin/questionnaires.html', 'questionnaires'],
+  ['Katalog',      '/admin/katalog.html',        'katalog'],
   ['Primerjava',   '/admin/analiza.html',        'analiza'],
   ['Iskanje',      '/admin/search.html',         'search'],
   ['Vpogledi',     '/admin/insights.html',       'insights'],
@@ -96,7 +98,7 @@ for (const [ime, pot, aktivenKljuc] of STRANI) {
   });
 
   t('stranska vrstica je izrisana', izvid.imaSidebar);
-  t('6 glavnih postavk', JSON.stringify(izvid.glavne) === JSON.stringify(GLAVNE),
+  t('7 glavnih postavk', JSON.stringify(izvid.glavne) === JSON.stringify(GLAVNE),
      JSON.stringify(izvid.glavne));
   t('Napredno preklop obstaja', izvid.imaNaprednoToggle);
   t('napredna postavka je prava', JSON.stringify(izvid.napredne) === JSON.stringify(NAPREDNE),

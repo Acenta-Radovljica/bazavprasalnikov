@@ -25,6 +25,11 @@ await pool.query(`DELETE FROM responses WHERE questionnaire_id IN
   (SELECT id FROM questionnaires WHERE slug LIKE 'test-snapshot-%')`);
 await pool.query(`DELETE FROM questionnaires WHERE slug LIKE 'test-snapshot-%'`);
 
+// 4. Katalog resitev (migracija 014): izvoz-api steje datoteke v ZIP-u, ki
+//    dobi datoteko kataloga samo, ce katalog ni prazen.
+await pool.query('TRUNCATE katalog_resitev RESTART IDENTITY');
+await pool.query('DELETE FROM nastavitve');
+
 const r = await pool.query(`
   SELECT (SELECT count(*) FROM process_sessions)::int AS sej,
          (SELECT count(*) FROM process_transcripts)::int AS transkriptov,

@@ -12,6 +12,7 @@ import { router as questionnairesRouter } from './routes/questionnaires.js';
 import { router as procesiRouter } from './routes/procesi.js';
 import { router as nalogeRouter } from './routes/naloge.js';
 import { router as formRouter } from './routes/form.js';
+import { router as katalogRouter } from './routes/katalog.js';
 import { basicAuth } from './middleware/auth.js';
 import { javniRouter as scoreJavniRouter, adminRouter as scoreAdminRouter } from './routes/score.js';
 import { zazeniOutbox as zazeniScoreOutbox } from './score/outbox.js';
@@ -83,6 +84,9 @@ app.use('/api/naloge', basicAuth, nalogeRouter);
 
 // AI Business Score izvoz (CSV za Excel/CRM). Pred apiRouter-jem iz istega razloga.
 app.use('/api/score', basicAuth, scoreAdminRouter);
+
+// Katalog Acentinih resitev (vhod za prodajni predlog). Pred apiRouter-jem.
+app.use('/api/katalog', basicAuth, katalogRouter);
 
 app.use('/api', basicAuth, apiRouter);
 

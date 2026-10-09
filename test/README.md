@@ -35,7 +35,8 @@ node test/odgovori.test.mjs          # 47 trditev (kopija vprašalnika ob oddaji
 node test/answers-rev.test.mjs       # 18 trditev (CAS zascita answers_rev, posiljanje_vklopljeno)
 node test/save-guard.test.mjs        # 14 trditev (splakniVse pred Zaključi/Pošlji, veriga PATCH-ev)
 node test/ujemanje.test.mjs          # 51 trditev (ujemanje podjetij: domena, kratice, mozen dvojnik; lazen AI)
-node test/izvoz.test.mjs             # 67 trditev (izvoz za Claude: ZIP, prevod odgovorov, imena datotek, navodila; brez streznika)
+node test/katalog.test.mjs           # 68 trditev (katalog resitev + interne opombe: API, stran Katalog z vsemi gumbi in telefonom, opombe na podjetju, ZIP)
+node test/izvoz.test.mjs             # 84 trditev (izvoz za Claude: ZIP, prevod odgovorov, imena datotek, navodila; brez streznika)
 node test/izvoz-api.test.mjs         # 43 trditev (/api/companies/:id/izvoz + gumb na strani podjetja + regresija strani odgovora)
 ```
 
