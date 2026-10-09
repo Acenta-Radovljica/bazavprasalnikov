@@ -229,6 +229,11 @@ else {
   // phone number becomes the primary action.
   if (d.rezervacija) { const b = $('#r-booking'); b.href = d.rezervacija; b.hidden = false; }
   else { const t = $('#r-tel'); t.textContent = 'Pokličite 031 615 921'; t.className = 'btn'; }
+  // A message instead of a call (Matjaž, 6. 10. 2026). The mail carries the report link, so we
+  // know who wrote; the address stays visible for anyone without a mail app.
+  const zadeva = `AI Business Score${d.podjetje ? `: ${d.podjetje}` : ''}`;
+  $('#r-mail').href = `mailto:ai@acenta.si?subject=${encodeURIComponent(zadeva)}`
+    + `&body=${encodeURIComponent(`Pozdravljeni,\r\n\r\n\r\n\r\nMoje poročilo: ${location.href}`)}`;
 
   // Share: copy the private link, or save as PDF (print styles are light)
   $('#r-copy').addEventListener('click', async () => {

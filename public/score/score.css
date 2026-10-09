@@ -276,6 +276,7 @@ ul.pts li.skel:nth-child(2) { width: 82%; } ul.pts li.skel:nth-child(3) { width:
 .closing .acts { display: grid; gap: 12px; justify-items: center; }
 .closing .tel { font-weight: 500; color: var(--text); text-decoration: none; font-size: 15px; }
 .closing .tel:hover { color: var(--teal-hi); }
+.closing .mail span { color: var(--muted); }
 
 /* How it would work for you: "often today" vs a three-step flow on a line that draws itself */
 .c-scen { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 48px; align-items: center; margin-top: 16px; }
