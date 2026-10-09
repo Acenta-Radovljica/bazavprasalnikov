@@ -307,6 +307,7 @@ function mdNavodil(data, stevci) {
     'Vsak proces podprite z virom: kdo ga je omenil in kratek dobeseden citat. V dokumentu 2 dodajte še ime datoteke, da Matjaž vir lahko preveri; v dokumentu 1 imen datotek ni.',
     'Ne izmišljujte številk, cen, rokov ali prihrankov. Številko navedite samo, če jo je dal nekdo v gradivu, in povejte, kdo. Kjer številke ni, napišite, kako jo bomo izmerili (npr. »koliko ur na teden: vprašati vodjo recepcije«).',
     'Ne obljubljajte rezultatov in ne navajajte cen naših storitev. Ceno pripravi Matjaž.',
+    'Kadar odgovori nimajo imena, ne veste, ali jih je oddal isti človek. Takrat štejte odgovore, ne ljudi, in to zapišite (npr. »omenja 4 od 17 odgovorov«).',
     'Ločite, kar so ljudje povedali, od svojih predpostavk. Predpostavke označite.',
     'Če si odgovori nasprotujejo ali se želje vodstva in zaposlenih razlikujejo, to izrecno zapišite. Za prodajo je to pomemben podatek.',
     `Ne predlagajte splošnih orodij, ki jih podjetje lahko kupi samo (Microsoft Copilot, naročnine ChatGPT, DeepL, Canva ipd.), in ne pripravljajte načrta izobraževanja. Acenta za stranko izdela in uvede rešitev za konkreten proces; vsak predlagani proces opišite kot tako rešitev.${stevci.priporocila ? ' Obstoječa AI priporočila v paketu so pogosto prav taka splošna, zato jih v tem delu ne povzemajte.' : ''}${katalog && String(data.katalog.ne_priporocamo || '').trim() ? ' Upoštevajte tudi razdelek »Česa ne priporočamo« v `02-acenta-resitve.md`.' : ''}`,
@@ -346,14 +347,13 @@ Pišite slovensko, direktorja vikajte. Brez splošnih fraz (»odlična kakovost�
 
 Začnite z dvema ali tremi stavki: koliko ljudi je sodelovalo in kaj smo od njih slišali.
 
-Nato za vsak proces, razvrščeno od najbolj priporočenega:
+Nato za vsak proces svoj razdelek, razvrščeno od najbolj priporočenega. Naslov razdelka je oblike \`### 1. Ime procesa (oddelek)\`, pod njim:
 
-- **Ime procesa** in oddelek
-- **Kaj pravijo vaši ljudje**: kako poteka danes in kaj jih moti, z enim ali dvema kratkima citatoma
+- **Kaj pravijo vaši ljudje**: kako poteka danes in kaj jih moti, z enim ali dvema kratkima dobesednima citatoma v »…«
 - **Kako bi pomagala umetna inteligenca**: konkretno, kaj naredi AI in kaj ostane človeku
 - **Kaj pridobite**: čas, manj napak, hitrejši odziv, prihodek; samo kar izhaja iz gradiva
 - **Zahtevnost uvedbe**: nizka, srednja ali visoka, z enim stavkom zakaj (kateri sistemi in podatki so potrebni)
-- **Koliko ljudi si to želi**: število in vloge
+- **Koliko ljudi si to želi**: število in vloge (pri anonimnih odgovorih število odgovorov)
 
 Na koncu tabela za izbiro: proces | kdo si ga želi | korist | zahtevnost | naše priporočilo (za začetek / naslednji korak / kasneje). Pod tabelo en stavek, ki direktorja povabi, naj izbere enega ali dva procesa za začetek, in predlog naslednjega koraka (kratek sestanek, na katerem skupaj izberemo prvi proces).
 

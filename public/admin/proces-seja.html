@@ -97,6 +97,16 @@
               <input id="mDatum" data-meta="datum_sestanka" type="date"
                 class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
             </label>
+            <!-- Povezava s podjetjem: samo tako zapis vidita prodajni predlog
+                 in izvoz za Claude na strani podjetja. -->
+            <label class="block">
+              <span class="text-xs text-gray-500 block mb-1">Podjetje v bazi</span>
+              <select id="mPodjetje" data-meta="company_id"
+                class="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-[#0b7a6c]">
+                <option value="">Ni izbrano</option>
+              </select>
+              <span id="mPodjetjeNamig" class="text-xs block mt-1"></span>
+            </label>
           </div>
         </section>
 
@@ -675,6 +685,34 @@
       });
     }
 
+    // Seznam podjetij za izbiro povezave. Ce seja kaze na podjetje, ki ga v
+    // seznamu ni (npr. zdruzeno), ga vseeno pokazemo, da izbira ne izgine.
+    async function naloziPodjetja() {
+      const izbira = el('mPodjetje');
+      const d = await apiFetch('/api/companies');
+      const vsa = (d?.companies || []).slice().sort((a, b) => a.naziv_prikaz.localeCompare(b.naziv_prikaz, 'sl'));
+      if (seja.company_id && !vsa.some(c => c.id === seja.company_id)) {
+        vsa.unshift({ id: seja.company_id, naziv_prikaz: `Podjetje #${seja.company_id}` });
+      }
+      izbira.innerHTML = '<option value="">Ni izbrano</option>' +
+        vsa.map(c => `<option value="${c.id}">${esc(c.naziv_prikaz)}</option>`).join('');
+      izbira.value = seja.company_id ? String(seja.company_id) : '';
+      namigPodjetja();
+    }
+
+    function namigPodjetja() {
+      const v = el('mPodjetje').value;
+      const n = el('mPodjetjeNamig');
+      if (v) {
+        n.className = 'text-xs block mt-1';
+        n.innerHTML = `<a href="/admin/company.html?id=${encodeURIComponent(v)}" class="text-[#0b7a6c] hover:underline">Odpri podjetje →</a>`;
+      } else {
+        n.className = 'text-xs block mt-1 text-amber-700';
+        n.textContent = 'Zapis ni povezan s podjetjem, zato ga prodajni predlog ne vidi.';
+      }
+    }
+    el('mPodjetje').addEventListener('change', namigPodjetja);
+
     document.querySelectorAll('[data-meta]').forEach(inp => {
       inp.addEventListener('input', () => {
         nespravljeno = true;
@@ -1005,6 +1043,7 @@
       el('mOddelek').value = seja.oddelek ?? '';
       el('mSvetovalec').value = seja.svetovalec ?? '';
       el('mDatum').value = seja.datum_sestanka ? String(seja.datum_sestanka).slice(0, 10) : '';
+      await naloziPodjetja();
 
       izrisiObrazec();
       izrisiTranskripte(d.transkripti || []);

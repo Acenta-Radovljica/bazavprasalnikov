@@ -23,6 +23,10 @@ const app = express();
 
 // Express prebere JSON body do 1 MB. Formspree posilja max ~50 KB,
 // 1 MB je varna meja proti DoS s prevelikimi payloadi.
+// Prodajni predlog dobi cel paket odgovorov in transkriptov (do ~600k znakov,
+// glej MAX_ZNAKOV), zato vecja meja. Preverjanje gesla PRED branjem telesa, da
+// neprijavljen klic ne more poslati 8 MB; splosni parser nato telo preskoci.
+app.use('/api/companies/:id/prodajni-predlog', basicAuth, express.json({ limit: '8mb' }));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 

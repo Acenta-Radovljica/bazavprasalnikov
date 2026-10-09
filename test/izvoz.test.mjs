@@ -218,7 +218,7 @@ t('navodila: proces poveži z rešitvijo, sicer »nova rešitev«', navK.include
 t('navodila: imena strank samo z dovoljenjem v dokumentu 1', navK.includes('Smemo stranko omeniti: da'));
 t('navodila: prepovedi iz kataloga', navK.includes('Upoštevajte tudi razdelek »Česa ne priporočamo«'));
 t('navodila: interne opombe kot dejstva, ne za direktorja', navK.includes('Interne opombe v `01-podjetje.md` so dejstva'));
-t('navodila: pravila so zaporedno ostevilcena', /\n11\. Interne opombe/.test(navK), (navK.match(/^\d+\. .{0,30}/gm) || []).join(' | '));
+t('navodila: pravila so zaporedno ostevilcena', /\n12\. Interne opombe/.test(navK), (navK.match(/^\d+\. .{0,30}/gm) || []).join(' | '));
 const podK = pk['01-podjetje.md'];
 t('podjetje: interne opombe z datumom', podK.includes('## Interne opombe Acente (9. 10. 2026)') && podK.includes('Copilota ne uporabljajo.'));
 t('podjetje brez opomb nima razdelka', !pod.includes('Interne opombe'));
@@ -233,6 +233,11 @@ t('navodila ne nastejejo virov, ki jih ni', !nav2.includes('procesne-seje/') && 
 t('navodila brez sej: glavni vir samo odgovori, brez omembe priporocil', nav2.includes('Odgovori zaposlenih so glavni vir.') && !nav2.includes('Obstoječa AI priporočila'));
 t('navodila s sejami: vsi trije viri', nav.includes('Odgovori zaposlenih, zapisi sestankov in transkripti so glavni vir.'));
 t('navodila: imena datotek samo v internem dokumentu', nav.includes('v dokumentu 1 imen datotek ni'));
+// Prodajni predlog v aplikaciji preverja izhod po tej obliki (razdelek na
+// proces, citat v »…«), zato mora biti v navodilih dobesedno.
+t('navodila: razdelek procesa je »### 1. Ime procesa (oddelek)«', nav.includes('`### 1. Ime procesa (oddelek)`'));
+t('navodila: citati v »…«', nav.includes('dobesednima citatoma v »…«'));
+t('navodila: anonimni odgovori se stejejo kot odgovori', nav.includes('štejte odgovore, ne ljudi'));
 const prazen = sestaviDatoteke({ ...data, responses: [], seje: [], priporocila: [] }, { vprasanjaZa: () => [], izpolnjevalec: () => ({}) });
 t('podjetje brez odgovorov: samo navodila in pregled', prazen.length === 2);
 t('cel paket se zapakira in prebere nazaj', preberiZip(zip(datoteke)).length === datoteke.length);

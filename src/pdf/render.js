@@ -45,8 +45,15 @@ function pretvoriDatum() {
   return `${meseci[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+// Naslovnica porocila. Prodajni predlog poda svojo (src/routes/api.js).
+const NASLOVNICA = {
+  eyebrow: 'AI Opportunity Report',
+  naslov: 'Analiza delovnih procesov',
+  podnaslov: 'Priložnosti za avtomatizacijo in optimizacijo',
+};
+
 // Zgradi cel HTML dokument: cover page + markdown content.
-function zgradiHtml({ nazivPrikaz, prirocila, datum }) {
+function zgradiHtml({ nazivPrikaz, prirocila, datum, naslovnica = NASLOVNICA }) {
   const logoData = logoBase64();
   const htmlContent = marked.parse(prirocila);
   const pdfStyle = readFileSync(PDF_STYLE_PATH, 'utf8');
@@ -59,7 +66,7 @@ function zgradiHtml({ nazivPrikaz, prirocila, datum }) {
 <html lang="sl">
 <head>
 <meta charset="UTF-8">
-<title>AI Opportunity Report — ${nazivPrikaz}</title>
+<title>${naslovnica.eyebrow} — ${nazivPrikaz}</title>
 <style>
 ${pdfStyle}
 
@@ -179,10 +186,10 @@ code {
 
 <div class="cover">
   ${logoTag}
-  <div class="eyebrow">AI Opportunity Report</div>
-  <h1>Analiza delovnih procesov</h1>
+  <div class="eyebrow">${naslovnica.eyebrow}</div>
+  <h1>${naslovnica.naslov}</h1>
   <div class="client">${nazivPrikaz}</div>
-  <div class="subtitle">Priložnosti za avtomatizacijo in optimizacijo</div>
+  <div class="subtitle">${naslovnica.podnaslov}</div>
   <div class="date">${datum}</div>
   <div class="agency">Pripravljeno s strani Acenta d.o.o.</div>
 </div>
@@ -195,13 +202,14 @@ ${htmlContent}
 
 // ── DEL 4: Glavna exported funkcija ──────────────────────────────────────
 
-async function renderiraj({ nazivPrikaz, prirocila }) {
+async function renderiraj({ nazivPrikaz, prirocila, naslovnica }) {
   if (!prirocila) return null;
 
   const html = zgradiHtml({
     nazivPrikaz,
     prirocila,
     datum: pretvoriDatum(),
+    naslovnica: { ...NASLOVNICA, ...naslovnica },
   });
 
   const browser = await puppeteer.launch({

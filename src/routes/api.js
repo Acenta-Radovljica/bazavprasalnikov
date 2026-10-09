@@ -3,7 +3,8 @@ import express from 'express';
 import { dbQuery } from '../db.js';
 import { generirajPovzetek } from '../ai/generate_povzetek.js';
 import { generirajPriporocila } from '../ai/generate_priporocila.js';
-import { sproziPovzetek, sproziPriporocila, sproziInsights } from '../ai/queue.js';
+import { sproziPovzetek, sproziPriporocila, sproziInsights, sproziProdajniPredlog } from '../ai/queue.js';
+import { sestaviVhod, MAX_ZNAKOV } from '../ai/generate_prodajni_predlog.js';
 import { renderiraj as renderirajPdf } from '../pdf/render.js';
 import { vprasalnikVBesedilo } from '../procesi/schema.js';
 import { besediloVprasanja, besedilaOdgovorov } from '../score/oddaja.js';
@@ -184,6 +185,142 @@ router.get('/companies/:id/izvoz', async (req, res) => {
         .map(({ session_id, ...t }) => t),
     })),
   });
+});
+
+// ── Prodajni predlog ──────────────────────────────────────────────────────
+// Opus iz istega paketa kot ZIP za Claude pripravi seznam procesov za
+// direktorja in prodajni list za Matjaza (src/ai/generate_prodajni_predlog.js).
+// Paket sestavi brskalnik (izvoz.js), ker vprasanja custom_html obrazcev zna
+// izlusciti samo DOMParser; streznik ga le prebere in poslje modelu.
+
+const STOLPCI_PREDLOGA = `id, status, za_direktorja, za_matjaza, opozorila, vhod, napaka, model,
+  created_at, koncano_at`;
+
+// Priprava, ki tece dlje od tega, je obticala (Opus z enim popravkom traja
+// najvec ~18 minut: dva klica po 9 min). Brez tega bi stran za vedno kazala
+// "pripravljam".
+async function pospraviObticano(companyId) {
+  await dbQuery(
+    `UPDATE prodajni_predlogi
+        SET status = 'napaka', napaka = 'Priprava je trajala predolgo in je bila prekinjena. Poskusite znova.',
+            koncano_at = NOW()
+      WHERE company_id = $1 AND status = 'pripravlja' AND created_at < NOW() - INTERVAL '20 minutes'`,
+    [companyId],
+  );
+}
+
+// GET /api/companies/:id/prodajni-predlog
+// predlog = zadnji uspesni; tek = novejsa priprava, ki se tece ali je padla.
+router.get('/companies/:id/prodajni-predlog', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+
+  await pospraviObticano(id);
+  // Gradivo steje isto kot izvoz (vsi odgovori in vse seje podjetja), da
+  // prazno stanje pove, iz cesa bo predlog nastal.
+  const [r, gradivo] = await Promise.all([
+    dbQuery(
+      `SELECT ${STOLPCI_PREDLOGA} FROM prodajni_predlogi
+        WHERE company_id = $1 ORDER BY created_at DESC, id DESC LIMIT 20`,
+      [id],
+    ),
+    dbQuery(
+      `SELECT (SELECT count(*) FROM responses WHERE company_id = $1)::int AS odgovori,
+              (SELECT count(*) FROM process_sessions WHERE company_id = $1)::int AS seje`,
+      [id],
+    ),
+  ]);
+  if (!r || !gradivo) return res.status(500).json({ error: 'db_error' });
+  const predlog = r.rows.find(p => p.status === 'ok') || null;
+  const tek = r.rows[0] && r.rows[0].status !== 'ok' ? r.rows[0] : null;
+  res.json({ predlog, tek, gradivo: gradivo.rows[0] });
+});
+
+// POST /api/companies/:id/prodajni-predlog  body: { datoteke: [{ ime, vsebina }] }
+router.post('/companies/:id/prodajni-predlog', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+
+  const datoteke = req.body?.datoteke;
+  const veljavne = Array.isArray(datoteke) && datoteke.length > 0 && datoteke.length <= 2000
+    && datoteke.every(d => d && typeof d.ime === 'string' && typeof d.vsebina === 'string');
+  if (!veljavne) return res.status(400).json({ error: 'invalid_datoteke' });
+
+  const company = await dbQuery('SELECT id FROM companies WHERE id = $1', [id]);
+  if (!company) return res.status(500).json({ error: 'db_error' });
+  if (!company.rows.length) return res.status(404).json({ error: 'not_found' });
+
+  const vhod = sestaviVhod(datoteke);
+  if (vhod.prevelik) return res.status(413).json({ error: 'prevelik_paket', znakov: vhod.stevci.znakov, najvec: MAX_ZNAKOV });
+  if (!vhod.stevci.odgovori && !vhod.stevci.seje) return res.status(400).json({ error: 'ni_gradiva' });
+
+  await pospraviObticano(id);
+  const opisVhoda = {
+    odgovori: vhod.stevci.odgovori, seje: vhod.stevci.seje, transkripti: vhod.stevci.transkripti,
+    katalog: vhod.stevci.katalog, znakov: vhod.stevci.znakov,
+  };
+  // Delni unikatni indeks (sql/015) dovoli eno pripravo naenkrat; drugi
+  // vstavek vrne null (dbQuery napako pogoltne), zato preverimo, zakaj.
+  const ins = await dbQuery(
+    `INSERT INTO prodajni_predlogi (company_id, status, vhod)
+     VALUES ($1, 'pripravlja', $2::jsonb)
+     RETURNING ${STOLPCI_PREDLOGA}`,
+    [id, JSON.stringify(opisVhoda)],
+  );
+  if (!ins?.rows?.length) {
+    const tece = await dbQuery(
+      `SELECT 1 FROM prodajni_predlogi WHERE company_id = $1 AND status = 'pripravlja'`, [id]);
+    if (tece?.rows?.length) return res.status(409).json({ error: 'ze_pripravlja' });
+    return res.status(500).json({ error: 'db_error' });
+  }
+
+  sproziProdajniPredlog(ins.rows[0].id, id, datoteke);
+  res.status(202).json({ tek: ins.rows[0] });
+});
+
+// GET /api/companies/:id/prodajni-predlog/pdf — seznam procesov za direktorja
+// (zadnji uspesni predlog) kot PDF z Acentino naslovnico.
+router.get('/companies/:id/prodajni-predlog/pdf', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+
+  const r = await dbQuery(
+    `SELECT c.naziv_prikaz, p.za_direktorja
+       FROM companies c
+       LEFT JOIN LATERAL (
+         SELECT za_direktorja FROM prodajni_predlogi
+          WHERE company_id = c.id AND status = 'ok'
+          ORDER BY created_at DESC, id DESC LIMIT 1
+       ) p ON TRUE
+      WHERE c.id = $1`,
+    [id],
+  );
+  if (!r) return res.status(500).json({ error: 'db_error' });
+  if (!r.rows.length) return res.status(404).json({ error: 'not_found' });
+  const { naziv_prikaz, za_direktorja } = r.rows[0];
+  if (!za_direktorja) return res.status(400).json({ error: 'ni_predloga' });
+
+  try {
+    const pdf = await renderirajPdf({
+      nazivPrikaz: naziv_prikaz,
+      prirocila: za_direktorja,
+      naslovnica: {
+        eyebrow: 'Predlog AI procesov',
+        naslov: 'Procesi, ki jih je smiselno podpreti z umetno inteligenco',
+        podnaslov: 'Pripravljeno iz odgovorov vaših zaposlenih',
+      },
+    });
+    if (!pdf) return res.status(500).json({ error: 'render_failed' });
+    const slug = String(naziv_prikaz || 'podjetje').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'podjetje';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition',
+      `attachment; filename="${slug}-predlog-ai-procesov-${new Date().toISOString().slice(0, 10)}.pdf"`);
+    res.end(pdf);
+  } catch (err) {
+    console.error('[api/prodajni-predlog/pdf] napaka:', err);
+    res.status(500).json({ error: 'render_failed', message: err.message });
+  }
 });
 
 // AI Business Score: vprasanja zivijo v kodi (questions je prazen), odgovori so

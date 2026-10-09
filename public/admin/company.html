@@ -8,6 +8,52 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
+    /* Prodajni predlog levo zgoraj, priprava na delavnico pod njim, stranski
+       stolpec cez obe vrsti. Na ozkem zaslonu: predlog, opombe in ocena,
+       sele nato delavnica (opombe sodijo k predlogu). */
+    /* Druga vrsta 1fr: visino stranskega stolpca (cez obe vrsti) vzame
+       delavnica, ne predlog, sicer pod predlogom ostane prazen pas. */
+    .pp-mreza { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(265px, .74fr);
+      grid-template-rows: auto 1fr;
+      grid-template-areas: "predlog stran" "delavnica stran"; gap: 16px; align-items: start; }
+    .pp-predlog { grid-area: predlog; }
+    .pp-stran { grid-area: stran; }
+    .pp-delavnica { grid-area: delavnica; }
+    @media (max-width: 1080px) {
+      .pp-mreza { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "predlog" "stran" "delavnica"; }
+    }
+    @media (max-width: 760px) {
+      .pp-predlog .e-switch { display: flex; width: 100%; }
+      .pp-predlog .e-switch button { flex: 1; }
+    }
+    .pp-predlog { scroll-margin-top: 16px; }
+
+    /* Dokument predloga: naslovi berljivi (e-reco jih sicer pise z malimi
+       velikimi crkami), siroka tabela se drsi znotraj kartice. */
+    .pp-dok h1 { font-size: 19px; letter-spacing: -.02em; text-transform: none; color: #fff; margin-top: 4px; }
+    .pp-dok h2 { font-size: 15px; letter-spacing: -.01em; text-transform: none; color: #fff; margin-top: 20px; }
+    .pp-dok h3 { font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--lime); margin-top: 18px; }
+    .pp-dok table { display: block; max-width: 100%; overflow-x: auto; }
+    .pp-opozorila ul { margin: 4px 0 0; padding-left: 18px; list-style: disc; font-weight: 600; }
+
+    /* Priprava na delavnico: ista vsebina na svetli kartici */
+    .pp-svetlo .e-switch { background: var(--track); }
+    .pp-svetlo .e-switch button { color: var(--muted); }
+    .pp-svetlo .e-switch button:hover:not(.active) { color: var(--ink); }
+    .pp-svetlo .e-switch button.active { background: var(--accent); color: #fff; }
+    .pp-svetlo .e-badge { background: var(--accent-softer); color: var(--accent-ink); }
+    .pp-svetlo .e-warnbar { background: var(--peach); color: var(--peach-ink); }
+    .pp-svetlo .e-reco { color: var(--ink); font-weight: 500; }
+    .pp-svetlo .e-reco h1, .pp-svetlo .e-reco h2, .pp-svetlo .e-reco h3, .pp-svetlo .e-reco h4 { color: var(--accent-ink); }
+    .pp-svetlo .e-reco strong, .pp-svetlo .e-reco b { color: var(--ink); }
+    .pp-svetlo .e-reco a { color: var(--accent); }
+    .pp-svetlo .e-reco th, .pp-svetlo .e-reco td { border-color: var(--hairline); }
+    .pp-svetlo .e-reco hr { border-top-color: var(--hairline); }
+    .pp-svetlo .e-reco-wrap::after { background: linear-gradient(180deg, transparent, var(--card-bg)); }
+    .pp-svetlo .e-reco-prazno .ikona { background: var(--accent-softer); color: var(--accent); }
+    .pp-svetlo .e-reco-prazno b { color: var(--ink); }
+    .pp-svetlo .e-reco-prazno p { color: var(--muted); }
+
     @media print {
       .app-sidebar, [data-mobilna-nav], .e-feature-actions, .e-crumb, .e-bottom { display: none !important; }
       .e-reco-wrap { max-height: none !important; }
@@ -95,7 +141,9 @@
             </div>
           </div>
           <div class="e-actions">
-            <button type="button" class="e-btn" id="btn-izvoz" onclick="izvoziZaClaude(this)"
+            <button type="button" class="e-btn" id="btn-predlog"
+              onclick="document.getElementById('prodajni-predlog').scrollIntoView({ behavior: 'smooth', block: 'start' })">Prodajni predlog</button>
+            <button type="button" class="e-btn-soft" id="btn-izvoz" onclick="izvoziZaClaude(this)"
               title="Vsi odgovori, zapisi sestankov in transkripti tega podjetja v enem ZIP-u, z navodili za prodajni predlog AI procesov">Izvoz za Claude (ZIP)</button>
             <a class="e-btn-soft" href="/admin/podjetja.html">← Vsa podjetja</a>
           </div>
@@ -133,12 +181,214 @@
       renderHeader();
     }
 
-    // ── Zgoraj: priporocila (akcentna kartica) + ocena + status ───────────
+    // ── Zgoraj: prodajni predlog (akcentna kartica), stranski stolpec
+    //    (opombe, ocena, status) in priprava na delavnico pod predlogom ──
     function renderZgoraj() {
+      document.getElementById('zgoraj').innerHTML = `
+        <div class="pp-mreza">
+          <section class="e-feature pp-predlog" id="prodajni-predlog"></section>
+          <div class="e-side pp-stran" style="grid-template-rows:auto">
+            ${opombeKartica()}
+            ${kvalKartica()}
+            ${statusKartica()}
+          </div>
+          <section class="e-panel pp-delavnica pp-svetlo" id="delavnica"></section>
+        </div>`;
+
+      const polje = document.getElementById('opombe');
+      polje.addEventListener('input', () => {
+        podjetje.interne_opombe = polje.value;
+        nacrtujShranjevanjeOpomb();
+      });
+      polje.addEventListener('blur', shraniOpombe);
+
+      renderPredlog();
+      renderDelavnica();
+    }
+
+    // Dolga besedila se zlozijo; gumb se pokaze samo, ce je res odrezano.
+    function zlozljivo(wrap, gumb, ob) {
+      if (!wrap || !gumb) return;
+      if (wrap.scrollHeight <= wrap.clientHeight + 4 && !wrap.classList.contains('open')) { wrap.classList.add('kratko'); return; }
+      gumb.hidden = false;
+      gumb.textContent = wrap.classList.contains('open') ? 'Skrij' : 'Pokaži vse';
+      gumb.addEventListener('click', () => {
+        const odpri = !wrap.classList.contains('open');
+        wrap.classList.toggle('open', odpri);
+        gumb.textContent = odpri ? 'Skrij' : 'Pokaži vse';
+        ob?.(odpri);
+      });
+    }
+
+    // ── Prodajni predlog ──────────────────────────────────────────────────
+    // Opus iz celega paketa (isti kot ZIP za Claude) pripravi seznam procesov
+    // za direktorja in prodajni list za Matjaza. Priprava traja nekaj minut in
+    // tece na strezniku; stran jo spremlja z osvezevanjem na 5 s.
+    let predlogStanje = { predlog: null, tek: null, gradivo: { odgovori: 0, seje: 0 }, nalozeno: false };
+    let predlogDok = 'direktor';      // 'direktor' | 'matjaz'
+    let predlogOdprt = false;
+    let predlogCasovnik = null;
+
+    const NAPAKE_PREDLOGA = {
+      ni_gradiva: 'Podjetje nima ne odgovorov ne zapisov sestankov.',
+      prevelik_paket: 'Gradivo je preobsežno za samodejno pripravo. Uporabite Izvoz za Claude (ZIP).',
+      not_found: 'Podjetje ne obstaja več.',
+    };
+
+    function ura(iso) {
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? '' : `${d.getHours()}.${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+    const izOdgovorov = (n) => `${n} ${n === 1 ? 'odgovora' : 'odgovorov'}`;
+    const izSej = (n) => `${n} ${n === 1 ? 'zapisa sestanka' : 'zapisov sestankov'}`;
+
+    function renderPredlog() {
+      const el = document.getElementById('prodajni-predlog');
+      if (!el) return;
+      const { predlog: p, tek, gradivo, nalozeno } = predlogStanje;
+      const tece = tek?.status === 'pripravlja';
+      const padlo = tek?.status === 'napaka' ? tek : null;
+      const imaGradivo = gradivo.odgovori + gradivo.seje > 0;
+
+      const stikalo = p ? `
+        <div class="e-switch" role="tablist" aria-label="Dokument">
+          <button type="button" role="tab" data-dok="direktor" class="${predlogDok === 'direktor' ? 'active' : ''}">Za direktorja</button>
+          <button type="button" role="tab" data-dok="matjaz" class="${predlogDok === 'matjaz' ? 'active' : ''}">Za Matjaža</button>
+        </div>` : '';
+      const pod = p
+        ? `<b>Pripravljeno ${formatDan(p.koncano_at || p.created_at)}</b> iz ${izOdgovorov(p.vhod?.odgovori ?? 0)} in ${izSej(p.vhod?.seje ?? 0)}`
+        : (nalozeno ? 'Še ni pripravljen' : 'Nalagam …');
+
+      let telo = '';
+      if (tece) {
+        telo += `<div class="e-warnbar" id="pp-tece">Pripravljam ${p ? 'novo različico' : 'prodajni predlog'} (začeto ob ${ura(tek.created_at)}).
+          AI bere ${sklon(tek.vhod?.odgovori ?? 0, ['odgovor', 'odgovora', 'odgovore', 'odgovorov'])} in ${sklon(tek.vhod?.seje ?? 0, ['zapis sestanka', 'zapisa sestankov', 'zapise sestankov', 'zapisov sestankov'])}; traja nekaj minut. Stran se osveži sama.</div>`;
+      }
+      if (padlo) telo += `<div class="e-warnbar" id="pp-napaka">⚠ Zadnja priprava ni uspela: ${esc(padlo.napaka || 'neznana napaka')}</div>`;
+
+      if (p) {
+        if (predlogDok === 'direktor' && p.opozorila?.length) {
+          telo += `<div class="e-warnbar pp-opozorila" id="pp-opozorila"><div><b>Preverite pred pošiljanjem:</b>
+            <ul>${p.opozorila.map(o => `<li>${esc(o)}</li>`).join('')}</ul></div></div>`;
+        }
+        const besedilo = predlogDok === 'direktor' ? p.za_direktorja : p.za_matjaza;
+        telo += `<div class="e-reco-wrap ${predlogOdprt ? 'open' : ''}" id="pp-wrap"><div class="e-reco pp-dok">${md(besedilo)}</div></div>`;
+      } else if (tece) {
+        telo += `<div class="e-reco-prazno">
+          <b>Prodajni predlog se pripravlja</b>
+          <p>Ko bo pripravljen, se tu pokažeta seznam procesov za direktorja in prodajni list za Matjaža.</p>
+        </div>`;
+      } else if (nalozeno) {
+        telo += `<div class="e-reco-prazno">
+          <span class="ikona"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg></span>
+          <b>Prodajni predlog še ni pripravljen</b>
+          <p>AI prebere vse odgovore tega podjetja (${gradivo.odgovori}), zapise sestankov (${gradivo.seje}), interne opombe in katalog rešitev ter pripravi seznam procesov za direktorja in prodajni list za Matjaža. Traja nekaj minut.</p>
+          ${imaGradivo
+            ? '<button type="button" class="e-btn-white" id="pp-pripravi" style="margin-top:8px">Pripravi prodajni predlog</button>'
+            : '<p>Za predlog potrebujemo vsaj en odgovor ali zapis sestanka.</p>'}
+        </div>`;
+      }
+
+      const akcije = p ? `
+        <div class="e-feature-actions">
+          <button type="button" class="e-btn-white" id="pp-pripravi" ${tece ? 'disabled' : ''}>Pripravi znova</button>
+          <a class="e-btn-ghost" id="pp-pdf" href="/api/companies/${id}/prodajni-predlog/pdf" download>Natisni / PDF za direktorja</a>
+          <button type="button" class="e-btn-ghost" id="pp-kopiraj">Kopiraj</button>
+          <div class="spacer"></div>
+          <button type="button" class="e-btn-ghost" id="pp-vec" hidden>Pokaži vse</button>
+        </div>` : '';
+
+      el.innerHTML = `
+        <div class="e-feature-top">
+          <div>
+            <span class="lbl">Prodajni predlog</span>
+            <div class="e-feature-sub">${pod}</div>
+          </div>
+          ${stikalo}
+        </div>
+        ${telo}
+        ${akcije}`;
+
+      zlozljivo(document.getElementById('pp-wrap'), document.getElementById('pp-vec'), (odpri) => { predlogOdprt = odpri; });
+      document.getElementById('pp-pripravi')?.addEventListener('click', (e) => pripraviPredlog(e.currentTarget));
+      document.getElementById('pp-kopiraj')?.addEventListener('click', (e) => kopirajPredlog(e.currentTarget));
+    }
+
+    // Zavihka Za direktorja / Za Matjaza (svoj atribut, ne data-tab, ki
+    // pripada izbiri vprasalnika).
+    document.getElementById('stran').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-dok]');
+      if (!b || b.dataset.dok === predlogDok) return;
+      predlogDok = b.dataset.dok;
+      predlogOdprt = false;
+      renderPredlog();
+    });
+
+    async function naloziPredlog() {
+      const r = await apiFetch(`/api/companies/${id}/prodajni-predlog`);
+      if (!r) return false;
+      predlogStanje = { ...r, nalozeno: true };
+      renderPredlog();
+      spremljajPredlog();
+      return true;
+    }
+
+    function spremljajPredlog() {
+      clearTimeout(predlogCasovnik);
+      if (predlogStanje.tek?.status === 'pripravlja') predlogCasovnik = setTimeout(naloziPredlog, 5000);
+    }
+
+    async function pripraviPredlog(gumb) {
+      if (predlogStanje.predlog && !confirm('Pripraviti nov prodajni predlog? Trenutni ostane viden, dokler novi ni pripravljen.')) return;
+      const besedilo = gumb.textContent;
+      gumb.disabled = true;
+      gumb.textContent = 'Zbiram gradivo …';
+      try {
+        // Isti paket kot ZIP: vprasanja custom_html obrazcev zna izlusciti
+        // samo brskalnik (DOMParser).
+        const data = await apiFetch(`/api/companies/${id}/izvoz`);
+        if (!data?.company) throw new Error('strežnik ni vrnil podatkov');
+        const { sestaviDatoteke } = await import('/admin/izvoz.js');
+        const datoteke = sestaviDatoteke(data, { vprasanjaZa: vprasanjaZaPrikaz, izpolnjevalec });
+        const res = await fetch(`/api/companies/${id}/prodajni-predlog`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ datoteke }),
+        });
+        const r = await res.json().catch(() => ({}));
+        if (res.status === 409) { await naloziPredlog(); return; }
+        if (!res.ok) throw new Error(NAPAKE_PREDLOGA[r.error] || r.error || `HTTP ${res.status}`);
+        predlogStanje.tek = r.tek;
+        renderPredlog();
+        spremljajPredlog();
+      } catch (err) {
+        console.error('[prodajni-predlog]', err);
+        alert(`Priprava ni uspela: ${err.message}`);
+        gumb.disabled = false;
+        gumb.textContent = besedilo;
+      }
+    }
+
+    async function kopirajPredlog(gumb) {
+      const p = predlogStanje.predlog;
+      if (!p) return;
+      try {
+        await navigator.clipboard.writeText(predlogDok === 'direktor' ? p.za_direktorja : p.za_matjaza);
+        gumb.textContent = 'Kopirano';
+      } catch {
+        gumb.textContent = 'Kopiranje ni uspelo';
+      }
+      setTimeout(() => { gumb.textContent = 'Kopiraj'; }, 1600);
+    }
+
+    // ── Priprava na delavnico (prej "AI priporocila") ─────────────────────
+    // Priporocila po posameznem vprasalniku. Za prodajo so presplosna, za
+    // pripravo delavnice pa se vedno uporabna, zato ostanejo pod predlogom.
+    function renderDelavnica() {
       const vpr = vprasalniki();
-      const el = document.getElementById('zgoraj');
+      const el = document.getElementById('delavnica');
       if (!vpr.length) {
-        el.innerHTML = '<div class="e-panel"><div class="e-empty">Podjetje še nima odgovorov ali priporočil.</div></div>';
+        el.innerHTML = '<h2>Priprava na delavnico</h2><div class="e-empty">Podjetje še nima odgovorov ali priporočil.</div>';
         return;
       }
       if (aktivniTab === null || !vpr.some(v => v.qid === aktivniTab)) aktivniTab = vpr[0].qid;
@@ -166,56 +416,27 @@
 
       const akcije = `
         <div class="e-feature-actions">
-          <button type="button" class="e-btn-white" onclick="regeneriraj(${aktivniTab}, 'priporocila')">${p ? 'Regeneriraj priporočila' : 'Generiraj priporočila'}</button>
-          ${odgZaTab.length ? `<button type="button" class="e-btn-ghost" onclick="regeneriraj(${aktivniTab}, 'vse')">Regeneriraj vse</button>` : ''}
-          ${p ? `<a class="e-btn-ghost" href="/api/companies/${id}/pdf?questionnaire_id=${aktivniTab}" download>Izvozi PDF</a>
-                 <button type="button" class="e-btn-ghost" onclick="window.print()">Natisni</button>` : ''}
+          <button type="button" class="e-btn-soft" onclick="regeneriraj(${aktivniTab}, 'priporocila')">${p ? 'Regeneriraj priporočila' : 'Generiraj priporočila'}</button>
+          ${odgZaTab.length ? `<button type="button" class="e-btn-soft" onclick="regeneriraj(${aktivniTab}, 'vse')">Regeneriraj vse</button>` : ''}
+          ${p ? `<a class="e-btn-soft" href="/api/companies/${id}/pdf?questionnaire_id=${aktivniTab}" download>Izvozi PDF</a>
+                 <button type="button" class="e-btn-soft" onclick="window.print()">Natisni</button>` : ''}
           <div class="spacer"></div>
-          ${p ? '<button type="button" class="e-btn-ghost" id="reco-vec" hidden>Pokaži vse</button>' : ''}
+          ${p ? '<button type="button" class="e-btn-soft" id="reco-vec" hidden>Pokaži vse</button>' : ''}
         </div>`;
 
       const izKoliko = `iz ${odgZaTab.length} ${odgZaTab.length === 1 ? 'odgovora' : 'odgovorov'}`;
       el.innerHTML = `
-        <div class="e-grid">
-          <div class="e-feature">
-            <div class="e-feature-top">
-              <div>
-                <span class="lbl">AI priporočila · ${esc(tab.naziv)}</span>
-                <div class="e-feature-sub">${p ? `<b>Generirano ${formatDan(p.updated_at)}</b> · ${izKoliko}` : 'Še ni generirano'}</div>
-              </div>
-              ${stikalo}
-            </div>
-            ${vsebina}
-            ${akcije}
+        <div class="e-feature-top">
+          <div>
+            <h2>Priprava na delavnico</h2>
+            <p class="desc">AI priporočila · ${esc(tab.naziv)} · ${p ? `generirano ${formatDan(p.updated_at)} ${izKoliko}` : 'še ni generirano'}</p>
           </div>
-          <div class="e-side" style="grid-template-rows:auto">
-            ${opombeKartica()}
-            ${kvalKartica()}
-            ${statusKartica()}
-          </div>
-        </div>`;
+          ${stikalo}
+        </div>
+        ${vsebina}
+        ${akcije}`;
 
-      const polje = document.getElementById('opombe');
-      polje.addEventListener('input', () => {
-        podjetje.interne_opombe = polje.value;
-        nacrtujShranjevanjeOpomb();
-      });
-      polje.addEventListener('blur', shraniOpombe);
-
-      // Dolga priporocila se zlozijo; gumb se pokaze samo, ce je res odrezano.
-      const wrap = document.getElementById('reco');
-      const gumb = document.getElementById('reco-vec');
-      if (wrap && gumb) {
-        if (wrap.scrollHeight <= wrap.clientHeight + 4) { wrap.classList.add('kratko'); }
-        else {
-          gumb.hidden = false;
-          gumb.addEventListener('click', () => {
-            const odpri = !wrap.classList.contains('open');
-            wrap.classList.toggle('open', odpri);
-            gumb.textContent = odpri ? 'Skrij' : 'Pokaži vse';
-          });
-        }
-      }
+      zlozljivo(document.getElementById('reco'), document.getElementById('reco-vec'));
     }
 
     // ── Interne opombe ────────────────────────────────────────────────────
@@ -385,7 +606,7 @@
       if (qid === aktivniTab) return;
       aktivniTab = qid;
       vsiOdgovori = false;
-      renderZgoraj();
+      renderDelavnica();
       renderSpodaj();
     }
 
@@ -395,7 +616,7 @@
       if (!el) return;
       e.preventDefault();
       izberiTab(Number(el.dataset.tab));
-      if (el.closest('.e-links')) document.getElementById('zgoraj').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (el.closest('.e-links')) document.getElementById('delavnica').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
 
     // ── Akcije ────────────────────────────────────────────────────────────
@@ -510,6 +731,7 @@
       renderHeader();
       renderZgoraj();
       renderSpodaj();
+      naloziPredlog();
     })();
   </script>
 </body>

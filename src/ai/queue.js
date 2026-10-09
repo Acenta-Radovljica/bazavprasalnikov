@@ -3,6 +3,7 @@ import { generirajPovzetek } from './generate_povzetek.js';
 import { generirajPriporocila } from './generate_priporocila.js';
 import { generirajInsights } from './generate_insights.js';
 import { generirajKvalifikacija } from './generate_kvalifikacija.js';
+import { generirajProdajniPredlog } from './generate_prodajni_predlog.js';
 import { posljiObvestiloOdgovor } from '../lib/mailer.js';
 import { dbQuery } from '../db.js';
 
@@ -114,5 +115,22 @@ function sproziKvalifikacija(companyId, questionnaireId) {
     () => generirajKvalifikacija(companyId, questionnaireId));
 }
 
+// Sprozi prodajni predlog v ozadju (Opus, nekaj minut). Vrstica s statusom
+// 'pripravlja' je ze vstavljena; ce generator vrze, jo oznacimo kot napako,
+// da stran ne caka v nedogled.
+function sproziProdajniPredlog(predlogId, companyId, datoteke) {
+  vOzadju(`prodajni-predlog(c=${companyId} p=${predlogId})`, async () => {
+    try {
+      await generirajProdajniPredlog(predlogId, companyId, datoteke);
+    } catch (err) {
+      await dbQuery(
+        `UPDATE prodajni_predlogi SET status = 'napaka', napaka = $2, koncano_at = NOW() WHERE id = $1`,
+        [predlogId, `Napaka pri pripravi: ${err.message}`],
+      );
+      throw err;
+    }
+  });
+}
+
 // ── DEL 5: Named exports ─────────────────────────────────────────────────
-export { sproziPovzetek, sproziPriporocila, sproziInsights, sproziKvalifikacija };
+export { sproziPovzetek, sproziPriporocila, sproziInsights, sproziKvalifikacija, sproziProdajniPredlog };

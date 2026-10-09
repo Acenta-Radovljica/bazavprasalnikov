@@ -36,8 +36,12 @@ node test/answers-rev.test.mjs       # 18 trditev (CAS zascita answers_rev, posi
 node test/save-guard.test.mjs        # 14 trditev (splakniVse pred Zaključi/Pošlji, veriga PATCH-ev)
 node test/ujemanje.test.mjs          # 51 trditev (ujemanje podjetij: domena, kratice, mozen dvojnik; lazen AI)
 node test/katalog.test.mjs           # 68 trditev (katalog resitev + interne opombe: API, stran Katalog z vsemi gumbi in telefonom, opombe na podjetju, ZIP)
-node test/izvoz.test.mjs             # 84 trditev (izvoz za Claude: ZIP, prevod odgovorov, imena datotek, navodila; brez streznika)
+node test/izvoz.test.mjs             # 87 trditev (izvoz za Claude: ZIP, prevod odgovorov, imena datotek, navodila; brez streznika)
 node test/izvoz-api.test.mjs         # 43 trditev (/api/companies/:id/izvoz + gumb na strani podjetja + regresija strani odgovora)
+node test/prodajni-predlog.test.mjs  # 47 trditev (jedro prodajnega predloga: vhod, razclenitev, preverjanje izhoda, en popravek; lazen AI, brez baze)
+node test/prodajni-predlog-api.test.mjs # 47 trditev (API pripravi/preberi/PDF, stran podjetja namizje+telefon, izbira podjetja pri zapisu sestanka)
+# prodajni-predlog-api rabi streznik BREZ AI (ANTHROPIC_API_KEY= in brez CLAUDE_SDK) in s
+# PUPPETEER_EXECUTABLE_PATH na Chrome (PDF). Pravi Opus samo na Maksovo besedo, prek CLAUDE_SDK=1.
 ```
 
 ### AI Business Score (migracija 013)

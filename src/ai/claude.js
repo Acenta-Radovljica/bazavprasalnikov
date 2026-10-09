@@ -206,17 +206,18 @@ async function klicSonnet({ system, user, maxTokens = 500, effort = EFFORT_SONNE
   return izlusciBesedilo(data, MODEL_SONNET);
 }
 
-// Klic Opus modela. Vrne string odgovor ali null.
-async function klicOpus({ system, user, maxTokens = 2000 }) {
-  if (sdkVklopljen()) return sdkKlic({ system, user, model: MODEL_OPUS, timeoutMs: TIMEOUT_OPUS_MS });
+// Klic Opus modela. Vrne string odgovor ali null. effort 'high' in daljsi
+// timeoutMs za redke, dolge izdelke (prodajni predlog); privzeto EFFORT_OPUS.
+async function klicOpus({ system, user, maxTokens = 2000, effort = EFFORT_OPUS, timeoutMs = TIMEOUT_OPUS_MS }) {
+  if (sdkVklopljen()) return sdkKlic({ system, user, model: MODEL_OPUS, timeoutMs });
   const data = await callClaudeRaw({
     model: MODEL_OPUS,
     max_tokens: maxTokens + PROSTOR_ZA_RAZMISLJANJE,
     system: system,
-    output_config: { effort: EFFORT_OPUS },
+    output_config: { effort },
     messages: [{ role: 'user', content: user }],
     fallbacks: 'default',
-  }, { timeoutMs: TIMEOUT_OPUS_MS });
+  }, { timeoutMs });
   return izlusciBesedilo(data, MODEL_OPUS);
 }
 

@@ -21,14 +21,19 @@ await pool.query(readFileSync(SQL_009, 'utf-8'));
 //    Brez tega procesi-api.test.mjs pade na trditvi "vseh vprasalnikov 5",
 //    ker jih po vsakem zagonu ostane dva vec. Odgovore je treba pobrisati
 //    prve zaradi tujega kljuca.
-await pool.query(`DELETE FROM responses WHERE questionnaire_id IN
-  (SELECT id FROM questionnaires WHERE slug LIKE 'test-snapshot-%')`);
-await pool.query(`DELETE FROM questionnaires WHERE slug LIKE 'test-snapshot-%'`);
+//    Isto za izvoz-api in prodajni-predlog-api (test-izvoz-*, test-predlog-*).
+const TESTNI = `slug LIKE 'test-snapshot-%' OR slug LIKE 'test-izvoz-%' OR slug LIKE 'test-predlog-%'`;
+await pool.query(`DELETE FROM responses WHERE questionnaire_id IN (SELECT id FROM questionnaires WHERE ${TESTNI})`);
+await pool.query(`DELETE FROM company_priporocila WHERE questionnaire_id IN (SELECT id FROM questionnaires WHERE ${TESTNI})`);
+await pool.query(`DELETE FROM questionnaires WHERE ${TESTNI}`);
 
 // 4. Katalog resitev (migracija 014): izvoz-api steje datoteke v ZIP-u, ki
 //    dobi datoteko kataloga samo, ce katalog ni prazen.
 await pool.query('TRUNCATE katalog_resitev RESTART IDENTITY');
 await pool.query('DELETE FROM nastavitve');
+
+// 5. Prodajni predlogi (migracija 015).
+await pool.query('TRUNCATE prodajni_predlogi RESTART IDENTITY');
 
 const r = await pool.query(`
   SELECT (SELECT count(*) FROM process_sessions)::int AS sej,
