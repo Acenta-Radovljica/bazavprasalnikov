@@ -1,222 +1,154 @@
 <!DOCTYPE html>
 <html lang="sl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Baza vprašalnikov — tri smeri prenove UI</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{
-  --bg:#f7f8fa; --surface:#fff; --surface-2:#fbfcfd;
-  --line:#e4e7ec; --line-2:#d0d5dd;
-  --ink:#101828; --ink-2:#475467; --muted:#98a2b3;
-  --accent:#0f766e; --accent-soft:#effcf7; --accent-line:#99e6d3;
-  --warn:#b54708; --warn-soft:#fffaeb;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--ink);font:400 14px/1.6 Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1080px;margin:0 auto;padding:44px 24px 80px}
-h1{font-size:29px;font-weight:600;letter-spacing:-.025em;line-height:1.2}
-.lede{color:var(--ink-2);margin-top:10px;max-width:70ch}
-h2{font-size:12px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:38px 0 14px}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
-.diag{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-.diag div{background:var(--surface);border:1px solid var(--line);border-left:3px solid #f79009;border-radius:9px;padding:13px 15px}
-.diag b{display:block;font-size:13.5px;font-weight:600;margin-bottom:3px}
-.diag p{font-size:13px;color:var(--ink-2)}
-.opts{display:flex;flex-direction:column;gap:14px}
-.opt{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.opt-h{display:flex;align-items:center;gap:12px;padding:15px 20px;border-bottom:1px solid var(--line)}
-.opt-h .badge{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;font-weight:700;font-size:14px;flex:none;color:#fff}
-.opt-h h3{font-size:17px;font-weight:600;letter-spacing:-.015em}
-.opt-h .tag{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 9px;border-radius:99px;background:var(--accent-soft);color:var(--accent);white-space:nowrap}
-.opt-h a{margin-left:auto;height:34px;padding:0 15px;border-radius:8px;background:var(--ink);color:#fff;font-weight:600;font-size:13px;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
-.opt-b{padding:16px 20px;display:grid;grid-template-columns:1.25fr 1fr;gap:22px}
-.opt-b p{font-size:13.5px;color:var(--ink-2);margin-bottom:10px}
-.opt-b ul{list-style:none;display:flex;flex-direction:column;gap:6px}
-.opt-b li{font-size:13px;color:var(--ink-2);padding-left:16px;position:relative}
-.opt-b li::before{content:'';position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:99px;background:var(--accent-line)}
-.opt-b li.x::before{background:#fda29b}
-.side b{display:block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
-table{width:100%;border-collapse:collapse;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-th,td{text-align:left;padding:10px 14px;font-size:13px;border-bottom:1px solid var(--line)}
-th{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);background:var(--surface-2)}
-tr:last-child td{border-bottom:0}
-td:first-child{font-weight:600;color:var(--ink)}
-td.y{color:var(--accent);font-weight:600}
-td.n{color:var(--muted)}
-.reco{background:var(--accent-soft);border:1px solid var(--accent-line);border-radius:12px;padding:18px 22px}
-.reco b{color:var(--accent)}
-.reco p{color:#134e48;font-size:13.5px;margin-top:6px}
-.foot{margin-top:34px;padding-top:18px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted)}
-kbd{font:600 11px Inter;border:1px solid var(--line-2);background:#fff;border-radius:4px;padding:2px 5px}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Baza vprašalnikov · prenova vmesnika (oktober 2026)</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    .wrap { max-width: 960px; margin: 0 auto; padding: var(--space-12) var(--space-6) var(--space-16); }
+    .hero { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-4); }
+    h1 { font-size: var(--text-xl); letter-spacing: -0.015em; }
+    .lede { color: var(--text-secondary); max-width: 68ch; line-height: 1.6; }
+    h2 { font-size: var(--text-md); margin: var(--space-10) 0 var(--space-4); }
+    .screens { display: grid; gap: var(--space-3); }
+    .screen { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: var(--space-4); align-items: start; padding: var(--space-4) var(--space-5); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out); }
+    .screen:hover { border-color: var(--accent-muted); }
+    .screen__n { width: 32px; height: 32px; border-radius: var(--radius-md); display: grid; place-items: center; background: var(--accent-subtle); color: var(--accent-text); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; }
+    .screen h3 { font-size: var(--text-base); }
+    .screen p { font-size: var(--text-sm); color: var(--text-secondary); margin-top: 2px; line-height: 1.55; }
+    .screen p.try { color: var(--text-muted); margin-top: 6px; }
+    .changes { display: grid; gap: var(--space-2); padding: 0; margin: 0; list-style: none; }
+    .changes li { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: var(--space-2); font-size: var(--text-base); color: var(--text-secondary); line-height: 1.55; }
+    .changes li svg { margin-top: 3px; color: var(--accent); }
+    .changes b { color: var(--text); font-weight: var(--weight-medium); }
+    .kit { display: grid; gap: var(--space-5); padding: var(--space-5); background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+    .kit__row { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .kit__lbl { width: 100%; font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--weight-medium); }
+    .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: var(--space-2); width: 100%; }
+    .sw { border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; font-size: var(--text-xs); }
+    .sw i { display: block; height: 36px; }
+    .sw span { display: block; padding: 6px 8px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .foot { margin-top: var(--space-10); padding-top: var(--space-4); border-top: 1px solid var(--border-subtle); font-size: var(--text-sm); color: var(--text-muted); }
+    @media (max-width: 699px) {
+      .wrap { padding: var(--space-8) var(--space-4) var(--space-12); }
+      .screen { grid-template-columns: 32px minmax(0, 1fr); }
+      .screen .btn { grid-column: 2; justify-self: start; }
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+</svg>
 
-  <h1>Baza vprašalnikov — tri smeri prenove vmesnika</h1>
-  <p class="lede">Vsaka smer je delujoč HTML z dvema zaslonoma: <b>Pregled</b> (prva stran) in <b>Procesi</b> (delovni seznam). Številke so vzorčne, ker so pravi podatki za Basic Auth. Nič od tega še ni v aplikaciji — najprej izberi smer, potem gradim.</p>
+<main class="wrap">
+  <div class="hero">
+    <span class="brand-mark" aria-hidden="true">a</span>
+    <h1>Baza vprašalnikov: prenova vmesnika</h1>
+  </div>
+  <p class="lede">Ključni zasloni v enem samem vizualnem sistemu (<code>tokens.css</code>), ki lahko nadomesti današnje tri. Vse kontrole iz aplikacije so ostale; spremenjen je videz, hierarhija in popravljene so znane težave. Podatki so izmišljeni.</p>
 
-  <h2>Kaj po mojem danes ne dela</h2>
-  <div class="diag">
-    <div>
-      <b>Vmesnik je oblečen kot brošura, uporablja pa se kot orodje</b>
-      <p>Krem ozadje, serifni naslovi, 88 px velike serifne številke, plavajoč zeleni blob za naslovom. To je jezik agencijske predstavitve, ne notranje konzole, v kateri gledaš 47 podjetij in 10 stolpcev.</p>
+  <h2>Zasloni</h2>
+  <div class="screens">
+    <a class="screen" href="danes.html">
+      <span class="screen__n">1</span>
+      <div><h3>Danes</h3><p>Kaj je na tebi danes: en poudarek dneva, en trak kazalnikov namesto petih barvnih kartic, tri vedra dela.</p><p class="try">Poskusite: gumb Statistika.</p></div>
+      <span class="btn btn--secondary btn--sm">Odpri<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></span>
+    </a>
+    <a class="screen" href="podjetje.html">
+      <span class="screen__n">2</span>
+      <div><h3>Podjetje (Hotel Smrekov gaj)</h3><p>Prodajni predlog kot dokument za branje na svetli podlagi, v celoti, brez »Pokaži vse«. Opombe, ocena in status ostanejo ob strani vidni med branjem. Priprava na delavnico je zložena pod predlogom.</p><p class="try">Poskusite: Za Matjaža, oceno leada, status, vprašalnik v glavi. Na dnu so ločeni okvirji stanj (pripravlja, prazno, napaka, dvojnik).</p></div>
+      <span class="btn btn--secondary btn--sm">Odpri<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></span>
+    </a>
+    <a class="screen" href="seja.html">
+      <span class="screen__n">3</span>
+      <div><h3>Zapis sestanka</h3><p>Isti videz kot preostala aplikacija. Lepljiva vrstica pove, čigav je sestanek, koliko je izpolnjeno in ali je shranjeno; kazalo sklopov pokaže, kje še kaj manjka.</p><p class="try">Poskusite: tipkanje (shranjevanje), klik na »2 obvezni manjkata«, Uredi vprašanja, Zaključi.</p></div>
+      <span class="btn btn--secondary btn--sm">Odpri<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></span>
+    </a>
+    <a class="screen" href="podjetja.html">
+      <span class="screen__n">4</span>
+      <div><h3>Podjetja</h3><p>Seznam z iskanjem, oceno in statusom; nov stolpec Prodajni predlog. Na telefonu postane seznam kartic brez vodoravnega drsenja.</p><p class="try">Poskusite: filtre in spremembo statusa v vrstici.</p></div>
+      <span class="btn btn--secondary btn--sm">Odpri<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></span>
+    </a>
+    <a class="screen" href="odgovor.html">
+      <span class="screen__n">5</span>
+      <div><h3>Odgovor (Mojca Zupan, Hotel Smrekov gaj)</h3><p>Analiza enega odgovora: AI povzetek kot berljivo besedilo, vsi odgovori po sklopih (izbire kot značke, daljši odgovori kot odstavki, neodgovorjena vprašanja tiho označena), prejšnji in naslednji odgovor podjetja, kopija obrazca zložena na dnu.</p><p class="try">Poskusite: Pokaži ključe polj, Prenesi CSV, Obrazec, kot ga je videla stranka. Na dnu je okvir stanja brez AI povzetka.</p></div>
+      <span class="btn btn--secondary btn--sm">Odpri<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></span>
+    </a>
+    <a class="screen" href="podjetje.html#delavnica">
+      <span class="screen__n">6</span>
+      <div><h3>Priprava na delavnico (razprta)</h3><p>Priporočila po vprašalniku kot dokument na isti bralni površini kot prodajni predlog: povzetek skupine, agenda delavnice, predlogi po oddelkih, naslednji koraki; opozorilo Zastarelo pove, kaj narediti.</p><p class="try">Poskusite: zavihek Digitalna zrelost oddelkov (še ni pripravljeno), Regeneriraj priporočila.</p></div>
+      <span class="btn btn--secondary btn--sm">Odpri<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></span>
+    </a>
+  </div>
+
+  <h2>Kaj se spremeni</h2>
+  <ul class="changes">
+    <li><svg class="icon"><use href="#i-check"/></svg><span><b>En sistem namesto treh.</b> Ena pisava (Inter), ena paleta in isti gumbi na vseh straneh; brez Tailwinda s CDN-ja.</span></li>
+    <li><svg class="icon"><use href="#i-check"/></svg><span><b>Navigacija z napisi.</b> Ozek pas samo z ikonami postane stranski meni z imeni strani; na telefonu se odpre kot predal.</span></li>
+    <li><svg class="icon"><use href="#i-check"/></svg><span><b>Predlog se bere kot dokument.</b> Temno petrolejsko kartico zamenja svetla stran s 16 px besedilom, 68 znaki na vrstico in tabelo, ki se na telefonu drsi znotraj okvirja.</span></li>
+    <li><svg class="icon"><use href="#i-check"/></svg><span><b>Manj šuma za Matjaža.</b> Brez »Normalizirano« v glavi (premaknjeno v Upravljanje), brez 33 px besede za oceno leada, delavnica je zložena.</span></li>
+    <li><svg class="icon"><use href="#i-check"/></svg><span><b>Barva pomeni nekaj.</b> Jantarna samo, kjer je treba ukrepati; petrolejska samo za dejanja in izbrano; ostalo je sivo.</span></li>
+    <li><svg class="icon"><use href="#i-check"/></svg><span><b>Zapis sestanka ne izgleda več kot druga aplikacija.</b> En glavni gumb (Zaključi), brez črnega gumba, na telefonu so gumbi spodaj pri palcu.</span></li>
+  </ul>
+
+  <h2>Gradniki</h2>
+  <div class="kit">
+    <div class="kit__row">
+      <span class="kit__lbl">Barve (pomen, ne okras)</span>
+      <div class="swatches">
+        <div class="sw"><i style="background:var(--bg-canvas)"></i><span>podlaga</span></div>
+        <div class="sw"><i style="background:var(--bg-sidebar)"></i><span>navigacija</span></div>
+        <div class="sw"><i style="background:var(--bg-surface)"></i><span>panel</span></div>
+        <div class="sw"><i style="background:var(--text)"></i><span>besedilo</span></div>
+        <div class="sw"><i style="background:var(--text-muted)"></i><span>sekundarno</span></div>
+        <div class="sw"><i style="background:var(--accent)"></i><span>akcent #0b7a6c</span></div>
+        <div class="sw"><i style="background:var(--accent-subtle)"></i><span>akcent rahlo</span></div>
+        <div class="sw"><i style="background:var(--warning)"></i><span>opozorilo</span></div>
+        <div class="sw"><i style="background:var(--danger)"></i><span>napaka, hot</span></div>
+        <div class="sw"><i style="background:var(--success)"></i><span>uspeh</span></div>
+        <div class="sw"><i style="background:var(--info)"></i><span>info, cold</span></div>
+      </div>
     </div>
-    <div>
-      <b>Ena številka zavzame toliko prostora kot deset vrstic podatka</b>
-      <p>Dve veliki kartici z „podjetja" in „odgovori" pojesta prvi zaslon, pravo delo (kaj moram narediti) pa je nižje ali skrito v drugem pogledu.</p>
+    <div class="kit__row">
+      <span class="kit__lbl">Gumbi</span>
+      <button class="btn btn--primary" type="button"><svg class="icon"><use href="#i-plus"/></svg>Nov sestanek</button>
+      <button class="btn btn--secondary" type="button">Statistika</button>
+      <button class="btn btn--soft" type="button">Dodaj transkript</button>
+      <button class="btn btn--ghost" type="button">Natisni</button>
+      <button class="btn btn--danger" type="button">GDPR izbris</button>
+      <button class="btn btn--secondary" type="button" disabled>Onemogočeno</button>
     </div>
-    <div>
-      <b>Pregled ne ve, da procesi obstajajo</b>
-      <p>Prva stran šteje samo podjetja in odgovore. Procesne seje, manjkajoči transkripti in „pripravljeno za pošiljanje" se ne pojavijo nikjer, čeprav so zdaj glavno delo.</p>
+    <div class="kit__row">
+      <span class="kit__lbl">Značke</span>
+      <span class="chip">Neocenjeno</span>
+      <span class="chip chip--accent">Poslano</span>
+      <span class="chip chip--success">Pripravljen</span>
+      <span class="chip chip--warning">Osnutek</span>
+      <span class="chip chip--danger">Napaka</span>
+      <span class="chip chip--hot">Hot</span>
+      <span class="chip chip--warm">Warm</span>
+      <span class="chip chip--cold">Cold</span>
     </div>
-    <div>
-      <b>Vsaka stran ima svoj slog</b>
-      <p>Navigacijo sem poenotil, ostalo pa ne: gradniki kartic, velikosti pisav in gostota vrstic se med Pregledom, Podjetji, Procesi in Vprašalniki še vedno razlikujejo.</p>
+    <div class="kit__row">
+      <span class="kit__lbl">Polja in izbira</span>
+      <label class="search" style="flex:1 1 220px;max-width:280px"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><input type="search" placeholder="Filtriraj po nazivu …" aria-label="Primer iskanja"></label>
+      <span class="select-wrap" style="width:180px"><select class="select" aria-label="Primer izbora"><option>Sestanek</option><option>Ponudba</option></select></span>
+      <div class="seg" role="group" aria-label="Primer segmentov"><button class="seg__item is-active" type="button">Vse</button><button class="seg__item" type="button">Hot</button><button class="seg__item" type="button">Warm</button><button class="seg__item" type="button">Cold</button></div>
+      <label class="choice"><input type="checkbox" checked>prihranek časa</label>
+    </div>
+    <div class="kit__row">
+      <span class="kit__lbl">Obvestila</span>
+      <div class="callout callout--warning" style="flex:1 1 100%"><svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><div><b>Preverite pred pošiljanjem:</b> obvestilo s polnim robom in tonom, brez stranskega traku.</div></div>
     </div>
   </div>
 
-  <h2>Četrta smer — po pregledu referenc</h2>
-  <div class="opts">
-    <div class="opt" style="border-color:var(--accent-line);box-shadow:0 0 0 3px var(--accent-soft)">
-      <div class="opt-h">
-        <span class="badge" style="background:#111820">D</span>
-        <h3>Studio</h3>
-        <span class="tag">Ista postavitev, močnejša obrt</span>
-        <a href="d-studio.html">Odpri smer D →</a>
-      </div>
-      <div class="opt-b">
-        <div>
-          <p>Zgrajeno po tem, ko sem pogledal, kako izgledajo dashboardi z najvišjo obrtno kakovostjo danes (<b>linear.app</b>, <b>attio.com</b>). Postavitev je ista kot A+B — spremenila se je izvedba.</p>
-          <ul>
-            <li>Aplikacija sedi v <b>uokvirjenem panelu</b> na mehki ambientni podlagi, ne kot ploska stran čez cel zaslon</li>
-            <li><b>Temen rail</b> proti svetli vsebini: kontrast dela strukturo brez dodatnih črt</li>
-            <li><b>Ukazna vrstica ⌘K</b> na vrhu raila kot prvorazreden element</li>
-            <li>KPI ploščice z mikro trendom, akcentno lasnico in ločenim opozorilnim stanjem</li>
-            <li>Shranjeni pogledi kot <b>segmentiran krmilnik</b>, filtri kot značke</li>
-            <li>Vrstica ob prehodu miške dobi tanko akcentno črto; teal samo za aktivno in pozitivno</li>
-          </ul>
-        </div>
-        <div class="side">
-          <b>Zakaj to</b>
-          <p style="margin-bottom:12px">Maks: „daj mal jači design". A je bila pravilna glede gostote, a je izgledala kot orodje brez avtorja.</p>
-          <b>Cena</b>
-          <p>Samo <code>admin.css</code> + glave strani. Struktura, endpointi in testi ostanejo.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <h2>Prve tri smeri (izhodišče)</h2>
-  <div class="opts">
-
-    <div class="opt">
-      <div class="opt-h">
-        <span class="badge" style="background:#0f766e">A</span>
-        <h3>Operativna konzola</h3>
-        <span class="tag">Gostota</span>
-        <a href="a-konzola.html">Odpri smer A →</a>
-      </div>
-      <div class="opt-b">
-        <div>
-          <p>Isti zasloni, samo brez okrasja. Nevtralna svetla paleta, brez serifa, brez blobov. Vrstice 36 px, tabularne številke, naslovi stolpcev v malih verzalkah. Šest majhnih KPI ploščic v enem traku namesto dveh velikih kartic.</p>
-          <ul>
-            <li>Na zaslon gre 3× več podatka, brez drobnega tiska</li>
-            <li>Levi rail dobi skupine (Delo / Analiza) in števce</li>
-            <li>Filtri procesov v eni vrstici, ki se ne preliva</li>
-            <li>Najmanj tvegana pot: struktura ostane, zamenja se koža</li>
-          </ul>
-        </div>
-        <div class="side">
-          <b>Za koga</b>
-          <p style="margin-bottom:12px">Zate in za Majo, ki v seznamu iščeta konkretno sejo.</p>
-          <b>Cena</b>
-          <p>Prepis <code>admin.css</code> + čiščenje inline stilov po straneh. Brez sprememb backenda.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="opt">
-      <div class="opt-h">
-        <span class="badge" style="background:#1c2127">B</span>
-        <h3>Danes — prioritetni nabiralnik</h3>
-        <span class="tag">Struktura</span>
-        <a href="b-danes.html">Odpri smer B →</a>
-      </div>
-      <div class="opt-b">
-        <div>
-          <p>Sprememba ni barva, ampak vsebina prve strani. Namesto števcev pokaže tri vrste dela: <b>Ukrepaj</b> (na tebi), <b>Čaka druge</b>, <b>Zaključeno ta teden</b>. Vsaka vrstica ima gumb za naslednji korak. Procesi niso ena tabela z 10 stolpci, ampak skupine po statusu.</p>
-          <ul>
-            <li>Prva stran je delovna površina, ne poročilo</li>
-            <li>„Pripravljeno za pošiljanje" in „brez transkripta" nista več skrita v filtrih</li>
-            <li>Shranjeni pogledi (Moji, Brez transkripta, Za pošiljanje)</li>
-            <li class="x">Rabi nov endpoint, ki sestavi naloge — največ dela</li>
-          </ul>
-        </div>
-        <div class="side">
-          <b>Za koga</b>
-          <p style="margin-bottom:12px">Za komercialista, ki odpre aplikacijo in hoče vedeti, kaj mora danes narediti.</p>
-          <b>Cena</b>
-          <p>Nov <code>/api/naloge</code> + predelava Pregleda in seznama procesov.</p>
-        </div>
-      </div>
-    </div>
-
-    <div class="opt">
-      <div class="opt-h">
-        <span class="badge" style="background:#111820">C</span>
-        <h3>Noir Teal — temna, kot Acenta OS</h3>
-        <span class="tag">Enotnost sistemov</span>
-        <a href="c-noir.html">Odpri smer C →</a>
-      </div>
-      <div class="opt-b">
-        <div>
-          <p>Ista gostota kot smer A, samo temna in poravnana z Acenta OS, ki je od 20. 8. v Noir Teal temi. Teal je rezerviran samo za aktivno stanje in pozitivne vrednosti, nikoli za dekoracijo.</p>
-          <ul>
-            <li>Baza in Acenta OS izgledata kot ena hiša</li>
-            <li>Manj utrujajoče, če v tem preživiš cel dan</li>
-            <li class="x">Prilogo za stranko (PDF, e-pošta) je treba pustiti svetlo</li>
-            <li class="x">Vsi obstoječi inline Tailwind razredi po straneh so svetli — največ prepisovanja med tremi smermi</li>
-          </ul>
-        </div>
-        <div class="side">
-          <b>Za koga</b>
-          <p style="margin-bottom:12px">Zate, če hočeš en vizualni jezik čez vsa interna orodja.</p>
-          <b>Cena</b>
-          <p>Kot A, plus revizija vsake strani za temno podlago.</p>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <h2>Primerjava</h2>
-  <table>
-    <thead><tr><th>Merilo</th><th>A · Konzola</th><th>B · Danes</th><th>C · Noir</th></tr></thead>
-    <tbody>
-      <tr><td>Preglednost seznamov</td><td class="y">Zelo dobra</td><td>Dobra</td><td class="y">Zelo dobra</td></tr>
-      <tr><td>Odgovori „kaj naj naredim"</td><td class="n">Delno</td><td class="y">Da, to je bistvo</td><td class="n">Delno</td></tr>
-      <tr><td>Enotnost z Acenta OS</td><td class="n">Ne</td><td class="n">Ne</td><td class="y">Da</td></tr>
-      <tr><td>Sprememba backenda</td><td class="y">Nobene</td><td>Nov endpoint za naloge</td><td class="y">Nobene</td></tr>
-      <tr><td>Obseg dela</td><td class="y">Najmanjši</td><td>Srednji</td><td>Največji</td></tr>
-      <tr><td>Tveganje regresije</td><td class="y">Nizko</td><td>Srednje</td><td>Srednje</td></tr>
-    </tbody>
-  </table>
-
-  <h2>Kaj predlagam</h2>
-  <div class="reco">
-    <b>Zgrajeno je A+B; naslednji korak je D kot koža na isti strukturi.</b>
-    <p>A+B sta že v kodi (veja <code>ui-prenova-a-b</code>): nova paleta, gostota, „Danes" s tremi vedri, skupine na Procesih, nov <code>/api/naloge</code>, 302 testne trditve. D ne premika ničesar od tega — zamenja samo <code>admin.css</code> in glave strani, da aplikacija dobi obraz: uokvirjen panel, temen rail, ⌘K, mikro trendi, segmentiran krmilnik. Če rečeš da, je to en obhod čez <code>admin.css</code> in nekaj vrstic po straneh, testi pa povedo, če se je kaj podrlo.</p>
-  </div>
-
-  <div class="foot">
-    Datoteke so v <code>design-prototype/</code> v repozitoriju in ostanejo tam kot vizualna referenca, dokler pravi vmesnik ne izgleda tako. Vrni mi <b>en seznam</b>: izbrana smer + kaj v njej popraviti. Namig: <kbd>Ctrl</kbd> + <kbd>−</kbd> za pogled celega zaslona.
-  </div>
-
-</div>
+  <p class="foot">Prejšnje smeri (avgust in september 2026) so v <a class="link" href="smeri-avg-sep-2026.html">smeri-avg-sep-2026.html</a>. Prototip ni povezan z bazo; stanja (pripravlja, prazno, napaka) so pokazana kot ločeni okvirji.</p>
+</main>
 </body>
 </html>

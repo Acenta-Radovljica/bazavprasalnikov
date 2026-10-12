@@ -2,31 +2,56 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Iskanje</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Iskanje · Acenta baza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+  <link rel="stylesheet" href="/admin/admin.css">
   <style>
-    /* ts_headline obkroza zadetke v <b>...</b> */
-    b { background: #fef08a; padding: 0 2px; border-radius: 2px; }
+    /* Full-text search over all answers (closest: podjetja.html search box,
+       odgovor.html reading style). */
+    .iskanje { max-width: 720px; margin-bottom: var(--space-6); }
+    .iskanje input::-webkit-search-cancel-button { cursor: pointer; }
+    .zadetki__stevec { font-size: var(--text-sm); margin-bottom: var(--space-3); }
+    .rows > .zadetek { display: block; padding: 14px var(--space-4); }
+    .zadetek__head { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+    .zadetek__head .link { overflow-wrap: anywhere; }
+    .zadetek__meta { font-size: var(--text-sm); color: var(--text-muted); }
+    .zadetek__izsek { margin-top: 6px; font-size: var(--text-base); line-height: 1.6; color: var(--text-secondary); max-width: var(--prose-max); overflow-wrap: anywhere; }
+    /* ts_headline wraps the hits in <b>…</b> */
+    .zadetek b { background: var(--warning-bg); color: var(--text); border-radius: var(--radius-xs); padding: 0 2px; font-weight: var(--weight-semibold); }
+    @media (max-width: 760px) {
+      .iskanje { margin-bottom: var(--space-4); }
+      .zadetek__head { flex-direction: column; gap: 2px; }
+    }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <header id="nav"></header>
+<body>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar__title">
+          <h1>Iskanje</h1>
+          <span class="topbar__meta">Polnotekstovno po vseh odgovorih</span>
+        </div>
+      </header>
 
-  <main class="max-w-5xl mx-auto px-6 py-8">
-    <h1 class="text-2xl font-bold text-[#16262e] mb-4">Polnotekstovno iskanje</h1>
+      <div class="page">
+        <form id="form" class="iskanje" role="search">
+          <label class="search search--lg">
+            <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+            <span class="sr-only">Iskalno geslo</span>
+            <input id="q" type="search" enterkeyhint="search" autocomplete="off"
+              placeholder="Vpišite iskalno geslo, npr. wellness, chatbot, rezervacije">
+          </label>
+        </form>
 
-    <form id="form" class="mb-6">
-      <input
-        id="q"
-        type="text"
-        placeholder="Vnesi iskalno geslo (npr. wellness, chatbot, AI orodja)..."
-        class="w-full px-4 py-3 border border-gray-300 rounded focus:outline-none focus:border-[#0b7a6c]"
-      >
-    </form>
-
-    <div id="results"></div>
-  </main>
+        <div id="results"></div>
+      </div>
+    </main>
+  </div>
 
   <script src="/admin/app.js"></script>
   <script>
@@ -35,48 +60,66 @@
     const input = document.getElementById('q');
     const initialQ = qs('q') ?? '';
     input.value = initialQ;
-    if (initialQ) iskanje(initialQ);
+    iskanje(initialQ);
+    if (!initialQ) input.focus();
 
     document.getElementById('form').addEventListener('submit', (e) => {
       e.preventDefault();
       const q = input.value.trim();
       const url = new URL(window.location.href);
-      url.searchParams.set('q', q);
+      if (q) url.searchParams.set('q', q); else url.searchParams.delete('q');
       window.history.replaceState({}, '', url);
       iskanje(q);
     });
 
+    function prazno(naslov, besedilo) {
+      document.getElementById('results').innerHTML = `
+        <section class="panel">
+          <div class="empty">
+            <span class="empty__icon" aria-hidden="true">${ikona('search', 'icon--lg')}</span>
+            <p class="empty__title">${naslov}</p>
+            <p class="empty__text">${besedilo}</p>
+          </div>
+        </section>`;
+    }
+
     async function iskanje(q) {
       if (!q) {
-        document.getElementById('results').innerHTML = '';
+        prazno('Vpišite iskalno geslo', 'Iskanje pregleda vse odgovore na vprašalnike in AI povzetke. Išče cele besede, npr. »wellness« ali »rezervacije«; potrdite s tipko Enter.');
         return;
       }
-      showLoading('results', 'Iščem...');
+      showLoading('results', 'Iščem …');
       const data = await apiFetch(`/api/search?q=${encodeURIComponent(q)}`);
-      if (!data) { showError('results', 'Napaka pri iskanju.'); return; }
+      if (!data) { showError('results', 'Iskanje ni uspelo. Poskusite znova.'); return; }
       renderResults(data.results ?? [], q);
+    }
+
+    // Postgres ts_headline returns raw answer text with <b> markers. The text
+    // comes from public forms, so escape everything and restore only <b>.
+    function izsek(h) {
+      return esc(h ?? '').replace(/&lt;(\/?)b&gt;/g, '<$1b>');
     }
 
     function renderResults(results, q) {
       const el = document.getElementById('results');
       if (!results.length) {
-        el.innerHTML = `<div class="bg-white rounded shadow p-6 text-gray-500">Brez zadetkov za "${esc(q)}".</div>`;
+        prazno(`Ni zadetkov za »${esc(q)}«`, 'Iskanje išče cele besede. Poskusite z drugo obliko besede (npr. »rezervacije« namesto »rezervacija«) ali s krajšim geslom.');
         return;
       }
       el.innerHTML = `
-        <div class="text-sm text-gray-500 mb-3">${results.length} zadetkov</div>
-        ${results.map(r => `
-          <div class="bg-white rounded shadow p-4 mb-3">
-            <div class="flex items-center justify-between mb-2">
-              <a href="/admin/response.html?id=${r.response_id}" class="text-sm font-medium text-[#0b7a6c] hover:underline">
-                ${esc(r.naziv_prikaz)} — odgovor #${r.response_id}
-              </a>
-              <span class="text-xs text-gray-500">${formatDatum(r.submitted_at)}</span>
-            </div>
-            <div class="text-sm text-gray-700">${r.highlight ?? ''}</div>
-          </div>
-        `).join('')}
-      `;
+        <p class="muted zadetki__stevec" role="status">${sklon(results.length, ['zadetek', 'zadetka', 'zadetki', 'zadetkov'])}${results.length >= 50 ? ' (prikazanih prvih 50)' : ''}</p>
+        <section class="panel">
+          <ul class="rows">
+            ${results.map(r => `
+              <li class="row zadetek">
+                <div class="zadetek__head">
+                  <a class="link" href="/admin/response.html?id=${r.response_id}">${esc(r.naziv_prikaz)}: odgovor #${r.response_id}</a>
+                  <span class="zadetek__meta">${[r.q_naziv ? esc(r.q_naziv) : '', formatDan(r.submitted_at)].filter(Boolean).join(' · ')}</span>
+                </div>
+                <p class="zadetek__izsek">${izsek(r.highlight)}</p>
+              </li>`).join('')}
+          </ul>
+        </section>`;
     }
   </script>
 </body>

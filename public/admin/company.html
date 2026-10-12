@@ -2,96 +2,156 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Podjetje</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Podjetje · Acenta baza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
   <link rel="stylesheet" href="/admin/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
-    /* Prodajni predlog levo zgoraj, priprava na delavnico pod njim, stranski
-       stolpec cez obe vrsti. Na ozkem zaslonu: predlog, opombe in ocena,
-       sele nato delavnica (opombe sodijo k predlogu). */
-    /* Druga vrsta 1fr: visino stranskega stolpca (cez obe vrsti) vzame
-       delavnica, ne predlog, sicer pod predlogom ostane prazen pas. */
-    .pp-mreza { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(265px, .74fr);
-      grid-template-rows: auto 1fr;
-      grid-template-areas: "predlog stran" "delavnica stran"; gap: 16px; align-items: start; }
-    .pp-predlog { grid-area: predlog; }
-    .pp-stran { grid-area: stran; }
-    .pp-delavnica { grid-area: delavnica; }
-    @media (max-width: 1080px) {
-      .pp-mreza { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "predlog" "stran" "delavnica"; }
+    /* Company record (design-prototype/podjetje.html): document + properties,
+       like a CRM record. Areas: doc | props, work, answers | meta. */
+    .ident__meta { margin-top: 6px; }
+    .ident .qlink:has(.count) { padding-right: 4px; }
+    .dvojnik { margin-bottom: var(--space-5); }
+    .dvojnik > div { flex: 1; min-width: 0; }
+
+    .record {
+      display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6);
+      grid-template-areas: "doc props" "work ." "answers meta";
+      align-items: start;
+    }
+    .a-doc { grid-area: doc; scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+    .a-props { grid-area: props; align-self: stretch; min-width: 0; }
+    .a-work { grid-area: work; }
+    .a-answers { grid-area: answers; }
+    .a-meta { grid-area: meta; }
+    .props { position: sticky; top: calc(var(--topbar-h) + var(--space-4)); }
+
+    /* Sales proposal: reading surface */
+    .docp__note { padding: 0 var(--space-6) var(--space-3); }
+    .doc h3 .dept { font-weight: var(--weight-regular); color: var(--text-muted); }
+    .panel > .empty { padding: var(--space-4) var(--space-6) var(--space-8); }
+    .docp__head + .loading { padding: var(--space-8) var(--space-6); justify-content: flex-start; }
+
+    /* Lead score: the AI segment shows what the AI suggests */
+    .seg-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--text-faint); }
+    .seg-dot--hot { background: var(--lead-hot); }
+    .seg-dot--warm { background: var(--lead-warm); }
+    .seg-dot--cold { background: var(--lead-cold); }
+
+    /* Workshop preparation: secondary, folded */
+    .work { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+    .work > summary.work__sum { padding: var(--space-4) var(--space-6); }
+    .work[open] > summary { border-bottom: 0; }
+    .work__sum h2 { font-size: var(--text-md); white-space: nowrap; }
+    .work__sum p { font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .work__sum > div { min-width: 0; flex: 1; }
+    .work__tabs { padding: 0 var(--space-6); }
+    .work__tabs .tab { height: 44px; }
+    .work__tools { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--border-subtle); }
+    .work__status { margin-bottom: var(--space-4); max-width: var(--prose-max); }
+    .work > .empty-line { padding: var(--space-4) var(--space-6) var(--space-6); text-align: left; }
+    .actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .empty .work__status { margin: var(--space-3) 0 0; }
+
+    /* Answers */
+    .odg-tabs { padding: 0 var(--space-4); }
+    .resp { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--space-3); padding: var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+    .resp:last-of-type { border-bottom: 0; }
+    .resp h3 { font-size: var(--text-base); font-weight: var(--weight-semibold); overflow-wrap: anywhere; }
+    .resp__meta { font-size: var(--text-sm); color: var(--text-muted); margin-top: 1px; overflow-wrap: anywhere; }
+    .resp__sum {
+      margin-top: var(--space-2); max-width: 72ch;
+      font-size: var(--text-sm); line-height: 1.6; color: var(--text-secondary); overflow-wrap: anywhere;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .resp__sum.is-open { display: block; -webkit-line-clamp: unset; overflow: visible; }
+    .resp__sum :is(p, ul, ol, h1, h2, h3, h4, blockquote, pre) { margin: 0; font-size: inherit; line-height: inherit; color: inherit; }
+    .resp__sum :is(h1, h2, h3, h4) { font-weight: var(--weight-semibold); color: var(--text); }
+    .resp__sum :is(ul, ol) { padding-left: 1.25em; }
+    .resp__sum.is-open > * + * { margin-top: var(--space-2); }
+    .resp__sum strong { color: var(--text); font-weight: var(--weight-semibold); }
+    .resp__none { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--text-muted); }
+    .resp .link { margin-top: 6px; font-size: var(--text-sm); }
+    .resp__open { align-self: start; }
+
+    /* Management: normalized name below the actions */
+    .kv--meta { margin-top: var(--space-4); border-top: 1px solid var(--border-subtle); }
+    .kv--meta > div { padding-bottom: 0; font-size: var(--text-xs); }
+    .kv--meta dd { font-family: var(--font-mono); color: var(--text-secondary); }
+
+    @media (max-width: 1100px) {
+      .record { grid-template-columns: minmax(0, 1fr); grid-template-areas: "doc" "props" "work" "answers" "meta"; }
+      .props { position: static; }
     }
     @media (max-width: 760px) {
-      .pp-predlog .e-switch { display: flex; width: 100%; }
-      .pp-predlog .e-switch button { flex: 1; }
+      .ident__meta > span:first-child { flex: 1 1 100%; }
+      .docp__actions { order: -1; }
+      .docp__actions .btn { flex: 1 1 0; }
+      .docp__actions .btn--primary { order: -1; flex: 1 1 100%; }
+      .docp__bar .tabs { border-top: 1px solid var(--border-subtle); gap: var(--space-6); }
+      .resp { grid-template-columns: 36px minmax(0, 1fr); }
+      .resp__open { grid-column: 2; justify-self: start; }
+      .work__sum p { white-space: normal; }
+      .work > summary.work__sum { padding: var(--space-4); }
+      .work__tabs { padding: 0 var(--space-4); gap: var(--space-6); }
+      .work__tools { padding: var(--space-3) var(--space-4); }
+      .work__tools .btn { flex: 1 1 auto; }
+      .work > .empty-line { padding: var(--space-4); }
     }
-    .pp-predlog { scroll-margin-top: 16px; }
-
-    /* Dokument predloga: naslovi berljivi (e-reco jih sicer pise z malimi
-       velikimi crkami), siroka tabela se drsi znotraj kartice. */
-    .pp-dok h1 { font-size: 19px; letter-spacing: -.02em; text-transform: none; color: #fff; margin-top: 4px; }
-    .pp-dok h2 { font-size: 15px; letter-spacing: -.01em; text-transform: none; color: #fff; margin-top: 20px; }
-    .pp-dok h3 { font-size: 14px; letter-spacing: 0; text-transform: none; color: var(--lime); margin-top: 18px; }
-    .pp-dok table { display: block; max-width: 100%; overflow-x: auto; }
-    .pp-opozorila ul { margin: 4px 0 0; padding-left: 18px; list-style: disc; font-weight: 600; }
-
-    /* Priprava na delavnico: ista vsebina na svetli kartici */
-    .pp-svetlo .e-switch { background: var(--track); }
-    .pp-svetlo .e-switch button { color: var(--muted); }
-    .pp-svetlo .e-switch button:hover:not(.active) { color: var(--ink); }
-    .pp-svetlo .e-switch button.active { background: var(--accent); color: #fff; }
-    .pp-svetlo .e-badge { background: var(--accent-softer); color: var(--accent-ink); }
-    .pp-svetlo .e-warnbar { background: var(--peach); color: var(--peach-ink); }
-    .pp-svetlo .e-reco { color: var(--ink); font-weight: 500; }
-    .pp-svetlo .e-reco h1, .pp-svetlo .e-reco h2, .pp-svetlo .e-reco h3, .pp-svetlo .e-reco h4 { color: var(--accent-ink); }
-    .pp-svetlo .e-reco strong, .pp-svetlo .e-reco b { color: var(--ink); }
-    .pp-svetlo .e-reco a { color: var(--accent); }
-    .pp-svetlo .e-reco th, .pp-svetlo .e-reco td { border-color: var(--hairline); }
-    .pp-svetlo .e-reco hr { border-top-color: var(--hairline); }
-    .pp-svetlo .e-reco-wrap::after { background: linear-gradient(180deg, transparent, var(--card-bg)); }
-    .pp-svetlo .e-reco-prazno .ikona { background: var(--accent-softer); color: var(--accent); }
-    .pp-svetlo .e-reco-prazno b { color: var(--ink); }
-    .pp-svetlo .e-reco-prazno p { color: var(--muted); }
-
     @media print {
-      .app-sidebar, [data-mobilna-nav], .e-feature-actions, .e-crumb, .e-bottom { display: none !important; }
-      .e-reco-wrap { max-height: none !important; }
-      .e-reco-wrap::after { display: none !important; }
+      .ident, .dvojnik, .a-props, .a-work, .a-answers, .a-meta, .docp__actions, .docp__tabs, .docp__note, .docp__body > .callout { display: none !important; }
+      /* "Natisni" in the workshop prints only the recommendations */
+      body.tisk-delavnica .a-doc { display: none !important; }
+      body.tisk-delavnica .a-work { display: block !important; border: 0; }
+      body.tisk-delavnica .work__tabs, body.tisk-delavnica .work__tools, body.tisk-delavnica .disclosure__chev, body.tisk-delavnica #workStale { display: none !important; }
+      .record { display: block; }
+      .panel { border: 0; }
+      .page { padding: 0; }
     }
   </style>
 </head>
-<body class="min-h-screen">
-  <header id="nav"></header>
+<body>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <nav class="crumbs" aria-label="Pot">
+          <a href="/admin/podjetja.html">Podjetja</a>
+          <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chev-right"/></svg>
+          <span aria-current="page" id="crumb-ime">Podjetje</span>
+        </nav>
+        <span class="spacer"></span>
+        <div class="topbar__actions">
+          <button class="btn btn--secondary" type="button" id="btn-izvoz" hidden
+            title="Vsi odgovori, zapisi sestankov in transkripti tega podjetja v enem ZIP-u, z navodili za prodajni predlog AI procesov"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg><span>Izvoz za Claude (ZIP)</span></button>
+        </div>
+      </header>
 
-  <main class="flex-1 min-w-0 flex flex-col">
-    <div class="e-wrap" id="stran">
-      <div class="e-crumb" id="crumb">Baza vprašalnikov / <a href="/admin/podjetja.html">Podjetja</a></div>
-      <div id="header"></div>
-      <div id="zgoraj"></div>
-      <div id="spodaj"></div>
-    </div>
-  </main>
+      <div class="page" id="stran">
+        <div class="loading" role="status"><span class="spinner" aria-hidden="true"></span>Nalagam podjetje …</div>
+      </div>
+    </main>
+  </div>
 
   <script src="/admin/app.js"></script>
   <script>
     renderNav('home');
 
     const id = qs('id');
-    if (!id) {
-      document.getElementById('header').innerHTML = '<div class="e-note bad">Manjka ?id= parameter.</div>';
-      throw new Error('no id');
-    }
+    const stran = document.getElementById('stran');
 
-    // ── Stanje ────────────────────────────────────────────────────────────
+    // ── State ─────────────────────────────────────────────────────────────
     let podjetje = null;
     let odgovori = [];        // [{id, questionnaire_id, q_slug, q_naziv, submitted_at, raw_data, ai_povzetek, vprasanja}]
     let priporocila = [];     // [{questionnaire_id, slug, naziv_prikaz, vsebina, updated_at}]
-    let aktivniTab = null;    // questionnaire_id za priporocila IN odgovore (isti izbor)
-    let vsiOdgovori = false;  // "Pokaži vse" v seznamu odgovorov
-    let mozniDvojnik = null;  // {id, naziv_prikaz} — ujemanje ob oddaji ga ni smelo samodejno združiti
+    let aktivniTab = null;    // questionnaire_id for the workshop AND the answers (one choice)
+    let vsiOdgovori = false;  // "Pokaži vse" in the answers list
+    let mozniDvojnik = null;  // {id, naziv_prikaz}: matching on submit did not merge it automatically
 
-    // Lijak — ista resnica kot STATUSI v src/routes/api.js.
+    // Sales funnel: same truth as STATUSI in src/routes/api.js.
     const LIJAK = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen'];
     const STATUS_NAZIV = {
       nov: 'Nov', kvalificiran: 'Kvalificiran', kontaktiran: 'Kontaktiran', sestanek: 'Sestanek',
@@ -99,15 +159,25 @@
     };
     const KVAL_NAZIV = { hot: 'Hot', warm: 'Warm', cold: 'Cold' };
     const MAX_ODGOVOROV = 5;
+    const SKLON_ODGOVOR = ['odgovor', 'odgovora', 'odgovori', 'odgovorov'];
 
-    // Zacetnice za znak podjetja; pravne oblike niso del imena.
+    // Time as 14.05 (Slovenian), date as 6. 10. 2026.
+    function ura(iso) {
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? '' : `${d.getHours()}.${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+    const danUra = (iso) => `${formatDan(iso)}, ${ura(iso)}`;
+    const danObUri = (iso) => `${formatDan(iso)} ob ${ura(iso)}`;
+    const piko = (s) => /[.!?]$/.test(s) ? s : `${s}.`;
+
+    // Initials for the company mark; legal forms are not part of the name.
     function zacetnicePodjetja(naziv) {
       const besede = String(naziv || '').replace(/\b(d\.?o\.?o\.?|s\.?p\.?|d\.?d\.?)/gi, '')
         .split(/\s+/).filter(b => /[\p{L}\d]/u.test(b) && !/^(za|in|na|v|pri|s|z|of|the|and)$/i.test(b));
       return besede.slice(0, 2).map(b => b.match(/[\p{L}\d]/u)[0].toUpperCase()).join('') || '?';
     }
 
-    // Vprasalniki podjetja: vsi, za katere ima odgovore ALI priporocila.
+    // Questionnaires of the company: every one with answers OR recommendations.
     function vprasalniki() {
       const m = new Map();
       for (const o of odgovori) {
@@ -120,50 +190,85 @@
       return [...m.values()].sort((a, b) => b.st - a.st || a.naziv.localeCompare(b.naziv));
     }
 
-    // ── Glava ─────────────────────────────────────────────────────────────
-    function renderHeader() {
-      const vpr = vprasalniki();
-      const zadnji = podjetje.last_response_at ? formatDan(podjetje.last_response_at) : '—';
-      document.title = `Acenta — ${podjetje.naziv_prikaz}`;
-      document.getElementById('crumb').innerHTML =
-        `Baza vprašalnikov / <a href="/admin/podjetja.html">Podjetja</a> / <strong>${esc(podjetje.naziv_prikaz)}</strong>`;
-      document.getElementById('header').innerHTML = `
-        <div class="e-title">
-          <div class="e-profile">
-            <div class="e-logo">${esc(zacetnicePodjetja(podjetje.naziv_prikaz))}</div>
-            <div style="min-width:0">
-              <div class="e-eyebrow"><i></i>Podjetje · ${sklon(odgovori.length, ['odgovor', 'odgovora', 'odgovori', 'odgovorov'])} · zadnji ${zadnji}</div>
-              <h1>${esc(podjetje.naziv_prikaz)}.</h1>
-              <div class="e-links">
-                ${vpr.map(v => `<a href="#" data-tab="${v.qid}">${esc(v.naziv)} <small>${v.st}</small></a>`).join('')}
-                <span title="Normaliziran naziv, po katerem se združujejo odgovori">Normalizirano: ${esc(podjetje.naziv_normaliziran)}</span>
-              </div>
-            </div>
+    // ── Page skeleton ─────────────────────────────────────────────────────
+    function renderStran() {
+      stran.innerHTML = `
+        <div id="dvojnik-mesto"></div>
+        <header class="ident" id="ident"></header>
+        <div class="record">
+          <section class="panel a-doc" id="prodajni-predlog" aria-labelledby="ppNaslov"></section>
+          <div class="a-props pp-stran">
+            <aside class="panel props e-side" aria-label="Lastnosti podjetja">
+              ${opombeHtml()}
+              <section class="prop" id="prop-kval"></section>
+              <section class="prop e-sidecard" id="prop-status"></section>
+            </aside>
           </div>
-          <div class="e-actions">
-            <button type="button" class="e-btn" id="btn-predlog"
-              onclick="document.getElementById('prodajni-predlog').scrollIntoView({ behavior: 'smooth', block: 'start' })">Prodajni predlog</button>
-            <button type="button" class="e-btn-soft" id="btn-izvoz" onclick="izvoziZaClaude(this)"
-              title="Vsi odgovori, zapisi sestankov in transkripti tega podjetja v enem ZIP-u, z navodili za prodajni predlog AI procesov">Izvoz za Claude (ZIP)</button>
-            <a class="e-btn-soft" href="/admin/podjetja.html">← Vsa podjetja</a>
-          </div>
-        </div>
-        ${mozniDvojnik ? `
-          <div class="e-note warn" id="mozni-dvojnik" style="margin-bottom:16px">
-            Verjetno isto podjetje kot
-            <a href="/admin/company.html?id=${mozniDvojnik.id}"><strong>${esc(mozniDvojnik.naziv_prikaz)}</strong> (#${mozniDvojnik.id})</a>.
-            ${esc(podjetje.mozni_dvojnik_razlog || '')}
-            <div class="e-actions" style="margin-top:10px">
-              <button type="button" class="e-btn" onclick="zdruziZDvojnikom()">Združi v #${mozniDvojnik.id}</button>
-              <button type="button" class="e-btn-soft" onclick="niDvojnik()">Ni isto podjetje</button>
-            </div>
-          </div>` : ''}`;
+          <details class="disclosure a-work work" id="delavnica"></details>
+          <section class="panel a-answers" id="odgovori-section" aria-labelledby="odgNaslov"></section>
+          <div class="stack a-meta" id="meta"></div>
+        </div>`;
+
+      const polje = document.getElementById('opombe');
+      polje.addEventListener('input', () => {
+        podjetje.interne_opombe = polje.value;
+        nacrtujShranjevanjeOpomb();
+      });
+      polje.addEventListener('blur', shraniOpombe);
+
+      renderDvojnik();
+      renderIdent();
+      renderPredlog();
+      renderKval();
+      renderStatus();
+      renderDelavnica();
+      renderOdgovori();
+      renderMeta();
     }
 
-    // Opozorilo o moznem dvojniku: zdruzi TO podjetje v starejse ali zavrni.
+    // ── Header ────────────────────────────────────────────────────────────
+    function renderIdent() {
+      const vpr = vprasalniki();
+      document.title = `${podjetje.naziv_prikaz} · Acenta baza`;
+      document.getElementById('crumb-ime').textContent = podjetje.naziv_prikaz;
+      const povzetek = odgovori.length
+        ? `${sklon(odgovori.length, SKLON_ODGOVOR)} · zadnji ${formatDan(podjetje.last_response_at || odgovori[0]?.submitted_at)}`
+        : 'Še ni odgovorov';
+      document.getElementById('ident').innerHTML = `
+        <span class="ident__logo" aria-hidden="true">${esc(zacetnicePodjetja(podjetje.naziv_prikaz))}</span>
+        <div class="ident__txt">
+          <h1>${esc(podjetje.naziv_prikaz)}</h1>
+          <div class="ident__meta">
+            <span>${povzetek}</span>
+            ${vpr.length ? '<span class="ident__sep" aria-hidden="true"></span>' : ''}
+            ${vpr.map(v => `<a class="qlink" href="#delavnica" data-tab="${v.qid}" title="Priprava na delavnico za ${esc(v.naziv)}"><span>${esc(v.naziv)}</span><span class="count">${v.st}</span></a>`).join('')}
+          </div>
+        </div>`;
+    }
+
+    // Possible duplicate: merge THIS company into the older one, or dismiss.
+    function renderDvojnik() {
+      const el = document.getElementById('dvojnik-mesto');
+      if (!mozniDvojnik) { el.innerHTML = ''; return; }
+      const razlog = podjetje.mozni_dvojnik_razlog ? ` ${esc(piko(podjetje.mozni_dvojnik_razlog))}` : '';
+      el.innerHTML = `
+        <div class="callout callout--warning dvojnik" id="mozni-dvojnik">
+          ${ikona('alert')}
+          <div>
+            Verjetno isto podjetje kot <a class="link" href="/admin/company.html?id=${mozniDvojnik.id}">${esc(mozniDvojnik.naziv_prikaz)} (#${mozniDvojnik.id})</a>.${razlog}
+            <div class="actions" style="margin-top:var(--space-3)">
+              <button class="btn btn--primary btn--sm" type="button" id="btn-zdruzi-dvojnik">Združi v #${mozniDvojnik.id}</button>
+              <button class="btn btn--secondary btn--sm" type="button" id="btn-ni-dvojnik">Ni isto podjetje</button>
+            </div>
+          </div>
+        </div>`;
+      document.getElementById('btn-zdruzi-dvojnik').addEventListener('click', zdruziZDvojnikom);
+      document.getElementById('btn-ni-dvojnik').addEventListener('click', niDvojnik);
+    }
+
     async function zdruziZDvojnikom() {
       if (!mozniDvojnik) return;
-      if (!confirm(`Združiti „${podjetje.naziv_prikaz}“ v „${mozniDvojnik.naziv_prikaz}“? Odgovori se prenesejo, tega ni mogoče razveljaviti.`)) return;
+      if (!confirm(`Združiti »${podjetje.naziv_prikaz}« v »${mozniDvojnik.naziv_prikaz}«? Odgovori se prenesejo, tega ni mogoče razveljaviti.`)) return;
       const r = await apiFetch(`/api/companies/${id}/merge`, {
         method: 'POST',
         body: JSON.stringify({ target_id: mozniDvojnik.id }),
@@ -178,55 +283,15 @@
     async function niDvojnik() {
       if (!await patchPodjetje({ mozni_dvojnik_id: null })) return;
       mozniDvojnik = null;
-      renderHeader();
+      renderDvojnik();
     }
 
-    // ── Zgoraj: prodajni predlog (akcentna kartica), stranski stolpec
-    //    (opombe, ocena, status) in priprava na delavnico pod predlogom ──
-    function renderZgoraj() {
-      document.getElementById('zgoraj').innerHTML = `
-        <div class="pp-mreza">
-          <section class="e-feature pp-predlog" id="prodajni-predlog"></section>
-          <div class="e-side pp-stran" style="grid-template-rows:auto">
-            ${opombeKartica()}
-            ${kvalKartica()}
-            ${statusKartica()}
-          </div>
-          <section class="e-panel pp-delavnica pp-svetlo" id="delavnica"></section>
-        </div>`;
-
-      const polje = document.getElementById('opombe');
-      polje.addEventListener('input', () => {
-        podjetje.interne_opombe = polje.value;
-        nacrtujShranjevanjeOpomb();
-      });
-      polje.addEventListener('blur', shraniOpombe);
-
-      renderPredlog();
-      renderDelavnica();
-    }
-
-    // Dolga besedila se zlozijo; gumb se pokaze samo, ce je res odrezano.
-    function zlozljivo(wrap, gumb, ob) {
-      if (!wrap || !gumb) return;
-      if (wrap.scrollHeight <= wrap.clientHeight + 4 && !wrap.classList.contains('open')) { wrap.classList.add('kratko'); return; }
-      gumb.hidden = false;
-      gumb.textContent = wrap.classList.contains('open') ? 'Skrij' : 'Pokaži vse';
-      gumb.addEventListener('click', () => {
-        const odpri = !wrap.classList.contains('open');
-        wrap.classList.toggle('open', odpri);
-        gumb.textContent = odpri ? 'Skrij' : 'Pokaži vse';
-        ob?.(odpri);
-      });
-    }
-
-    // ── Prodajni predlog ──────────────────────────────────────────────────
-    // Opus iz celega paketa (isti kot ZIP za Claude) pripravi seznam procesov
-    // za direktorja in prodajni list za Matjaza. Priprava traja nekaj minut in
-    // tece na strezniku; stran jo spremlja z osvezevanjem na 5 s.
+    // ── Sales proposal ────────────────────────────────────────────────────
+    // Opus reads the whole package (same as the ZIP for Claude) and writes a
+    // process list for the director and a sales sheet for Matjaz. It takes a
+    // few minutes on the server; the page follows it by reloading every 5 s.
     let predlogStanje = { predlog: null, tek: null, gradivo: { odgovori: 0, seje: 0 }, nalozeno: false };
     let predlogDok = 'direktor';      // 'direktor' | 'matjaz'
-    let predlogOdprt = false;
     let predlogCasovnik = null;
 
     const NAPAKE_PREDLOGA = {
@@ -234,13 +299,13 @@
       prevelik_paket: 'Gradivo je preobsežno za samodejno pripravo. Uporabite Izvoz za Claude (ZIP).',
       not_found: 'Podjetje ne obstaja več.',
     };
-
-    function ura(iso) {
-      const d = new Date(iso);
-      return Number.isNaN(d.getTime()) ? '' : `${d.getHours()}.${String(d.getMinutes()).padStart(2, '0')}`;
-    }
     const izOdgovorov = (n) => `${n} ${n === 1 ? 'odgovora' : 'odgovorov'}`;
     const izSej = (n) => `${n} ${n === 1 ? 'zapisa sestanka' : 'zapisov sestankov'}`;
+
+    // "### 1. Rezervacije iz e-pošte (recepcija)": the department reads quieter.
+    function sOddelki(html) {
+      return html.replace(/(<h3[^>]*>)([\s\S]*?)\s*(\([^()<>]{1,60}\))(<\/h3>)/g, '$1$2 <span class="dept">$3</span>$4');
+    }
 
     function renderPredlog() {
       const el = document.getElementById('prodajni-predlog');
@@ -250,83 +315,94 @@
       const padlo = tek?.status === 'napaka' ? tek : null;
       const imaGradivo = gradivo.odgovori + gradivo.seje > 0;
 
-      const stikalo = p ? `
-        <div class="e-switch" role="tablist" aria-label="Dokument">
-          <button type="button" role="tab" data-dok="direktor" class="${predlogDok === 'direktor' ? 'active' : ''}">Za direktorja</button>
-          <button type="button" role="tab" data-dok="matjaz" class="${predlogDok === 'matjaz' ? 'active' : ''}">Za Matjaža</button>
-        </div>` : '';
       const pod = p
-        ? `<b>Pripravljeno ${formatDan(p.koncano_at || p.created_at)}</b> iz ${izOdgovorov(p.vhod?.odgovori ?? 0)} in ${izSej(p.vhod?.seje ?? 0)}`
-        : (nalozeno ? 'Še ni pripravljen' : 'Nalagam …');
+        ? `Pripravljeno ${formatDan(p.koncano_at || p.created_at)} iz ${izOdgovorov(p.vhod?.odgovori ?? 0)} in ${izSej(p.vhod?.seje ?? 0)}`
+        : (nalozeno ? (tece ? 'Pripravlja se' : 'Še ni pripravljen') : 'Nalagam …');
+      let html = `
+        <header class="docp__head">
+          <div class="docp__title">
+            <h2 class="lbl" id="ppNaslov">Prodajni predlog</h2>
+            <p class="e-feature-sub">${pod}</p>
+          </div>
+        </header>`;
 
-      let telo = '';
-      if (tece) {
-        telo += `<div class="e-warnbar" id="pp-tece">Pripravljam ${p ? 'novo različico' : 'prodajni predlog'} (začeto ob ${ura(tek.created_at)}).
-          AI bere ${sklon(tek.vhod?.odgovori ?? 0, ['odgovor', 'odgovora', 'odgovore', 'odgovorov'])} in ${sklon(tek.vhod?.seje ?? 0, ['zapis sestanka', 'zapisa sestankov', 'zapise sestankov', 'zapisov sestankov'])}; traja nekaj minut. Stran se osveži sama.</div>`;
+      if (!nalozeno) {
+        el.innerHTML = html + '<div class="loading" role="status"><span class="spinner" aria-hidden="true"></span>Nalagam prodajni predlog …</div>';
+        return;
       }
-      if (padlo) telo += `<div class="e-warnbar" id="pp-napaka">⚠ Zadnja priprava ni uspela: ${esc(padlo.napaka || 'neznana napaka')}</div>`;
+
+      if (tece) {
+        html += `
+          <div class="docp__note" id="pp-tece">
+            <div class="callout callout--info" role="status"><span class="pulse" style="margin-top:6px" aria-hidden="true"></span><div>Pripravljam ${p ? 'novo različico' : 'prodajni predlog'} (začeto ob ${ura(tek.created_at)}). AI bere ${sklon(tek.vhod?.odgovori ?? 0, ['odgovor', 'odgovora', 'odgovore', 'odgovorov'])} in ${sklon(tek.vhod?.seje ?? 0, ['zapis sestanka', 'zapisa sestankov', 'zapise sestankov', 'zapisov sestankov'])}; traja nekaj minut. Stran se osveži sama.</div></div>
+          </div>`;
+      }
+      if (padlo) {
+        html += `
+          <div class="docp__note" id="pp-napaka">
+            <div class="callout callout--danger" role="alert">${ikona('alert')}<div><b>Zadnja priprava ni uspela:</b> ${esc(piko(padlo.napaka || 'neznana napaka'))}${p ? ' Prejšnja različica ostaja spodaj.' : ''}</div></div>
+          </div>`;
+      }
 
       if (p) {
-        if (predlogDok === 'direktor' && p.opozorila?.length) {
-          telo += `<div class="e-warnbar pp-opozorila" id="pp-opozorila"><div><b>Preverite pred pošiljanjem:</b>
-            <ul>${p.opozorila.map(o => `<li>${esc(o)}</li>`).join('')}</ul></div></div>`;
-        }
         const besedilo = predlogDok === 'direktor' ? p.za_direktorja : p.za_matjaza;
-        telo += `<div class="e-reco-wrap ${predlogOdprt ? 'open' : ''}" id="pp-wrap"><div class="e-reco pp-dok">${md(besedilo)}</div></div>`;
+        const opozorila = predlogDok === 'direktor' && p.opozorila?.length ? `
+          <div class="callout callout--warning" id="pp-opozorila">
+            ${ikona('alert')}
+            <div><b>Preverite pred pošiljanjem:</b><ul>${p.opozorila.map(o => `<li>${esc(o)}</li>`).join('')}</ul></div>
+          </div>` : '';
+        const zavihek = (dok, naziv) => `<button class="tab${predlogDok === dok ? ' active' : ''}" type="button" role="tab" aria-selected="${predlogDok === dok}" aria-controls="pp-dok" data-dok="${dok}">${naziv}</button>`;
+        const pripravi = tece
+          ? '<button class="btn btn--secondary" type="button" id="pp-pripravi" disabled><span class="spinner" aria-hidden="true"></span><span>Pripravljam …</span></button>'
+          : `<button class="btn btn--secondary" type="button" id="pp-pripravi">${ikona('refresh')}<span>Pripravi znova</span></button>`;
+        html += `
+          <div class="docp__bar">
+            <div class="tabs docp__tabs e-switch" role="tablist" aria-label="Dokument">${zavihek('direktor', 'Za direktorja')}${zavihek('matjaz', 'Za Matjaža')}</div>
+            <span class="spacer"></span>
+            <div class="docp__actions e-feature-actions">
+              ${pripravi}
+              <button class="btn btn--secondary" type="button" id="pp-kopiraj">${ikona('copy')}<span>Kopiraj</span></button>
+              <a class="btn btn--primary" id="pp-pdf" href="/api/companies/${id}/prodajni-predlog/pdf" download>${ikona('printer')}<span>Natisni / PDF za direktorja</span></a>
+            </div>
+          </div>
+          <div class="docp__body">
+            ${opozorila}
+            <article class="doc pp-dok" id="pp-dok" role="tabpanel">${sOddelki(md(besedilo))}</article>
+          </div>`;
       } else if (tece) {
-        telo += `<div class="e-reco-prazno">
-          <b>Prodajni predlog se pripravlja</b>
-          <p>Ko bo pripravljen, se tu pokažeta seznam procesov za direktorja in prodajni list za Matjaža.</p>
-        </div>`;
-      } else if (nalozeno) {
-        telo += `<div class="e-reco-prazno">
-          <span class="ikona"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg></span>
-          <b>Prodajni predlog še ni pripravljen</b>
-          <p>AI prebere vse odgovore tega podjetja (${gradivo.odgovori}), zapise sestankov (${gradivo.seje}), interne opombe in katalog rešitev ter pripravi seznam procesov za direktorja in prodajni list za Matjaža. Traja nekaj minut.</p>
-          ${imaGradivo
-            ? '<button type="button" class="e-btn-white" id="pp-pripravi" style="margin-top:8px">Pripravi prodajni predlog</button>'
-            : '<p>Za predlog potrebujemo vsaj en odgovor ali zapis sestanka.</p>'}
-        </div>`;
+        html += `
+          <div class="empty">
+            <span class="empty__icon" aria-hidden="true"><span class="spinner"></span></span>
+            <p class="empty__title">Prodajni predlog se pripravlja</p>
+            <p class="empty__text">Ko bo pripravljen, se tu pokažeta seznam procesov za direktorja in prodajni list za Matjaža.</p>
+          </div>`;
+      } else {
+        html += `
+          <div class="empty e-reco-prazno">
+            <span class="empty__icon" aria-hidden="true">${ikona('sparkles', 'icon--lg')}</span>
+            <b class="empty__title">Prodajni predlog še ni pripravljen</b>
+            <p class="empty__text">AI prebere vse odgovore tega podjetja (${gradivo.odgovori}), zapise sestankov (${gradivo.seje}), interne opombe in katalog rešitev ter pripravi seznam procesov za direktorja in prodajni list za Matjaža. Traja nekaj minut.</p>
+            ${imaGradivo
+              ? `<button class="btn btn--primary" type="button" id="pp-pripravi">${ikona('sparkles')}<span>Pripravi prodajni predlog</span></button>`
+              : '<p class="empty__text">Za predlog potrebujemo vsaj en odgovor ali zapis sestanka.</p>'}
+          </div>`;
       }
 
-      const akcije = p ? `
-        <div class="e-feature-actions">
-          <button type="button" class="e-btn-white" id="pp-pripravi" ${tece ? 'disabled' : ''}>Pripravi znova</button>
-          <a class="e-btn-ghost" id="pp-pdf" href="/api/companies/${id}/prodajni-predlog/pdf" download>Natisni / PDF za direktorja</a>
-          <button type="button" class="e-btn-ghost" id="pp-kopiraj">Kopiraj</button>
-          <div class="spacer"></div>
-          <button type="button" class="e-btn-ghost" id="pp-vec" hidden>Pokaži vse</button>
-        </div>` : '';
-
-      el.innerHTML = `
-        <div class="e-feature-top">
-          <div>
-            <span class="lbl">Prodajni predlog</span>
-            <div class="e-feature-sub">${pod}</div>
-          </div>
-          ${stikalo}
-        </div>
-        ${telo}
-        ${akcije}`;
-
-      zlozljivo(document.getElementById('pp-wrap'), document.getElementById('pp-vec'), (odpri) => { predlogOdprt = odpri; });
+      el.innerHTML = html;
       document.getElementById('pp-pripravi')?.addEventListener('click', (e) => pripraviPredlog(e.currentTarget));
       document.getElementById('pp-kopiraj')?.addEventListener('click', (e) => kopirajPredlog(e.currentTarget));
     }
 
-    // Zavihka Za direktorja / Za Matjaza (svoj atribut, ne data-tab, ki
-    // pripada izbiri vprasalnika).
-    document.getElementById('stran').addEventListener('click', (e) => {
-      const b = e.target.closest('[data-dok]');
-      if (!b || b.dataset.dok === predlogDok) return;
-      predlogDok = b.dataset.dok;
-      predlogOdprt = false;
-      renderPredlog();
-    });
-
     async function naloziPredlog() {
       const r = await apiFetch(`/api/companies/${id}/prodajni-predlog`);
-      if (!r) return false;
+      if (!r) {
+        if (!predlogStanje.nalozeno) {
+          const el = document.getElementById('prodajni-predlog');
+          if (el) el.innerHTML = `<header class="docp__head"><div class="docp__title"><h2 class="lbl" id="ppNaslov">Prodajni predlog</h2></div></header>
+            <div class="docp__note"><div class="callout callout--danger" role="alert">${ikona('alert')}<div>Prodajnega predloga ni bilo mogoče naložiti. Osvežite stran.</div></div></div>`;
+        }
+        return false;
+      }
       predlogStanje = { ...r, nalozeno: true };
       renderPredlog();
       spremljajPredlog();
@@ -340,12 +416,13 @@
 
     async function pripraviPredlog(gumb) {
       if (predlogStanje.predlog && !confirm('Pripraviti nov prodajni predlog? Trenutni ostane viden, dokler novi ni pripravljen.')) return;
-      const besedilo = gumb.textContent;
+      const oznaka = gumb.querySelector('span');
+      const besedilo = oznaka.textContent;
       gumb.disabled = true;
-      gumb.textContent = 'Zbiram gradivo …';
+      oznaka.textContent = 'Zbiram gradivo …';
       try {
-        // Isti paket kot ZIP: vprasanja custom_html obrazcev zna izlusciti
-        // samo brskalnik (DOMParser).
+        // Same package as the ZIP: questions of custom_html forms can only be
+        // extracted in the browser (DOMParser).
         const data = await apiFetch(`/api/companies/${id}/izvoz`);
         if (!data?.company) throw new Error('strežnik ni vrnil podatkov');
         const { sestaviDatoteke } = await import('/admin/izvoz.js');
@@ -365,101 +442,47 @@
         console.error('[prodajni-predlog]', err);
         alert(`Priprava ni uspela: ${err.message}`);
         gumb.disabled = false;
-        gumb.textContent = besedilo;
+        oznaka.textContent = besedilo;
       }
     }
 
     async function kopirajPredlog(gumb) {
       const p = predlogStanje.predlog;
       if (!p) return;
+      const oznaka = gumb.querySelector('span');
       try {
         await navigator.clipboard.writeText(predlogDok === 'direktor' ? p.za_direktorja : p.za_matjaza);
-        gumb.textContent = 'Kopirano';
+        oznaka.textContent = 'Kopirano';
       } catch {
-        gumb.textContent = 'Kopiranje ni uspelo';
+        oznaka.textContent = 'Kopiranje ni uspelo';
       }
-      setTimeout(() => { gumb.textContent = 'Kopiraj'; }, 1600);
+      setTimeout(() => { oznaka.textContent = 'Kopiraj'; }, 1600);
     }
 
-    // ── Priprava na delavnico (prej "AI priporocila") ─────────────────────
-    // Priporocila po posameznem vprasalniku. Za prodajo so presplosna, za
-    // pripravo delavnice pa se vedno uporabna, zato ostanejo pod predlogom.
-    function renderDelavnica() {
-      const vpr = vprasalniki();
-      const el = document.getElementById('delavnica');
-      if (!vpr.length) {
-        el.innerHTML = '<h2>Priprava na delavnico</h2><div class="e-empty">Podjetje še nima odgovorov ali priporočil.</div>';
-        return;
-      }
-      if (aktivniTab === null || !vpr.some(v => v.qid === aktivniTab)) aktivniTab = vpr[0].qid;
-      const tab = vpr.find(v => v.qid === aktivniTab);
-      const p = priporocila.find(x => x.questionnaire_id === aktivniTab);
-      const odgZaTab = odgovori.filter(o => o.questionnaire_id === aktivniTab);
-
-      // Zastarela = obstaja odgovor, novejsi od zadnje generacije.
-      const novejsi = p ? odgZaTab.filter(o => new Date(o.submitted_at) > new Date(p.updated_at)).length : 0;
-      const besediloNovejsi = novejsi === 1 ? 'je prišel 1 nov odgovor'
-        : novejsi === 2 ? 'sta prišla 2 nova odgovora'
-        : novejsi <= 4 ? `so prišli ${novejsi} novi odgovori` : `je prišlo ${novejsi} novih odgovorov`;
-      const stikalo = vpr.length > 1
-        ? `<div class="e-switch">${vpr.map(v => `<button type="button" data-tab="${v.qid}" class="${v.qid === aktivniTab ? 'active' : ''}">${esc(v.naziv)}</button>`).join('')}</div>`
-        : `<span class="e-badge">/f/${esc(tab.slug || '')}</span>`;
-
-      const vsebina = p
-        ? `${novejsi ? `<div class="e-warnbar">⚠ Zastarela: po generaciji ${besediloNovejsi}. Regenerirajte, da bodo upoštevani.</div>` : ''}
-           <div class="e-reco-wrap" id="reco"><div class="e-reco">${md(p.vsebina)}</div></div>`
-        : `<div class="e-reco-prazno">
-             <span class="ikona"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.8H20l-4.9 3.6 1.9 5.8-5-3.6-5 3.6 1.9-5.8L4 8.8h6.1z"/></svg></span>
-             <b>Priporočila še niso pripravljena</b>
-             <p>AI prebere ${odgZaTab.length === 1 ? 'odgovor' : `vseh ${odgZaTab.length} odgovorov`} na ta vprašalnik in pripravi povzetek skupine, predloge in naslednje korake. Generiranje traja okoli 70 sekund.</p>
-           </div>`;
-
-      const akcije = `
-        <div class="e-feature-actions">
-          <button type="button" class="e-btn-soft" onclick="regeneriraj(${aktivniTab}, 'priporocila')">${p ? 'Regeneriraj priporočila' : 'Generiraj priporočila'}</button>
-          ${odgZaTab.length ? `<button type="button" class="e-btn-soft" onclick="regeneriraj(${aktivniTab}, 'vse')">Regeneriraj vse</button>` : ''}
-          ${p ? `<a class="e-btn-soft" href="/api/companies/${id}/pdf?questionnaire_id=${aktivniTab}" download>Izvozi PDF</a>
-                 <button type="button" class="e-btn-soft" onclick="window.print()">Natisni</button>` : ''}
-          <div class="spacer"></div>
-          ${p ? '<button type="button" class="e-btn-soft" id="reco-vec" hidden>Pokaži vse</button>' : ''}
-        </div>`;
-
-      const izKoliko = `iz ${odgZaTab.length} ${odgZaTab.length === 1 ? 'odgovora' : 'odgovorov'}`;
-      el.innerHTML = `
-        <div class="e-feature-top">
-          <div>
-            <h2>Priprava na delavnico</h2>
-            <p class="desc">AI priporočila · ${esc(tab.naziv)} · ${p ? `generirano ${formatDan(p.updated_at)} ${izKoliko}` : 'še ni generirano'}</p>
-          </div>
-          ${stikalo}
-        </div>
-        ${vsebina}
-        ${akcije}`;
-
-      zlozljivo(document.getElementById('reco'), document.getElementById('reco-vec'));
-    }
-
-    // ── Interne opombe ────────────────────────────────────────────────────
-    // Kar vemo mi (npr. "racun za Claude ze imajo"). Gre v prodajni predlog
-    // in ZIP kot dejstvo; stranka ga ne vidi. Shrani se samo: ob premoru v
-    // tipkanju in ob odhodu iz polja. Besedilo zivi v `podjetje`, zato ga
-    // ponovni izris zgornjega dela (status, zavihek) ne izgubi.
+    // ── Internal notes ────────────────────────────────────────────────────
+    // What we know (e.g. "they already pay for Claude"). Goes into the sales
+    // proposal and the ZIP as a fact; the client never sees it. Saved after a
+    // pause in typing and when the field loses focus. The text lives in
+    // `podjetje`, so re-rendering the other properties never loses it.
     let opombeCasovnik = null;
-    let opombeShranjene = '';     // nazadnje shranjeno besedilo (nastavi ga zagon)
+    let opombeShranjene = '';     // last saved text (set on load)
 
     function stanjeOpomb() {
       if (!podjetje.interne_opombe_updated_at) return 'Še ni opomb';
-      return `Shranjeno ${formatDatum(podjetje.interne_opombe_updated_at)}`;
+      return `Shranjeno ${danObUri(podjetje.interne_opombe_updated_at)}`;
     }
 
-    function opombeKartica() {
+    function opombeHtml() {
       return `
-        <div class="e-sidecard" style="min-height:0">
-          <div class="label"><label for="opombe">Interne opombe</label> <span class="e-chip layer">samo za nas</span></div>
-          <textarea id="opombe" class="textarea" rows="4" maxlength="5000" style="margin-top:10px"
+        <section class="prop" id="prop-opombe">
+          <div class="prop__head">
+            <label class="prop__label" for="opombe">Interne opombe</label>
+            <span class="chip">${ikona('lock')}samo za nas</span>
+          </div>
+          <textarea class="textarea" id="opombe" rows="5" maxlength="5000"
             placeholder="Kar veva o podjetju: katera orodja že imajo, kdo odloča, kaj smo že rešili …">${esc(podjetje.interne_opombe || '')}</textarea>
-          <div class="foot"><span id="opombe-stanje">${stanjeOpomb()}</span></div>
-        </div>`;
+          <p class="prop__foot" id="opombe-stanje" aria-live="polite">${stanjeOpomb()}</p>
+        </section>`;
     }
 
     function nacrtujShranjevanjeOpomb() {
@@ -473,17 +496,18 @@
       clearTimeout(opombeCasovnik);
       const besedilo = podjetje.interne_opombe || '';
       if (besedilo === opombeShranjene) return;
+      const el = document.getElementById('opombe-stanje');
+      if (el) el.textContent = 'Shranjujem …';
       const r = await apiFetch(`/api/companies/${id}`, {
         method: 'PATCH', body: JSON.stringify({ interne_opombe: besedilo }),
       });
-      const el = document.getElementById('opombe-stanje');
       if (!r?.ok) { if (el) el.textContent = 'Shranjevanje ni uspelo, poskusite znova'; return; }
       opombeShranjene = besedilo;
       podjetje.interne_opombe_updated_at = r.company.interne_opombe_updated_at;
       if (el && (podjetje.interne_opombe || '') === besedilo) el.textContent = stanjeOpomb();
     }
 
-    // Opozori, ce uporabnik zapre stran sredi neshranjenih opomb.
+    // Warn when the page closes with unsaved notes.
     window.addEventListener('beforeunload', (e) => {
       if (podjetje && (podjetje.interne_opombe || '') !== opombeShranjene) {
         e.preventDefault();
@@ -491,140 +515,314 @@
       }
     });
 
-    function kvalKartica() {
+    // ── Lead score ────────────────────────────────────────────────────────
+    // One choice: Hot / Warm / Cold set by hand, or "AI" (the AI decides).
+    // The AI segment shows the AI value only while the score is not manual.
+    function renderKval() {
       const k = podjetje.kvalifikacija;
-      const vir = !k ? 'Še ni ocenjeno' : podjetje.kvalifikacija_rocna ? 'Ročno' : 'AI';
-      const gumbi = ['hot', 'warm', 'cold'].map(v =>
-        `<button type="button" class="${v}${k === v ? ' on' : ''}" onclick="nastaviKval('${v}')">${KVAL_NAZIV[v]}</button>`
-      ).join('') + `<button type="button" class="ai${!podjetje.kvalifikacija_rocna ? ' on' : ''}" onclick="nastaviKval(null)" title="Prepusti oceno AI (ponastavi ročno)">AI</button>`;
-      return `
-        <div class="e-sidecard">
-          <div class="label">Ocena leada <span class="e-chip layer">${vir}</span></div>
-          <div class="e-kval ${k || ''}"><span class="dot"></span>${k ? KVAL_NAZIV[k] : 'Neocenjeno'}</div>
-          ${podjetje.kvalifikacija_razlog ? `<p class="note">${esc(podjetje.kvalifikacija_razlog)}</p>` : ''}
-          <div class="e-seg" style="margin-top:auto;padding-top:14px">${gumbi}</div>
-        </div>`;
+      const rocna = !!podjetje.kvalifikacija_rocna;
+      const vir = !k ? ['chip', 'Še ni ocenjeno'] : rocna ? ['chip', 'Ročno'] : ['chip chip--accent', 'Ocenil AI'];
+      const izbran = (v) => (v === 'ai' ? !rocna : rocna && k === v);
+      const gumb = (v, vsebina, title = '') => `<button class="seg__item seg__item--${v}${izbran(v) ? ' active' : ''}" type="button" role="radio" aria-checked="${izbran(v)}" data-kval="${v}"${title ? ` title="${title}"` : ''}>${vsebina}</button>`;
+      const ai = !rocna && k ? `AI<span class="seg-dot seg-dot--${k}" aria-hidden="true"></span>${KVAL_NAZIV[k] || esc(k)}` : 'AI';
+      document.getElementById('prop-kval').innerHTML = `
+        <div class="prop__head">
+          <span class="prop__label" id="kvalLbl">Ocena leada</span>
+          <span class="${vir[0]}">${vir[1]}</span>
+        </div>
+        <div class="seg seg--block" role="radiogroup" aria-labelledby="kvalLbl">
+          ${gumb('hot', 'Hot')}${gumb('warm', 'Warm')}${gumb('cold', 'Cold')}${gumb('ai', ai, 'Prepusti oceno AI (ponastavi ročno)')}
+        </div>
+        ${podjetje.kvalifikacija_razlog ? `<p class="prop__note">${esc(podjetje.kvalifikacija_razlog)}</p>` : ''}`;
     }
 
-    function statusKartica() {
+    document.addEventListener('click', (e) => {
+      const b = e.target.closest('#prop-kval [data-kval]');
+      if (b) nastaviKval(b.dataset.kval === 'ai' ? null : b.dataset.kval);
+    });
+
+    // ── Sales status ──────────────────────────────────────────────────────
+    function renderStatus() {
       const s = podjetje.status || 'nov';
       const ix = LIJAK.indexOf(s);
       const izgubljen = s === 'izgubljen';
-      const crte = LIJAK.map((_, i) => `<i class="${izgubljen ? '' : i < ix ? 'done' : i === ix ? 'cur' : ''}"></i>`).join('');
+      const crte = LIJAK.map((_, i) => `<i class="${izgubljen ? '' : i < ix ? 'is-done' : i === ix ? 'is-current' : ''}"></i>`).join('');
       const opts = [...LIJAK, 'izgubljen'].map(v =>
-        `<option value="${v}" ${v === s ? 'selected' : ''}>${STATUS_NAZIV[v]}</option>`).join('');
-      const kdaj = podjetje.status_updated_at ? ` · spremenjeno ${formatDan(podjetje.status_updated_at)}` : '';
-      return `
-        <div class="e-sidecard">
-          <div class="label">Prodajni status</div>
-          <div class="big" style="font-size:26px">${STATUS_NAZIV[s] || esc(s)}</div>
-          <div class="e-steps${izgubljen ? ' lost' : ''}">${crte}</div>
-          <div class="foot">
-            <span>${izgubljen ? 'Izgubljen' : `${ix + 1} od ${LIJAK.length} faz`}${kdaj}</span>
-            <select class="e-select" aria-label="Prodajni status" onchange="nastaviStatus(this.value, this)">${opts}</select>
-          </div>
-        </div>`;
+        `<option value="${v}"${v === s ? ' selected' : ''}>${STATUS_NAZIV[v]}</option>`).join('');
+      document.getElementById('prop-status').innerHTML = `
+        <div class="prop__head">
+          <label class="prop__label" for="status">Prodajni status</label>
+          <span class="prop__meta">${izgubljen ? 'Izgubljen' : `${ix + 1} od ${LIJAK.length} faz`}</span>
+        </div>
+        <span class="select-wrap">
+          <select class="select e-select" id="status">${opts}</select>
+        </span>
+        <div class="steps${izgubljen ? ' steps--lost' : ''}" aria-hidden="true">${crte}</div>
+        ${podjetje.status_updated_at ? `<p class="prop__foot">Spremenjeno ${formatDan(podjetje.status_updated_at)}</p>` : ''}`;
+      document.getElementById('status').addEventListener('change', (e) => nastaviStatus(e.target.value, e.target));
     }
 
-    // ── Spodaj: odgovori po izpolnjevalcih + desni stolpec ────────────────
-    function renderSpodaj() {
+    // ── Workshop preparation (AI recommendations per questionnaire) ───────
+    // Too general for selling, still useful to prepare a workshop, so they
+    // stay below the proposal, folded.
+    function renderDelavnica() {
       const vpr = vprasalniki();
-      const el = document.getElementById('spodaj');
-      if (!vpr.length) { el.innerHTML = ''; return; }
+      const el = document.getElementById('delavnica');
+      const chev = ikona('chev-right', 'disclosure__chev');
+      if (!vpr.length) {
+        el.innerHTML = `
+          <summary class="work__sum">${chev}<div><h2>Priprava na delavnico</h2><p class="desc">AI priporočila · podjetje še nima odgovorov</p></div></summary>
+          <p class="empty-line">Podjetje še nima odgovorov ali priporočil.</p>`;
+        return;
+      }
+      if (aktivniTab === null || !vpr.some(v => v.qid === aktivniTab)) aktivniTab = vpr[0].qid;
+      const tab = vpr.find(v => v.qid === aktivniTab);
+      const p = priporocila.find(x => x.questionnaire_id === aktivniTab);
+      const odgZaTab = odgovori.filter(o => o.questionnaire_id === aktivniTab);
+
+      // Stale = there is an answer newer than the last generation.
+      const nove = p ? odgZaTab.filter(o => new Date(o.submitted_at) > new Date(p.updated_at)) : [];
+      const novejsi = nove.length;
+      const izKoliko = odgZaTab.length - novejsi;   // answers that existed when it was generated
+      const opis = `AI priporočila · ${esc(tab.naziv)} · ${p ? `generirano ${formatDan(p.updated_at)} iz ${izOdgovorov(izKoliko)}` : 'še ni generirano'}`;
+
+      const zavihki = vpr.map(v => `<button class="tab${v.qid === aktivniTab ? ' active' : ''}" type="button" role="tab" aria-selected="${v.qid === aktivniTab}" data-tab="${v.qid}">${esc(v.naziv)} <span class="count">${v.st}</span></button>`).join('');
+      const status = '<div class="callout callout--info work__status" data-status role="status" hidden></div>';
+
+      let telo;
+      if (p) {
+        telo = `
+          <div class="work__tools">
+            <button class="btn btn--secondary" type="button" data-regen="priporocila">${ikona('refresh')}<span>Regeneriraj priporočila</span></button>
+            ${odgZaTab.length ? '<button class="btn btn--secondary" type="button" data-regen="vse"><span>Regeneriraj vse</span></button>' : ''}
+            <a class="btn btn--ghost" href="/api/companies/${id}/pdf?questionnaire_id=${aktivniTab}" download>${ikona('download')}<span>Izvozi PDF</span></a>
+            <button class="btn btn--ghost" type="button" data-natisni>${ikona('printer')}<span>Natisni</span></button>
+          </div>
+          <div class="docp__body">
+            ${status}
+            ${novejsi ? `<div class="callout callout--warning" id="workZastarelo">${ikona('alert')}<div>${besediloZastarelo(p, nove)}</div></div>` : ''}
+            <article class="doc" id="dokDelavnica">${md(p.vsebina)}</article>
+          </div>`;
+      } else {
+        telo = `
+          <div class="empty" style="padding:var(--space-6)">
+            <span class="empty__icon" aria-hidden="true">${ikona('sparkles', 'icon--lg')}</span>
+            <p class="empty__title">Priporočila še niso pripravljena</p>
+            <p class="empty__text">AI prebere ${odgZaTab.length === 1 ? 'odgovor' : `vseh ${odgZaTab.length} odgovorov`} na ta vprašalnik in pripravi povzetek skupine, agendo delavnice, predloge po oddelkih in naslednje korake. Generiranje traja okoli 70 sekund.</p>
+            <div class="actions" style="margin-top:var(--space-2)">
+              <button class="btn btn--secondary" type="button" data-regen="priporocila">${ikona('sparkles')}<span>Generiraj priporočila</span></button>
+              ${odgZaTab.length ? '<button class="btn btn--secondary" type="button" data-regen="vse"><span>Regeneriraj vse</span></button>' : ''}
+            </div>
+            ${status}
+          </div>`;
+      }
+
+      el.innerHTML = `
+        <summary class="work__sum">
+          ${chev}
+          <div>
+            <h2>Priprava na delavnico</h2>
+            <p class="desc" id="workDesc">${opis}</p>
+          </div>
+          ${novejsi ? '<span class="chip chip--warning" id="workStale">Zastarelo</span>' : ''}
+        </summary>
+        <div class="tabs work__tabs" role="tablist" aria-label="Vprašalnik">${zavihki}</div>
+        ${telo}`;
+    }
+
+    // "After generation on D, 2 new answers came (A and B, D) ..." with
+    // Slovenian dual and plural.
+    function besediloZastarelo(p, nove) {
+      const n = nove.length;
+      const glagol = n === 1 ? 'je prišel 1 nov odgovor'
+        : n === 2 ? 'sta prišla 2 nova odgovora'
+        : n <= 4 ? `so prišli ${n} novi odgovori` : `je prišlo ${n} novih odgovorov`;
+      const zaimek = n === 1 ? 'ga' : n === 2 ? 'ju' : 'jih';
+      const imena = nove.map(o => izpolnjevalec(o.raw_data, o.vprasanja)).filter(x => x.imaIme).map(x => x.ime);
+      const dnevi = [...new Set(nove.map(o => formatDan(o.submitted_at)))];
+      let oklepaj = '';
+      if (n <= 3) {
+        const seznam = imena.length > 1 ? `${imena.slice(0, -1).join(', ')} in ${imena.at(-1)}` : (imena[0] || '');
+        const kdaj = dnevi.length === 1 ? dnevi[0] : `zadnji ${formatDan(nove[0].submitted_at)}`;
+        oklepaj = ` (${seznam ? `${esc(seznam)}, ` : ''}${kdaj})`;
+      }
+      return `<b>Zastarelo.</b> Po generaciji ${formatDan(p.updated_at)} ${glagol}${oklepaj}, ki ${zaimek} priporočila še ne upoštevajo. `
+        + 'Kliknite <b>Regeneriraj priporočila</b>; traja okoli 70 sekund, trenutna različica ostane vidna, dokler nova ni pripravljena.';
+    }
+
+    // Regenerate, print: one listener on the workshop block.
+    document.addEventListener('click', (e) => {
+      const regen = e.target.closest('#delavnica [data-regen]');
+      if (regen) { regeneriraj(aktivniTab, regen.dataset.regen, regen); return; }
+      if (e.target.closest('#delavnica [data-natisni]')) {
+        document.body.classList.add('tisk-delavnica');
+        window.print();
+        document.body.classList.remove('tisk-delavnica');
+      }
+    });
+
+    // company.html#delavnica (link from the answer page): open and show it.
+    function odpriDelavnicoIzNaslova() {
+      if (location.hash !== '#delavnica') return;
+      const d = document.getElementById('delavnica');
+      if (!d) return;
+      d.open = true;
+      requestAnimationFrame(() => d.scrollIntoView({ block: 'start' }));
+    }
+    window.addEventListener('hashchange', odpriDelavnicoIzNaslova);
+
+    // ── Answers by respondent ─────────────────────────────────────────────
+    function renderOdgovori() {
+      const el = document.getElementById('odgovori-section');
+      const vpr = vprasalniki();
+      const glava = `
+        <header class="panel__head panel__head--plain" style="flex-wrap:wrap">
+          <div style="min-width:0">
+            <h2 class="panel__title" id="odgNaslov">Odgovori</h2>
+            <p class="panel__desc">Ena vrstica je en izpolnjevalec. Povzetek pripravi AI, celoten vprašalnik je en klik stran.</p>
+          </div>
+        </header>`;
+      if (!vpr.length) {
+        el.innerHTML = glava + '<p class="empty-line">Podjetje še nima odgovorov.</p>';
+        return;
+      }
       const odgZaTab = odgovori.filter(o => o.questionnaire_id === aktivniTab);
       const prikazani = vsiOdgovori ? odgZaTab : odgZaTab.slice(0, MAX_ODGOVOROV);
 
       const vrstice = prikazani.map(r => {
         const oseba = izpolnjevalec(r.raw_data, r.vprasanja);
-        const meta = [oseba.podnaslov, formatDatum(r.submitted_at)].filter(Boolean).map(esc).join(' · ');
+        const meta = [esc(oseba.podnaslov), `<span class="nowrap">${danUra(r.submitted_at)}</span>`].filter(x => x && x !== '').join(' · ');
         const povzetek = r.ai_povzetek
-          ? `<div class="sum" data-odg="${r.id}">${md(r.ai_povzetek)}</div>
-             <button type="button" class="e-link sum-more" data-za="${r.id}" hidden>Pokaži celoten povzetek</button>`
-          : '<div class="none">AI povzetek še ni generiran.</div>';
+          ? `<div class="resp__sum" data-odg="${r.id}">${md(r.ai_povzetek)}</div>
+             <button class="link sum-more" type="button" data-za="${r.id}" aria-expanded="false" hidden>Pokaži celoten povzetek</button>`
+          : '<p class="resp__none">AI povzetek še ni generiran.</p>';
         return `
-          <article class="e-resp" data-response="${r.id}">
-            <span class="e-av${oseba.imaIme ? '' : ' anon'}">${esc(oseba.zacetnice)}</span>
+          <article class="resp" data-response="${r.id}">
+            <span class="avatar avatar--lg${oseba.imaIme ? '' : ' avatar--anon'}" aria-hidden="true">${esc(oseba.zacetnice)}</span>
             <div style="min-width:0">
               <h3 class="odg-ime">${esc(oseba.ime)}</h3>
-              <div class="meta">${meta}</div>
+              <p class="resp__meta">${meta}</p>
               ${povzetek}
             </div>
-            <a class="e-btn e-open btn-odpri" href="/admin/response.html?id=${r.id}">Odpri celoten vprašalnik <span class="e-go">→</span></a>
+            <a class="btn btn--secondary btn--sm resp__open btn-odpri" href="/admin/response.html?id=${r.id}"><span>Odpri vprašalnik</span>${ikona('arrow-right', 'icon--sm')}</a>
           </article>`;
       }).join('');
 
-      const zavihki = vpr.map(v =>
-        `<button type="button" data-tab="${v.qid}" class="${v.qid === aktivniTab ? 'active' : ''}">${esc(v.naziv)} <b>${v.st}</b></button>`).join('');
+      const zavihki = vpr.map(v => `<button class="tab${v.qid === aktivniTab ? ' active' : ''}" type="button" role="tab" aria-selected="${v.qid === aktivniTab}" data-tab="${v.qid}">${esc(v.naziv)} <span class="count">${v.st}</span></button>`).join('');
 
-      const najvec = Math.max(1, ...vpr.map(v => v.st));
       el.innerHTML = `
-        <div class="e-bottom">
-          <section class="e-panel" id="odgovori-section">
-            <h2>Odgovori</h2>
-            <p class="desc">Ena vrstica je en izpolnjevalec. Povzetek je AI, celoten vprašalnik je en klik stran.</p>
-            <div class="e-tabs" role="tablist">${zavihki}</div>
-            ${vrstice || '<div class="e-empty">Za ta vprašalnik ni odgovorov, samo priporočila.</div>'}
-            ${odgZaTab.length > MAX_ODGOVOROV ? `
-              <div class="e-panel-foot">
-                <span>Prikazanih ${prikazani.length} od ${odgZaTab.length}</span>
-                <button type="button" class="e-btn-soft" onclick="vsiOdgovori = !vsiOdgovori; renderSpodaj()">${vsiOdgovori ? 'Pokaži manj' : `Pokaži vse (${odgZaTab.length})`}</button>
-              </div>` : ''}
-          </section>
-          <div>
-            <section class="e-panel">
-              <h2>Po vprašalnikih</h2>
-              <p class="desc">Koliko odgovorov je podjetje oddalo na posamezen vprašalnik.</p>
-              <div style="margin-top:12px">
-                ${vpr.map(v => `<div class="e-bar-row" title="${esc(v.naziv)}"><span>${esc(v.naziv)}</span><div class="track"><i style="width:${Math.round(v.st / najvec * 100)}%"></i></div><strong>${v.st}</strong></div>`).join('')}
-              </div>
-            </section>
-            <section class="e-panel">
-              <h2>Upravljanje</h2>
-              <p class="desc">Združitev podvojenih podjetij in GDPR izbris vseh podatkov. Obojega ni mogoče razveljaviti.</p>
-              <div class="e-actions" style="margin-top:14px">
-                <button type="button" class="e-btn-soft" onclick="odpriMerge()">Združi z drugim podjetjem</button>
-                <button type="button" class="e-btn-danger" onclick="izbrisiPodjetje()">GDPR izbris</button>
-              </div>
-            </section>
-          </div>
-        </div>`;
+        ${glava}
+        <div class="tabs odg-tabs" role="tablist" aria-label="Vprašalnik">${zavihki}</div>
+        ${vrstice || '<p class="empty-line">Za ta vprašalnik ni odgovorov, samo priporočila.</p>'}
+        ${odgZaTab.length > MAX_ODGOVOROV ? `
+          <footer class="panel__foot">
+            <span>Prikazanih ${prikazani.length} od ${odgZaTab.length}</span>
+            <span class="spacer"></span>
+            <button class="btn btn--secondary btn--sm" type="button" id="odg-vse" aria-expanded="${vsiOdgovori}">${vsiOdgovori ? 'Pokaži manj' : `Pokaži vse (${odgZaTab.length})`}</button>
+          </footer>` : ''}`;
 
-      // Dolg povzetek se zapre; gumb se pokaze samo, ce je res odrezan.
-      el.querySelectorAll('.e-resp .sum').forEach(s => {
-        if (s.scrollHeight <= s.clientHeight + 4) { s.classList.add('odprt', 'kratko'); return; }
-        const g = el.querySelector(`.sum-more[data-za="${s.dataset.odg}"]`);
-        g.hidden = false;
-        g.addEventListener('click', () => {
-          const odpri = !s.classList.contains('odprt');
-          s.classList.toggle('odprt', odpri);
-          g.textContent = odpri ? 'Skrij' : 'Pokaži celoten povzetek';
-        });
+      document.getElementById('odg-vse')?.addEventListener('click', () => {
+        vsiOdgovori = !vsiOdgovori;
+        renderOdgovori();
+        document.getElementById('odg-vse')?.focus();
       });
+      preveriPovzetke();
     }
 
+    // A long summary is folded to three lines; the button shows only when
+    // the text is really cut.
+    function preveriPovzetke() {
+      document.querySelectorAll('.resp__sum').forEach(s => {
+        const g = document.querySelector(`.sum-more[data-za="${s.dataset.odg}"]`);
+        if (!g || s.classList.contains('is-open')) return;
+        const zlozena = s.offsetHeight;
+        s.classList.add('is-open');
+        const polna = s.offsetHeight;
+        s.classList.remove('is-open');
+        g.hidden = polna <= zlozena + 2;
+      });
+    }
+    document.addEventListener('click', (e) => {
+      const g = e.target.closest('.sum-more');
+      if (!g) return;
+      const s = document.querySelector(`.resp__sum[data-odg="${g.dataset.za}"]`);
+      const odpri = !s.classList.contains('is-open');
+      s.classList.toggle('is-open', odpri);
+      g.textContent = odpri ? 'Skrij' : 'Pokaži celoten povzetek';
+      g.setAttribute('aria-expanded', String(odpri));
+    });
+    window.addEventListener('resize', debounce(preveriPovzetke, 150));
+    document.fonts?.ready.then(preveriPovzetke);
+
+    // ── Side column below: per questionnaire, management ──────────────────
+    function renderMeta() {
+      const vpr = vprasalniki();
+      const najvec = Math.max(1, ...vpr.map(v => v.st));
+      document.getElementById('meta').innerHTML = `
+        ${vpr.length ? `
+          <section class="panel">
+            <header class="panel__head panel__head--plain"><h2 class="panel__title">Po vprašalnikih</h2></header>
+            <div class="panel__body">
+              ${vpr.map(v => `<div class="bar-row" title="${esc(v.naziv)}: ${v.st}"><span class="ellipsis">${esc(v.naziv)}</span><span class="progress"><span class="progress__fill" style="width:${Math.round(v.st / najvec * 100)}%"></span></span><b>${v.st}</b></div>`).join('')}
+            </div>
+          </section>` : ''}
+        <section class="panel">
+          <header class="panel__head panel__head--plain"><h2 class="panel__title">Upravljanje</h2></header>
+          <div class="panel__body">
+            <p class="panel__desc">Združitev podvojenih podjetij in GDPR izbris vseh podatkov. Obojega ni mogoče razveljaviti.</p>
+            <div class="actions" style="margin-top:var(--space-3)">
+              <button class="btn btn--secondary btn--sm" type="button" id="btn-merge">${ikona('merge')}<span>Združi z drugim podjetjem</span></button>
+              <button class="btn btn--danger btn--sm" type="button" id="btn-gdpr">${ikona('trash')}<span>GDPR izbris</span></button>
+            </div>
+            <dl class="kv kv--meta">
+              <div><dt title="Normaliziran naziv, po katerem se združujejo odgovori">Normaliziran naziv</dt><dd title="${esc(podjetje.naziv_normaliziran)}">${esc(podjetje.naziv_normaliziran)}</dd></div>
+            </dl>
+          </div>
+        </section>`;
+      document.getElementById('btn-merge').addEventListener('click', odpriMerge);
+      document.getElementById('btn-gdpr').addEventListener('click', izbrisiPodjetje);
+    }
+
+    // One questionnaire choice for the workshop and the answers.
     function izberiTab(qid) {
       if (qid === aktivniTab) return;
       aktivniTab = qid;
       vsiOdgovori = false;
       renderDelavnica();
-      renderSpodaj();
+      renderOdgovori();
     }
 
-    // En poslusalec za vse izbire vprasalnika (povezave v glavi, stikalo, zavihki).
-    document.getElementById('stran').addEventListener('click', (e) => {
+    // Questionnaire links in the header, workshop tabs, answer tabs.
+    stran.addEventListener('click', (e) => {
+      const dok = e.target.closest('[data-dok]');
+      if (dok) {
+        if (dok.dataset.dok === predlogDok) return;
+        predlogDok = dok.dataset.dok;
+        renderPredlog();
+        document.querySelector(`#prodajni-predlog [data-dok="${predlogDok}"]`)?.focus();
+        return;
+      }
       const el = e.target.closest('[data-tab]');
       if (!el) return;
       e.preventDefault();
-      izberiTab(Number(el.dataset.tab));
-      if (el.closest('.e-links')) document.getElementById('delavnica').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const qid = Number(el.dataset.tab);
+      const ovoj = el.closest('#delavnica, #odgovori-section');
+      izberiTab(qid);
+      if (el.classList.contains('qlink')) {
+        const d = document.getElementById('delavnica');
+        d.open = true;
+        d.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else if (ovoj) {
+        document.querySelector(`#${ovoj.id} .tab[data-tab="${qid}"]`)?.focus();
+      }
     });
 
-    // ── Akcije ────────────────────────────────────────────────────────────
+    // ── Actions ───────────────────────────────────────────────────────────
     async function patchPodjetje(telo) {
       const r = await apiFetch(`/api/companies/${id}`, { method: 'PATCH', body: JSON.stringify(telo) });
       if (!r?.ok) { alert('Napaka pri shranjevanju.'); return false; }
-      // Opomb ne prepisujemo: odziv bi lahko prinesel starejse besedilo od
-      // tistega, ki se se shranjuje (glej shraniOpombe).
+      // Never take the notes from this response: it may carry older text
+      // than the one being saved right now (see shraniOpombe).
       const { interne_opombe, interne_opombe_updated_at, ...ostalo } = r.company;
       Object.assign(podjetje, ostalo);
       return true;
@@ -633,7 +831,10 @@
     async function nastaviKval(v) {
       if (v === null && !podjetje.kvalifikacija_rocna) return;
       if (v !== null && v === podjetje.kvalifikacija && podjetje.kvalifikacija_rocna) return;
-      if (await patchPodjetje({ kvalifikacija: v })) renderZgoraj();
+      if (await patchPodjetje({ kvalifikacija: v })) {
+        renderKval();
+        document.querySelector(`#prop-kval [data-kval="${v ?? 'ai'}"]`)?.focus();
+      }
     }
 
     async function nastaviStatus(s, el) {
@@ -641,29 +842,40 @@
       const ok = await patchPodjetje({ status: s });
       el.disabled = false;
       if (!ok) { el.value = podjetje.status; return; }
-      renderZgoraj();
+      renderStatus();
     }
 
-    async function regeneriraj(qid, mode) {
-      const opis = mode === 'vse' ? 'VSE (povzetki + priporočila)' : 'priporočila';
-      const cas  = mode === 'vse' ? 'nekaj minut' : '~70 sekund';
-      if (!confirm(`Zagnati regeneracijo ${opis}? (${cas})`)) return;
-
+    async function regeneriraj(qid, mode, gumb) {
+      const vse = mode === 'vse';
+      const cas = vse ? 'nekaj minut' : 'okoli 70 sekund';
+      if (!confirm(`Zagnati regeneracijo ${vse ? 'VSEGA (povzetki in priporočila)' : 'priporočil'}? (${cas})`)) return;
+      const st = gumb.closest('#delavnica').querySelector('[data-status]');
+      gumb.disabled = true;
       const res = await fetch(`/api/companies/${id}/regenerate-ai`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ mode, questionnaire_id: qid }),
-      });
-      if (!res.ok) { alert('Napaka pri sproženju.'); return; }
-      alert(`Sproženo. Osveži stran čez ${cas}.`);
+      }).catch(() => null);
+      gumb.disabled = false;
+      st.hidden = false;
+      if (!res?.ok) {
+        st.className = 'callout callout--danger work__status';
+        st.textContent = 'Regeneracije ni bilo mogoče sprožiti. Poskusite znova.';
+        return;
+      }
+      st.className = 'callout callout--info work__status';
+      st.textContent = vse
+        ? `Sproženo ob ${ura(new Date())}. Povzetki in priporočila bodo pripravljeni čez nekaj minut; nato osvežite stran. Do takrat ostane vidna trenutna različica.`
+        : `Sproženo ob ${ura(new Date())}. Nova priporočila bodo pripravljena čez okoli 70 sekund; nato osvežite stran. Do takrat ostane vidna trenutna različica.`;
     }
 
-    // Paket za Claude: podatke da streznik, vprasanja custom_html obrazcev pa
-    // se izluscijo tu (DOMParser, ista koda kot na strani odgovora).
+    // Package for Claude: the server gives the data, the questions of
+    // custom_html forms are extracted here (DOMParser, same code as on the
+    // answer page).
     async function izvoziZaClaude(gumb) {
-      const besedilo = gumb.textContent;
       gumb.disabled = true;
-      gumb.textContent = 'Pripravljam …';
+      gumb.classList.add('is-loading');
+      gumb.setAttribute('aria-busy', 'true');
       try {
         const data = await apiFetch(`/api/companies/${id}/izvoz`);
         if (!data?.company) throw new Error('strežnik ni vrnil podatkov');
@@ -682,31 +894,32 @@
         alert(`Izvoz ni uspel: ${err.message}`);
       } finally {
         gumb.disabled = false;
-        gumb.textContent = besedilo;
+        gumb.classList.remove('is-loading');
+        gumb.removeAttribute('aria-busy');
       }
     }
 
     async function odpriMerge() {
-      const target = prompt('ID podjetja v katerega želiš zliti TO podjetje:');
+      const target = prompt('ID podjetja, v katerega želite združiti TO podjetje:');
       if (!target) return;
       const targetId = parseInt(target, 10);
       if (!Number.isInteger(targetId)) { alert('Neveljaven ID.'); return; }
-      if (!confirm(`Zlij podjetje #${id} → #${targetId}? To se NE da razveljaviti.`)) return;
+      if (!confirm(`Združiti podjetje #${id} v #${targetId}? Tega ni mogoče razveljaviti.`)) return;
       const r = await apiFetch(`/api/companies/${id}/merge`, {
         method: 'POST',
         body: JSON.stringify({ target_id: targetId }),
       });
       if (r?.ok) {
-        alert(`Zlitje uspešno. Premaknjenih ${r.moved_responses} odgovorov.`);
+        alert(`Združitev uspešna. Premaknjenih odgovorov: ${r.moved_responses}.`);
         window.location.href = `/admin/company.html?id=${targetId}`;
       } else {
-        alert('Napaka pri zlitju.');
+        alert('Napaka pri združevanju.');
       }
     }
 
     async function izbrisiPodjetje() {
-      if (!confirm('GDPR izbris IZBRIŠE podjetje IN vse odgovore. Si prepričan/a?')) return;
-      if (!confirm('Zares? Operacija ni razveljavljiva.')) return;
+      if (!confirm('GDPR izbris izbriše podjetje IN vse odgovore. Ste prepričani?')) return;
+      if (!confirm('Zares? Tega ni mogoče razveljaviti.')) return;
       const r = await apiFetch(`/api/companies/${id}`, { method: 'DELETE' });
       if (r?.ok) {
         alert('Izbrisano.');
@@ -717,21 +930,34 @@
     }
 
     // ── Init ──────────────────────────────────────────────────────────────
+    function napakaStrani(besedilo) {
+      stran.innerHTML = `
+        <div class="callout callout--danger" role="alert">${ikona('alert')}<div>${besedilo} <a href="/admin/podjetja.html">Na seznam podjetij</a></div></div>`;
+    }
+
     (async () => {
+      if (!id) { napakaStrani('Manjka parameter <code>?id=</code>.'); return; }
       const data = await apiFetch(`/api/companies/${id}`);
-      if (!data) {
-        document.getElementById('header').innerHTML = '<div class="e-note bad">Napaka pri nalaganju podjetja.</div>';
-        return;
-      }
-      podjetje    = data.company;
+      if (!data?.company) { napakaStrani('Podjetja ni bilo mogoče naložiti.'); return; }
+      podjetje     = data.company;
       opombeShranjene = podjetje.interne_opombe || '';
       mozniDvojnik = data.mozni_dvojnik ?? null;
-      odgovori    = data.responses ?? [];
-      priporocila = data.priporocila ?? [];
-      renderHeader();
-      renderZgoraj();
-      renderSpodaj();
-      naloziPredlog();
+      odgovori     = data.responses ?? [];
+      priporocila  = data.priporocila ?? [];
+      // ?q=ID preselects the questionnaire (link from the answer page).
+      const q = Number(qs('q'));
+      if (q && vprasalniki().some(v => v.qid === q)) aktivniTab = q;
+
+      const izvoz = document.getElementById('btn-izvoz');
+      izvoz.hidden = false;
+      izvoz.addEventListener('click', () => izvoziZaClaude(izvoz));
+
+      renderStran();
+      odpriDelavnicoIzNaslova();
+      // The proposal above the workshop changes height when it arrives, so a
+      // #delavnica deep link is anchored again afterwards.
+      await naloziPredlog();
+      odpriDelavnicoIzNaslova();
     })();
   </script>
 </body>

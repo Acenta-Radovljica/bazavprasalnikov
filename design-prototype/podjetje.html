@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hotel Smrekov gaj · Acenta baza</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    /* Identiteta podjetja */
+    .ident { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6); min-width: 0; }
+    .ident__logo { width: 48px; height: 48px; flex: none; border-radius: var(--radius-lg); display: grid; place-items: center; background: var(--accent-subtle); color: var(--accent-text); border: 1px solid var(--accent-border); font-size: var(--text-md); font-weight: var(--weight-semibold); }
+    .ident__txt { min-width: 0; }
+    .ident h1 { font-size: var(--text-xl); letter-spacing: -0.015em; overflow-wrap: anywhere; }
+    .ident__meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-top: 6px; font-size: var(--text-sm); color: var(--text-muted); }
+    .ident__sep { width: 1px; height: 14px; background: var(--border); }
+    .qlink { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 4px 0 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-secondary); font-size: var(--text-sm); white-space: nowrap; max-width: 100%; transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out); }
+    .qlink:hover { border-color: var(--border-strong); background: var(--bg-hover); color: var(--text); }
+    .qlink span:first-child { overflow: hidden; text-overflow: ellipsis; }
+
+    /* Zapis podjetja: dokument + lastnosti (kot zapis v CRM) */
+    .record {
+      display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6) var(--space-6);
+      grid-template-areas: "doc props" "work ." "answers meta";
+      align-items: start;
+    }
+    .a-doc { grid-area: doc; } .a-props { grid-area: props; align-self: stretch; } .a-work { grid-area: work; }
+    .a-answers { grid-area: answers; } .a-meta { grid-area: meta; }
+    .props { position: sticky; top: calc(var(--topbar-h) + var(--space-4)); }
+
+    /* Prodajni predlog: povrsina za branje */
+    .docp__head { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; padding: var(--space-4) var(--space-6) var(--space-2); }
+    .docp__bar { display: flex; align-items: center; gap: var(--space-3); padding: 0 var(--space-6); border-bottom: 1px solid var(--border-subtle); }
+    .docp__bar .tabs { border-bottom: 0; }
+    .docp__bar .tab { height: 48px; }
+    .docp__title h2 { font-size: var(--text-md); }
+    .docp__title p { font-size: var(--text-sm); color: var(--text-muted); margin-top: 2px; }
+    .docp__actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .docp__body { padding: var(--space-6) var(--space-6) var(--space-10); }
+    .docp__body > .callout { max-width: var(--prose-max); margin-bottom: var(--space-6); }
+    .docp__note { padding: 0 var(--space-6) var(--space-3); }
+    .doc h3 .dept { font-weight: var(--weight-regular); color: var(--text-muted); }
+    .panel > .empty { padding: var(--space-4) var(--space-6) var(--space-8); }
+
+    /* Lastnosti */
+    .prop { padding: var(--space-4); display: grid; gap: 10px; }
+    .prop + .prop { border-top: 1px solid var(--border-subtle); }
+    .prop__head { display: flex; align-items: center; gap: var(--space-2); min-height: 22px; }
+    .prop__label { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text); white-space: nowrap; }
+    .prop__head .chip, .prop__meta { margin-left: auto; }
+    .prop__meta { font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .prop__note { font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.55; }
+    .prop__foot { font-size: var(--text-xs); color: var(--text-muted); }
+    .prop .textarea { min-height: 120px; font-size: var(--text-sm); line-height: 1.55; }
+    .seg-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--lead-warm); flex: none; }
+
+    /* Priprava na delavnico: sekundarna, zlozena */
+    .work { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+    .work > summary.work__sum { padding: var(--space-4) var(--space-6); }
+    .work[open] > summary { border-bottom: 0; }
+    .work__sum h2 { font-size: var(--text-md); white-space: nowrap; }
+    .work__sum p { font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+    .work__sum > div { min-width: 0; flex: 1; }
+    .work__tabs { padding: 0 var(--space-6); }
+    .work__tabs .tab { height: 44px; }
+    .work__tools { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--border-subtle); }
+    .actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .inline-status { font-size: var(--text-sm); color: var(--accent-text); }
+
+    /* Odgovori */
+    .resp { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--space-3); padding: var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+    .resp:last-child { border-bottom: 0; }
+    .resp h3 { font-size: var(--text-base); font-weight: var(--weight-semibold); }
+    .resp__meta { font-size: var(--text-sm); color: var(--text-muted); margin-top: 1px; }
+    .resp__sum { margin-top: var(--space-2); font-size: var(--text-sm); line-height: 1.6; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; max-width: 72ch; }
+    .resp__sum.is-open { display: block; -webkit-line-clamp: unset; }
+    .resp__none { margin-top: var(--space-2); font-size: var(--text-sm); color: var(--text-muted); }
+    .resp .link { margin-top: 6px; font-size: var(--text-sm); }
+    .resp__open { align-self: start; }
+
+    .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) 72px 24px; gap: var(--space-3); align-items: center; font-size: var(--text-sm); color: var(--text-secondary); }
+    .bar-row + .bar-row { margin-top: var(--space-3); }
+    .bar-row b { text-align: right; font-weight: var(--weight-medium); color: var(--text); font-variant-numeric: tabular-nums; }
+    .kv { display: flex; justify-content: space-between; gap: var(--space-3); font-size: var(--text-xs); color: var(--text-muted); margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); }
+    .kv dd { color: var(--text-secondary); font-family: var(--font-mono); }
+
+    /* Okvirji drugih stanj (niso del strani) */
+    .frames { margin-top: var(--space-16); padding-top: var(--space-8); border-top: 1px dashed var(--border-strong); }
+    .frames > h2 { font-size: var(--text-md); }
+    .frames > p { font-size: var(--text-sm); color: var(--text-muted); margin-top: 4px; }
+    .frames__grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6); margin-top: var(--space-6); }
+    .frames__col { display: grid; gap: var(--space-8); }
+    .frame__label { font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-muted); margin-bottom: var(--space-2); }
+    .frame-fade { position: relative; max-height: 190px; overflow: hidden; }
+    .frame-fade::after { content: ''; position: absolute; inset: auto 0 0 0; height: 80px; background: linear-gradient(to bottom, transparent, var(--bg-surface)); }
+
+    @media (max-width: 1099px) {
+      .record, .frames__grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: "doc" "props" "work" "answers" "meta"; }
+      .props { position: static; }
+    }
+    @media (max-width: 899px) {
+      .ident { gap: var(--space-3); margin-bottom: var(--space-4); align-items: flex-start; }
+      .ident__sep { display: none; }
+      .ident__meta > span:first-child { flex: 1 1 100%; }
+      .ident__logo { width: 40px; height: 40px; font-size: var(--text-base); }
+      .ident h1 { font-size: var(--text-lg); }
+      .docp__head { padding: var(--space-4) var(--space-4) var(--space-3); }
+      .docp__bar { flex-wrap: wrap; padding: 0 var(--space-4); gap: 0; }
+      .docp__bar .spacer { display: none; }
+      .docp__actions { order: -1; width: 100%; padding: var(--space-1) 0 var(--space-3); }
+      .docp__actions .btn { flex: 1 1 0; }
+      .docp__actions .btn--primary { order: -1; flex: 1 1 100%; }
+      .docp__bar .tabs { width: 100%; border-top: 1px solid var(--border-subtle); gap: var(--space-6); }
+      .docp__body { padding: var(--space-5) var(--space-4) var(--space-8); }
+      .docp__note { padding: 0 var(--space-4) var(--space-3); }
+      .panel > .empty { padding: var(--space-4) var(--space-4) var(--space-6); }
+      .resp { grid-template-columns: 36px minmax(0, 1fr); }
+      .resp__open { grid-column: 2; justify-self: start; }
+      .work__sum p { white-space: normal; }
+      .work > summary.work__sum { padding: var(--space-4); }
+      .work__tabs { padding: 0 var(--space-4); gap: var(--space-6); }
+      .work__tools { padding: var(--space-3) var(--space-4); }
+      .work__tools .btn { flex: 1 1 auto; }
+    }
+    @media print {
+      .ident, .a-props, .a-work, .a-answers, .a-meta, .frames, .docp__actions, .docp__tabs, .docp__body > .callout { display: none !important; }
+      /* Natisni v delavnici natisne samo priporocila */
+      body.tisk-delavnica .a-doc { display: none !important; }
+      body.tisk-delavnica .a-work { display: block !important; border: 0; }
+      body.tisk-delavnica .work__tabs, body.tisk-delavnica .work__tools, body.tisk-delavnica .disclosure__chev, body.tisk-delavnica #workStale { display: none !important; }
+      .record { display: block; }
+      .panel { border: 0; }
+      .page { padding: 0; }
+    }
+  </style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="i-check-square" viewBox="0 0 24 24"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2zM9 7h7M9 11h5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+  <symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-merge" viewBox="0 0 24 24"><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="mobilebar">
+    <button class="btn btn--ghost btn--icon" type="button" data-nav-open-btn aria-label="Odpri meni" aria-controls="sidebar" aria-expanded="false"><svg class="icon icon--lg"><use href="#i-menu"/></svg></button>
+    <span class="mobilebar__brand"><span class="brand-mark" aria-hidden="true">a</span>Acenta baza</span>
+    <span class="spacer"></span>
+    <a class="btn btn--ghost btn--icon" href="#" aria-label="Iskanje"><svg class="icon icon--lg"><use href="#i-search"/></svg></a>
+  </header>
+
+  <aside class="sidebar" id="sidebar" aria-label="Glavna navigacija">
+    <div class="sidebar__brand">
+      <span class="brand-mark" aria-hidden="true">a</span>
+      <span class="sidebar__brand-text"><b>Acenta baza</b><small>Interna konzola</small></span>
+      <button class="btn btn--ghost btn--icon sidebar__close" type="button" data-nav-close aria-label="Zapri meni"><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="danes.html"><svg class="icon"><use href="#i-inbox"/></svg><span class="nav-item__label">Danes</span><span class="nav-item__count" aria-label="6 nalog na tebi">6</span></a>
+      <div class="nav-group">Delo</div>
+      <a class="nav-item" href="seja.html"><svg class="icon"><use href="#i-check-square"/></svg><span class="nav-item__label">Procesi</span></a>
+      <a class="nav-item is-active" href="podjetja.html" aria-current="page"><svg class="icon"><use href="#i-building"/></svg><span class="nav-item__label">Podjetja</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-file"/></svg><span class="nav-item__label">Vprašalniki</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-book"/></svg><span class="nav-item__label">Katalog</span></a>
+      <div class="nav-group">Analiza</div>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-chart"/></svg><span class="nav-item__label">Primerjava</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-search"/></svg><span class="nav-item__label">Iskanje</span><span class="nav-item__kbd">Ctrl K</span></a>
+      <button class="nav-item" type="button" id="naprednoToggle" aria-expanded="false" aria-controls="naprednoSeznam" style="margin-top:var(--space-3)"><svg class="icon nav-item__chev"><use href="#i-chev-down"/></svg><span class="nav-item__label">Napredno</span></button>
+      <div class="nav-sub" id="naprednoSeznam" hidden>
+        <a class="nav-item" href="#"><svg class="icon"><use href="#i-book-open"/></svg><span class="nav-item__label">Vpogledi</span></a>
+      </div>
+    </nav>
+    <div class="sidebar__foot">
+      <span class="avatar" aria-hidden="true">MZ</span>
+      <div class="ellipsis"><b class="ellipsis">ai@acenta.si</b><span>Admin</span></div>
+    </div>
+  </aside>
+  <div class="scrim" data-nav-close></div>
+
+  <main class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Pot">
+        <a href="podjetja.html">Podjetja</a>
+        <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chev-right"/></svg>
+        <span aria-current="page">Hotel Smrekov gaj</span>
+      </nav>
+      <span class="spacer"></span>
+      <div class="topbar__actions">
+        <button class="btn btn--secondary" type="button" id="btnIzvoz" title="Vsi odgovori, zapisi sestankov in transkripti v enem ZIP-u, z navodili za prodajni predlog"><svg class="icon"><use href="#i-download"/></svg>Izvoz za Claude (ZIP)</button>
+      </div>
+    </header>
+
+    <div class="page">
+      <header class="ident">
+        <span class="ident__logo" aria-hidden="true">SG</span>
+        <div class="ident__txt">
+          <h1>Hotel Smrekov gaj</h1>
+          <div class="ident__meta">
+            <span>17 odgovorov · zadnji 7. 10. 2026</span>
+            <span class="ident__sep" aria-hidden="true"></span>
+            <a class="qlink" href="#delavnica" data-q="ai"><span>Ocena poslovnega potenciala za AI</span><span class="count">12</span></a>
+            <a class="qlink" href="#delavnica" data-q="dz"><span>Digitalna zrelost oddelkov</span><span class="count">5</span></a>
+          </div>
+        </div>
+      </header>
+
+      <div class="record">
+        <!-- ── Prodajni predlog ── -->
+        <section class="panel a-doc" id="prodajni-predlog" aria-labelledby="ppNaslov">
+          <header class="docp__head">
+            <div class="docp__title">
+              <h2 id="ppNaslov">Prodajni predlog</h2>
+              <p>Pripravljeno 7. 10. 2026 iz 17 odgovorov in 2 zapisov sestankov</p>
+            </div>
+          </header>
+          <div class="docp__note" id="ppTece" hidden>
+            <div class="callout callout--info"><span class="pulse" style="margin-top:6px" aria-hidden="true"></span><div>Pripravljam novo različico (začeto ob 10.12). AI bere 17 odgovorov in 2 zapisa sestankov; traja nekaj minut. Stran se osveži sama.</div></div>
+          </div>
+          <div class="docp__bar">
+            <div class="tabs docp__tabs" role="tablist" aria-label="Dokument">
+              <button class="tab" type="button" role="tab" aria-selected="true" data-dok="direktor">Za direktorja</button>
+              <button class="tab" type="button" role="tab" aria-selected="false" data-dok="matjaz">Za Matjaža</button>
+            </div>
+            <span class="spacer"></span>
+            <div class="docp__actions">
+              <button class="btn btn--secondary" type="button" id="ppPripravi"><svg class="icon"><use href="#i-refresh"/></svg>Pripravi znova</button>
+              <button class="btn btn--secondary" type="button" id="ppKopiraj"><svg class="icon"><use href="#i-copy"/></svg><span>Kopiraj</span></button>
+              <a class="btn btn--primary" id="ppPdf" href="#" download><svg class="icon"><use href="#i-printer"/></svg>Natisni / PDF za direktorja</a>
+            </div>
+          </div>
+          <div class="docp__body">
+            <div class="callout callout--warning" id="ppOpozorila">
+              <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+              <div>
+                <b>Preverite pred pošiljanjem:</b>
+                <ul>
+                  <li>Dokument navaja »dva dni« čakanja na odgovor skupinam; v gradivu to pove le ena oseba.</li>
+                  <li>Pri procesu 4 ni jasno, ali dobavitelji sprejemajo naročila po e-pošti.</li>
+                </ul>
+              </div>
+            </div>
+
+            <article class="doc" id="dokDirektor">
+              <h1>Seznam procesov za direktorja</h1>
+              <p>Pri anketah je sodelovalo 17 zaposlenih iz recepcije, prodaje, kuhinje in vzdrževanja. Z vodstvom smo opravili dva sestanka. Spodaj so procesi, pri katerih bi umetna inteligenca po naši oceni najbolj razbremenila vaše ljudi, razvrščeni po tem, koliko zaposlenih si spremembo želi.</p>
+
+              <h3>1. Rezervacije iz e-pošte <span class="dept">(recepcija)</span></h3>
+              <ul>
+                <li><strong>Kaj pravijo vaši ljudje</strong>: »Vsako jutro najprej pol ure prepisujem rezervacije iz e-pošte v sistem. Če gost datume napiše z besedami, moram vse preveriti dvakrat.«</li>
+                <li><strong>Kako bi pomagala umetna inteligenca</strong>: AI prebere povpraševanje, iz njega izlušči datume, število oseb in posebne želje ter pripravi osnutek rezervacije. Receptorka ga le potrdi ali popravi.</li>
+                <li><strong>Kaj pridobite</strong>: manj ročnega prepisovanja in manj napak pri datumih; recepcija ima zjutraj več časa za goste, ki so že v hotelu.</li>
+                <li><strong>Zahtevnost uvedbe</strong>: srednja. Potrebna je povezava z vašim rezervacijskim sistemom.</li>
+                <li><strong>Koliko ljudi si to želi</strong>: 6 od 17 vprašanih, vsi z recepcije.</li>
+                <li><strong>Povezava z našimi rešitvami</strong>: AI pomočnik za e-pošto.</li>
+              </ul>
+
+              <h3>2. Odgovori na povpraševanja za skupine <span class="dept">(prodaja)</span></h3>
+              <ul>
+                <li><strong>Kaj pravijo vaši ljudje</strong>: »Vsako ponudbo za skupino sestavljam iz nič. Ob koncih tedna povpraševanja čakajo tudi dva dni.«</li>
+                <li><strong>Kako bi pomagala umetna inteligenca</strong>: AI iz povpraševanja in vašega cenika pripravi osnutek ponudbe v vašem tonu; prodaja ga pregleda in pošlje.</li>
+                <li><strong>Kaj pridobite</strong>: hitrejši prvi odgovor skupinam in porokam, pri katerih šteje hiter odziv.</li>
+                <li><strong>Zahtevnost uvedbe</strong>: srednja. Cenik in pravila za popuste je treba enkrat urediti v pregledno obliko.</li>
+                <li><strong>Koliko ljudi si to želi</strong>: 4 od 17, vključno z vodjo prodaje.</li>
+                <li><strong>Povezava z našimi rešitvami</strong>: priprava ponudb iz povpraševanj.</li>
+              </ul>
+
+              <h3>3. Odgovori gostom na pogosta vprašanja <span class="dept">(recepcija)</span></h3>
+              <ul>
+                <li><strong>Kaj pravijo vaši ljudje</strong>: »Dvajsetkrat na dan nekdo vpraša, do kdaj je odprt wellness in ali so psi dovoljeni.«</li>
+                <li><strong>Kako bi pomagala umetna inteligenca</strong>: pomočnik na spletni strani in v e-pošti odgovarja na pogosta vprašanja iz vaših hišnih pravil; vprašanja, na katera ne zna odgovoriti, preda recepciji.</li>
+                <li><strong>Kaj pridobite</strong>: manj prekinitev na recepciji in odgovore gostom tudi ponoči.</li>
+                <li><strong>Zahtevnost uvedbe</strong>: nizka.</li>
+                <li><strong>Koliko ljudi si to želi</strong>: 5 od 17.</li>
+                <li><strong>Povezava z našimi rešitvami</strong>: AI pomočnik za spletno stran.</li>
+              </ul>
+
+              <h3>4. Naročanje živil za kuhinjo <span class="dept">(kuhinja)</span></h3>
+              <ul>
+                <li><strong>Kaj pravijo vaši ljudje</strong>: »Naročila pišem na listek, ker nimam časa sesti za računalnik. Potem pozabim, kaj sem že naročil.«</li>
+                <li><strong>Kako bi pomagala umetna inteligenca</strong>: kuhar naročilo izgovori v telefon, AI ga zapiše, razvrsti po dobaviteljih in pripravi za pošiljanje.</li>
+                <li><strong>Kaj pridobite</strong>: pregled nad naročili in manj podvojenih ali pozabljenih naročil.</li>
+                <li><strong>Zahtevnost uvedbe</strong>: nizka do srednja, odvisno od tega, kako dobavitelji sprejemajo naročila.</li>
+                <li><strong>Koliko ljudi si to želi</strong>: 2 od 17.</li>
+                <li><strong>Povezava z našimi rešitvami</strong>: glasovni zapis in urejanje naročil.</li>
+              </ul>
+
+              <h2>Izbor procesov za začetek</h2>
+              <div class="doc-table">
+                <table>
+                  <thead>
+                    <tr><th>proces</th><th>kdo si ga želi</th><th>korist</th><th>zahtevnost</th><th>naše priporočilo</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Rezervacije iz e-pošte</td><td>6 zaposlenih na recepciji</td><td>manj prepisovanja in napak pri datumih</td><td>srednja</td><td>za začetek</td></tr>
+                    <tr><td>Odgovori na povpraševanja za skupine</td><td>vodja prodaje in 3 sodelavci</td><td>hitrejši prvi odgovor</td><td>srednja</td><td>za začetek</td></tr>
+                    <tr><td>Odgovori gostom na pogosta vprašanja</td><td>5 zaposlenih na recepciji</td><td>manj prekinitev</td><td>nizka</td><td>kot drugi korak</td></tr>
+                    <tr><td>Naročanje živil za kuhinjo</td><td>kuhar in pomočnik</td><td>pregled nad naročili</td><td>nizka do srednja</td><td>kasneje</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p>Predlagamo, da za začetek izberete enega ali dva procesa. Ko bo prvi tekel, bomo skupaj preverili, koliko dela je prihranil, in se šele nato odločili za naslednjega.</p>
+            </article>
+
+            <article class="doc" id="dokMatjaz" hidden>
+              <h1>Prodajna priporočila za Matjaža</h1>
+              <ul>
+                <li><strong>S čim odpreti pogovor</strong>: rezervacije iz e-pošte. To je najpogostejša pritožba in direktor Tadej Rozman jo pozna iz prve roke.</li>
+                <li><strong>Kdo odloča</strong>: direktor Tadej Rozman. Vodja prodaje Mojca Zupan je zagovornica in bo sodelovala pri pilotu.</li>
+                <li><strong>Kaj že imajo</strong>: e-pošto na Microsoft 365; rezervacijski sistem bodo menjali spomladi 2027.</li>
+                <li><strong>Česa ne vemo</strong>: koliko povpraševanj na teden dejansko pride po e-pošti in kdo bi skrbel za cenik.</li>
+                <li><strong>Možen ugovor</strong>: »Gostje želijo osebni stik.« Odgovor: AI pripravi osnutek, človek ga vedno pregleda in pošlje.</li>
+                <li><strong>Naslednji korak</strong>: kratek klic z Mojco Zupan, da zberemo 20 primerov povpraševanj za preizkus.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+
+        <!-- ── Lastnosti (lepljiv stolpec ob branju) ── -->
+        <div class="a-props">
+          <aside class="panel props" aria-label="Lastnosti podjetja">
+            <section class="prop">
+              <div class="prop__head">
+                <label class="prop__label" for="opombe">Interne opombe</label>
+                <span class="chip"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg>samo za nas</span>
+              </div>
+              <textarea class="textarea" id="opombe" rows="5" maxlength="5000" placeholder="Kar veva o podjetju: katera orodja že imajo, kdo odloča, kaj smo že rešili …">Direktor je po delavnici sam poklical. E-pošto imajo na Microsoft 365. Rezervacijski sistem bodo menjali spomladi 2027, zato povezave z njim še ne obljubljamo.</textarea>
+              <p class="prop__foot" id="opombeStanje" aria-live="polite">Shranjeno 6. 10. 2026 ob 14.20</p>
+            </section>
+
+            <section class="prop">
+              <div class="prop__head">
+                <span class="prop__label" id="kvalLbl">Ocena leada</span>
+                <span class="chip chip--accent" id="kvalVir">Ocenil AI</span>
+              </div>
+              <div class="seg seg--block" role="radiogroup" aria-labelledby="kvalLbl" id="kval">
+                <button class="seg__item seg__item--hot" type="button" role="radio" aria-checked="false" data-k="hot">Hot</button>
+                <button class="seg__item seg__item--warm" type="button" role="radio" aria-checked="false" data-k="warm">Warm</button>
+                <button class="seg__item seg__item--cold" type="button" role="radio" aria-checked="false" data-k="cold">Cold</button>
+                <button class="seg__item seg__item--ai is-active" type="button" role="radio" aria-checked="true" data-k="ai" title="Prepusti oceno AI (ponastavi ročno)">AI<span class="seg-dot" aria-hidden="true"></span>Warm</button>
+              </div>
+              <p class="prop__note">Direktor je sam predlagal sestanek; spremembo pri rezervacijah si želi 6 od 17 zaposlenih. Proračun še ni potrjen.</p>
+            </section>
+
+            <section class="prop">
+              <div class="prop__head">
+                <label class="prop__label" for="status">Prodajni status</label>
+                <span class="prop__meta" id="statusFaza">4 od 6 faz</span>
+              </div>
+              <span class="select-wrap">
+                <select class="select" id="status">
+                  <option value="0">Nov</option>
+                  <option value="1">Kvalificiran</option>
+                  <option value="2">Kontaktiran</option>
+                  <option value="3" selected>Sestanek</option>
+                  <option value="4">Ponudba</option>
+                  <option value="5">Dobljen</option>
+                  <option value="6">Izgubljen</option>
+                </select>
+              </span>
+              <div class="steps" id="statusKoraki" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+              <p class="prop__foot" id="statusKdaj">Spremenjeno 2. 10. 2026</p>
+            </section>
+          </aside>
+        </div>
+
+        <!-- ── Priprava na delavnico: sekundarna in privzeto zaprta; razprta je dokument ── -->
+        <details class="disclosure a-work work" id="delavnica">
+          <summary class="work__sum">
+            <svg class="icon disclosure__chev" aria-hidden="true"><use href="#i-chev-right"/></svg>
+            <div>
+              <h2>Priprava na delavnico</h2>
+              <p id="workDesc">AI priporočila · Ocena poslovnega potenciala za AI · generirano 3. 10. 2026 iz 10 odgovorov</p>
+            </div>
+            <span class="chip chip--warning" id="workStale">Zastarelo</span>
+          </summary>
+
+          <div class="tabs work__tabs" role="tablist" aria-label="Vprašalnik" id="workTabs">
+            <button class="tab" type="button" role="tab" aria-selected="true" data-q="ai">Ocena poslovnega potenciala za AI <span class="count">12</span></button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-q="dz">Digitalna zrelost oddelkov <span class="count">5</span></button>
+          </div>
+
+          <div data-work="ai">
+            <div class="work__tools">
+              <button class="btn btn--secondary" type="button" data-regen="priporocila"><svg class="icon"><use href="#i-refresh"/></svg>Regeneriraj priporočila</button>
+              <button class="btn btn--secondary" type="button" data-regen="vse">Regeneriraj vse</button>
+              <a class="btn btn--ghost" href="#" download><svg class="icon"><use href="#i-download"/></svg>Izvozi PDF</a>
+              <button class="btn btn--ghost" type="button" data-natisni><svg class="icon"><use href="#i-printer"/></svg>Natisni</button>
+            </div>
+            <div class="docp__body">
+              <div class="callout callout--info work__status" data-status hidden></div>
+              <div class="callout callout--warning">
+                <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+                <div><b>Zastarelo.</b> Po generaciji 3. 10. 2026 sta prišla 2 nova odgovora (Mojca Zupan in Eva Kralj, 6. 10. 2026), ki ju priporočila še ne upoštevajo. Kliknite <b>Regeneriraj priporočila</b>; traja okoli 70 sekund, trenutna različica ostane vidna, dokler nova ni pripravljena.</div>
+              </div>
+
+              <article class="doc" id="dokDelavnica">
+                <h2>Povzetek skupine</h2>
+                <p>Odgovorilo je 10 zaposlenih iz štirih oddelkov: recepcija (4), prodaja (2), kuhinja (2) in vzdrževanje (2). Največ časa izgubljajo pri ročnem prepisovanju rezervacij iz e-pošte in pri sestavljanju ponudb za skupine. AI občasno uporabljajo trije, redno nihče. Večina oceni svoje znanje o AI z 2 ali 3 od 5.</p>
+                <p>Glavni skrbi sta dve: da bi AI naredil napako pri cenah ali datumih in da v sezoni ne bo časa za učenje. Vodstvo je odprto za preizkus na enem procesu.</p>
+
+                <h2>Agenda delavnice (3 ure)</h2>
+                <ol>
+                  <li><strong>Uvod in pravila (20 min)</strong>: kaj AI zna in česa ne; kako varno ravnati s podatki gostov.</li>
+                  <li><strong>En dan na recepciji (40 min)</strong>: udeleženci naštejejo vse, kar v enem dnevu prepišejo iz enega sistema v drugega; skupaj izberemo tri najpogostejša opravila.</li>
+                  <li><strong>Rezervacije iz e-pošte v živo (40 min)</strong>: na treh anonimiziranih povpraševanjih pokažemo, kako AI izlušči datume, število oseb in želje.</li>
+                  <li><strong>Odmor (15 min)</strong></li>
+                  <li><strong>Ponudba za skupino v desetih minutah (40 min)</strong>: prodaja z AI pripravi osnutek ponudbe iz cenika; popuste preverimo skupaj.</li>
+                  <li><strong>Načrt za prvih 30 dni (25 min)</strong>: izberemo en proces za preizkus, odgovorno osebo in merilo uspeha.</li>
+                </ol>
+
+                <h2>Predlogi po oddelkih</h2>
+                <h3>Recepcija</h3>
+                <ul>
+                  <li>Osnutki rezervacij iz e-poštnih povpraševanj; receptorka jih le potrdi ali popravi.</li>
+                  <li>Pripravljeni odgovori na najpogostejša vprašanja gostov (wellness, psi, parkirišče), ki jih AI predlaga v e-pošti.</li>
+                </ul>
+                <h3>Prodaja</h3>
+                <ul>
+                  <li>Osnutki ponudb za skupine in poroke iz cenika in preteklih ponudb; končno ceno vedno potrdi človek.</li>
+                  <li>Povzetki telefonskih pogovorov s strankami, ki se shranijo v CRM.</li>
+                </ul>
+                <h3>Kuhinja</h3>
+                <ul>
+                  <li>Glasovni zapis naročil živil. Zanimanje je majhno, zato na delavnici le kratka predstavitev.</li>
+                </ul>
+                <h3>Vzdrževanje</h3>
+                <ul>
+                  <li>Prijave okvar prek kratkega obrazca namesto ustno; AI jih razvrsti po nujnosti in sobi.</li>
+                </ul>
+
+                <h2>Naslednji koraki</h2>
+                <ol>
+                  <li>Pred delavnico zberite 20 primerov e-poštnih povpraševanj za preizkus.</li>
+                  <li>Dogovorite se, kdo pri hotelu skrbi za cenik in pravila popustov.</li>
+                  <li>Na delavnico povabite vodjo recepcije in vodjo prodaje; brez njiju izbor procesa ne bo držal.</li>
+                  <li>Po delavnici izberite en proces za 30-dnevni preizkus in osebo, ki ga vodi.</li>
+                </ol>
+              </article>
+            </div>
+          </div>
+
+          <div data-work="dz" hidden>
+            <div class="empty" style="padding:var(--space-6)">
+              <span class="empty__icon" aria-hidden="true"><svg class="icon icon--lg"><use href="#i-sparkles"/></svg></span>
+              <p class="empty__title">Priporočila še niso pripravljena</p>
+              <p class="empty__text">AI prebere vseh 5 odgovorov na ta vprašalnik in pripravi povzetek skupine, agendo delavnice, predloge po oddelkih in naslednje korake. Generiranje traja okoli 70 sekund.</p>
+              <div class="actions" style="margin-top:var(--space-2)">
+                <button class="btn btn--secondary" type="button" data-regen="priporocila">Generiraj priporočila</button>
+                <button class="btn btn--secondary" type="button" data-regen="vse">Regeneriraj vse</button>
+              </div>
+              <div class="callout callout--info work__status" data-status hidden style="margin-top:var(--space-3)"></div>
+            </div>
+          </div>
+        </details>
+
+        <!-- ── Odgovori ── -->
+        <section class="panel a-answers" id="odgovori" aria-labelledby="odgNaslov">
+          <header class="panel__head panel__head--plain" style="flex-wrap:wrap">
+            <div style="min-width:0">
+              <h2 class="panel__title" id="odgNaslov">Odgovori</h2>
+              <p class="panel__desc">Ena vrstica je en izpolnjevalec. Povzetek pripravi AI, celoten vprašalnik je en klik stran.</p>
+            </div>
+          </header>
+          <div class="tabs" role="tablist" aria-label="Vprašalnik" style="padding:0 var(--space-4)" id="odgTabs">
+            <button class="tab" type="button" role="tab" aria-selected="true" data-q="ai">Ocena poslovnega potenciala za AI <span class="count">12</span></button>
+            <button class="tab" type="button" role="tab" aria-selected="false" data-q="dz">Digitalna zrelost oddelkov <span class="count">5</span></button>
+          </div>
+
+          <div data-odg="ai">
+            <article class="resp">
+              <span class="avatar avatar--lg" aria-hidden="true">MZ</span>
+              <div>
+                <h3>Mojca Zupan</h3>
+                <p class="resp__meta">vodja prodaje · 6. 10. 2026, 14.05</p>
+                <p class="resp__sum">Največ časa porabi za ponudbe skupinam, ki jih sestavlja ročno iz cenika in preteklih ponudb. Želi si osnutkov, ki bi jih le pregledala in poslala. Skrbi jo, da bi AI napačno obračunal popuste za poroke, zato želi, da človek vedno potrdi končno ceno. Ob koncih tedna povpraševanja čakajo, ker je v prodaji sama in ob sobotah ne dela.</p>
+                <button class="link" type="button" data-vec hidden>Pokaži celoten povzetek</button>
+              </div>
+              <a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+            </article>
+            <article class="resp">
+              <span class="avatar avatar--lg" aria-hidden="true">EK</span>
+              <div>
+                <h3>Eva Kralj</h3>
+                <p class="resp__meta">receptorka · 6. 10. 2026, 09.41</p>
+                <p class="resp__sum">Vsako jutro prepisuje rezervacije iz e-pošte v rezervacijski sistem. Najpogostejša napaka so zamenjani datumi, ko gost napiše »od petka do nedelje«. Na pogosta vprašanja gostov (wellness, psi, parkirišče) odgovarja večkrat na dan.</p>
+                <button class="link" type="button" data-vec hidden>Pokaži celoten povzetek</button>
+              </div>
+              <a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+            </article>
+            <article class="resp">
+              <span class="avatar avatar--lg" aria-hidden="true">TR</span>
+              <div>
+                <h3>Tadej Rozman</h3>
+                <p class="resp__meta">direktor · 5. 10. 2026, 18.22</p>
+                <p class="resp__sum">Kot glavni cilj navaja hitrejši odziv na povpraševanja za skupine in poroke. Pričakuje, da uvedba v sezoni ne bo motila recepcije. Odprt je za pilot na enem procesu.</p>
+                <button class="link" type="button" data-vec hidden>Pokaži celoten povzetek</button>
+              </div>
+              <a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+            </article>
+            <article class="resp">
+              <span class="avatar avatar--lg avatar--anon" aria-hidden="true">?</span>
+              <div>
+                <h3>Anonimno</h3>
+                <p class="resp__meta">4. 10. 2026, 11.10</p>
+                <p class="resp__none">AI povzetek še ni generiran.</p>
+              </div>
+              <a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+            </article>
+            <article class="resp">
+              <span class="avatar avatar--lg" aria-hidden="true">RB</span>
+              <div>
+                <h3>Rok Bizjak</h3>
+                <p class="resp__meta">vodja kuhinje · 3. 10. 2026, 15.30</p>
+                <p class="resp__sum">Naročila živil zapisuje na papir in jih dobaviteljem sporoča po telefonu. Glasovni zapis naročil se mu zdi zanimiv, nima pa časa za učenje novega programa.</p>
+                <button class="link" type="button" data-vec hidden>Pokaži celoten povzetek</button>
+              </div>
+              <a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+            </article>
+            <div id="odgVec" hidden>
+              <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">LŽ</span><div><h3>Luka Žagar</h3><p class="resp__meta">receptor · 3. 10. 2026, 08.12</p><p class="resp__sum">Podpira avtomatske odgovore gostom ponoči; nočna izmena je sama.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+              <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">NK</span><div><h3>Nika Kos</h3><p class="resp__meta">receptorka · 2. 10. 2026, 21.40</p><p class="resp__sum">Največ dela ima s spremembami rezervacij, ki pridejo po e-pošti.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+              <article class="resp"><span class="avatar avatar--lg avatar--anon" aria-hidden="true">?</span><div><h3>Anonimno</h3><p class="resp__meta">2. 10. 2026, 13.05</p><p class="resp__none">AI povzetek še ni generiran.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+              <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">PH</span><div><h3>Petra Hribar</h3><p class="resp__meta">vodja vzdrževanja · 1. 10. 2026, 10.30</p><p class="resp__sum">Prijave okvar dobiva ustno; želi si pregleda odprtih nalog.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+              <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">JM</span><div><h3>Jan Mlakar</h3><p class="resp__meta">natakar · 30. 9. 2026, 16.45</p><p class="resp__sum">Rezervacije miz sprejema po telefonu in jih piše v zvezek.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+              <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">AT</span><div><h3>Ana Turk</h3><p class="resp__meta">prodaja · 30. 9. 2026, 11.02</p><p class="resp__sum">Pri ponudbah za poroke bi rada imela vzorce preteklih ponudb na enem mestu.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+              <article class="resp"><span class="avatar avatar--lg avatar--anon" aria-hidden="true">?</span><div><h3>Anonimno</h3><p class="resp__meta">29. 9. 2026, 19.20</p><p class="resp__none">AI povzetek še ni generiran.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+            </div>
+            <footer class="panel__foot">
+              <span id="odgPrikaz">Prikazanih 5 od 12</span>
+              <span class="spacer"></span>
+              <button class="btn btn--secondary btn--sm" type="button" id="odgVse" aria-expanded="false">Pokaži vse (12)</button>
+            </footer>
+          </div>
+
+          <div data-odg="dz" hidden>
+            <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">PH</span><div><h3>Petra Hribar</h3><p class="resp__meta">vodja vzdrževanja · 28. 9. 2026, 09.15</p><p class="resp__sum">Oddelek dela večinoma na papirju; računalnik uporablja le za naročila rezervnih delov.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+            <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">MZ</span><div><h3>Mojca Zupan</h3><p class="resp__meta">vodja prodaje · 27. 9. 2026, 17.50</p><p class="resp__sum">Prodaja uporablja CRM le za kontakte; ponudbe živijo v e-pošti.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+            <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">EK</span><div><h3>Eva Kralj</h3><p class="resp__meta">receptorka · 27. 9. 2026, 10.04</p><p class="resp__none">AI povzetek še ni generiran.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+            <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">RB</span><div><h3>Rok Bizjak</h3><p class="resp__meta">vodja kuhinje · 26. 9. 2026, 14.30</p><p class="resp__sum">V kuhinji ni računalnika; vse poteka prek telefona in papirja.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+            <article class="resp"><span class="avatar avatar--lg" aria-hidden="true">TR</span><div><h3>Tadej Rozman</h3><p class="resp__meta">direktor · 26. 9. 2026, 08.40</p><p class="resp__sum">Digitalizacijo vidi kot pogoj za rast; prednost imajo oddelki, ki delajo z gosti.</p></div><a class="btn btn--secondary btn--sm resp__open" href="odgovor.html">Odpri vprašalnik<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></article>
+          </div>
+        </section>
+
+        <!-- ── Desni stolpec spodaj ── -->
+        <div class="stack a-meta">
+          <section class="panel">
+            <header class="panel__head panel__head--plain"><h2 class="panel__title">Po vprašalnikih</h2></header>
+            <div class="panel__body">
+              <div class="bar-row" title="Ocena poslovnega potenciala za AI: 12"><span class="ellipsis">Ocena poslovnega potenciala za AI</span><span class="progress"><span class="progress__fill" style="width:100%"></span></span><b>12</b></div>
+              <div class="bar-row" title="Digitalna zrelost oddelkov: 5"><span class="ellipsis">Digitalna zrelost oddelkov</span><span class="progress"><span class="progress__fill" style="width:42%"></span></span><b>5</b></div>
+            </div>
+          </section>
+          <section class="panel">
+            <header class="panel__head panel__head--plain"><h2 class="panel__title">Upravljanje</h2></header>
+            <div class="panel__body">
+              <p class="panel__desc">Združitev podvojenih podjetij in GDPR izbris vseh podatkov. Obojega ni mogoče razveljaviti.</p>
+              <div class="actions" style="margin-top:var(--space-3)">
+                <button class="btn btn--secondary btn--sm" type="button" id="btnMerge"><svg class="icon"><use href="#i-merge"/></svg>Združi z drugim podjetjem</button>
+                <button class="btn btn--danger btn--sm" type="button" id="btnGdpr"><svg class="icon"><use href="#i-trash"/></svg>GDPR izbris</button>
+              </div>
+              <dl class="kv"><dt>Normaliziran naziv</dt><dd>smrekov gaj</dd></dl>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ═══ Druga stanja: ločeni okvirji v realni širini ═══ -->
+      <section class="frames" aria-label="Druga stanja">
+        <h2>Druga stanja prodajnega predloga</h2>
+        <p>Ločeni okvirji v realni širini stolpca; niso del strani zgoraj.</p>
+        <div class="frames__grid">
+          <div class="frames__col">
+            <div>
+              <p class="frame__label">Stanje: pripravlja novo različico (obstoječi predlog ostane viden)</p>
+              <section class="panel">
+                <header class="docp__head">
+                  <div class="docp__title"><h2>Prodajni predlog</h2><p>Pripravljeno 7. 10. 2026 iz 17 odgovorov in 2 zapisov sestankov</p></div>
+                </header>
+                <div class="docp__note">
+                  <div class="callout callout--info"><span class="pulse" style="margin-top:6px" aria-hidden="true"></span><div>Pripravljam novo različico (začeto ob 10.12). AI bere 17 odgovorov in 2 zapisa sestankov; traja nekaj minut. Stran se osveži sama.</div></div>
+                </div>
+                <div class="docp__bar">
+                  <div class="tabs docp__tabs" role="tablist"><button class="tab" type="button" role="tab" aria-selected="true">Za direktorja</button><button class="tab" type="button" role="tab" aria-selected="false">Za Matjaža</button></div>
+                  <span class="spacer"></span>
+                  <div class="docp__actions">
+                    <button class="btn btn--secondary" type="button" disabled><span class="spinner" aria-hidden="true"></span>Pripravljam …</button>
+                    <button class="btn btn--secondary" type="button"><svg class="icon"><use href="#i-copy"/></svg>Kopiraj</button>
+                    <a class="btn btn--primary" href="#"><svg class="icon"><use href="#i-printer"/></svg>Natisni / PDF za direktorja</a>
+                  </div>
+                </div>
+                <div class="docp__body frame-fade">
+                  <article class="doc">
+                    <h1>Seznam procesov za direktorja</h1>
+                    <p>Pri anketah je sodelovalo 17 zaposlenih iz recepcije, prodaje, kuhinje in vzdrževanja. Z vodstvom smo opravili dva sestanka.</p>
+                  </article>
+                </div>
+              </section>
+            </div>
+
+            <div>
+              <p class="frame__label">Stanje: prazno (predlog še ni pripravljen)</p>
+              <section class="panel">
+                <header class="docp__head">
+                  <div class="docp__title"><h2>Prodajni predlog</h2><p>Še ni pripravljen</p></div>
+                </header>
+                <div class="empty">
+                  <span class="empty__icon" aria-hidden="true"><svg class="icon icon--lg"><use href="#i-sparkles"/></svg></span>
+                  <p class="empty__title">Prodajni predlog še ni pripravljen</p>
+                  <p class="empty__text">AI prebere vse odgovore tega podjetja (17), zapise sestankov (2), interne opombe in katalog rešitev ter pripravi seznam procesov za direktorja in prodajni list za Matjaža. Traja nekaj minut.</p>
+                  <button class="btn btn--primary" type="button"><svg class="icon"><use href="#i-sparkles"/></svg>Pripravi prodajni predlog</button>
+                </div>
+              </section>
+            </div>
+
+            <div>
+              <p class="frame__label">Stanje: zadnja priprava ni uspela</p>
+              <div class="callout callout--danger">
+                <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+                <div><b>Zadnja priprava ni uspela:</b> AI se ni odzval. Poskusite znova čez nekaj minut. Prejšnja različica ostaja spodaj.</div>
+              </div>
+            </div>
+
+            <div>
+              <p class="frame__label">Stanje: možen dvojnik (pod glavo podjetja)</p>
+              <div class="callout callout--warning" style="align-items:flex-start">
+                <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+                <div style="flex:1;min-width:0">
+                  Verjetno isto podjetje kot <a class="link" href="#">Hotel Smrekov Gaj d.o.o. (#41)</a>. Ujemata se naslov spletne strani in telefonska številka.
+                  <div class="actions" style="margin-top:var(--space-3)">
+                    <button class="btn btn--primary btn--sm" type="button">Združi v #41</button>
+                    <button class="btn btn--secondary btn--sm" type="button">Ni isto podjetje</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ── Navigacija (skupno vsem zaslonom) ──
+  const telo = document.body;
+  const odpriGumb = document.querySelector('[data-nav-open-btn]');
+  function zapriMeni() { telo.removeAttribute('data-nav-open'); odpriGumb?.setAttribute('aria-expanded', 'false'); }
+  odpriGumb?.addEventListener('click', () => { telo.setAttribute('data-nav-open', ''); odpriGumb.setAttribute('aria-expanded', 'true'); document.querySelector('.sidebar__close')?.focus(); });
+  document.querySelectorAll('[data-nav-close]').forEach(el => el.addEventListener('click', zapriMeni));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') zapriMeni(); });
+  const napredno = document.getElementById('naprednoToggle');
+  napredno.addEventListener('click', () => {
+    const odpri = napredno.getAttribute('aria-expanded') !== 'true';
+    napredno.setAttribute('aria-expanded', String(odpri));
+    document.getElementById('naprednoSeznam').hidden = !odpri;
+  });
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const uraZdaj = () => { const d = new Date(); return `${d.getHours()}.${String(d.getMinutes()).padStart(2, '0')}`; };
+
+  // ── Prodajni predlog: zavihka, kopiraj, natisni, pripravi znova ──
+  let dok = 'direktor';
+  $$('[data-dok]').forEach(t => t.addEventListener('click', () => {
+    dok = t.dataset.dok;
+    $$('[data-dok]').forEach(x => x.setAttribute('aria-selected', String(x === t)));
+    $('#dokDirektor').hidden = dok !== 'direktor';
+    $('#dokMatjaz').hidden = dok !== 'matjaz';
+    $('#ppOpozorila').hidden = dok !== 'direktor';
+  }));
+  $('#ppKopiraj').addEventListener('click', async (e) => {
+    const lbl = e.currentTarget.querySelector('span');
+    try { await navigator.clipboard.writeText($(dok === 'direktor' ? '#dokDirektor' : '#dokMatjaz').innerText); lbl.textContent = 'Kopirano'; }
+    catch { lbl.textContent = 'Kopiranje ni uspelo'; }
+    setTimeout(() => { lbl.textContent = 'Kopiraj'; }, 1600);
+  });
+  $('#ppPdf').addEventListener('click', (e) => { e.preventDefault(); window.print(); });
+  $('#ppPripravi').addEventListener('click', (e) => {
+    if (!confirm('Pripraviti nov prodajni predlog? Trenutni ostane viden, dokler novi ni pripravljen.')) return;
+    const b = e.currentTarget;
+    b.disabled = true;
+    b.innerHTML = '<span class="spinner" aria-hidden="true"></span>Pripravljam …';
+    $('#ppTece').hidden = false;
+  });
+  $('#btnIzvoz').addEventListener('click', (e) => {
+    const b = e.currentTarget; b.classList.add('is-loading');
+    setTimeout(() => b.classList.remove('is-loading'), 1200);
+  });
+
+  // ── Interne opombe: shrani ob premoru v tipkanju ──
+  let opombeT = null;
+  $('#opombe').addEventListener('input', () => {
+    $('#opombeStanje').textContent = 'Neshranjeno …';
+    clearTimeout(opombeT);
+    opombeT = setTimeout(() => { $('#opombeStanje').textContent = `Shranjeno danes ob ${uraZdaj()}`; }, 900);
+  });
+
+  // ── Ocena leada: en izbor; AI segment pokaze, kaj predlaga AI ──
+  $$('#kval .seg__item').forEach(b => b.addEventListener('click', () => {
+    $$('#kval .seg__item').forEach(x => { x.classList.toggle('is-active', x === b); x.setAttribute('aria-checked', String(x === b)); });
+    const vir = $('#kvalVir');
+    if (b.dataset.k === 'ai') { vir.textContent = 'Ocenil AI'; vir.className = 'chip chip--accent'; }
+    else { vir.textContent = 'Ročno'; vir.className = 'chip'; }
+  }));
+
+  // ── Prodajni status: izbor + faze ──
+  function izrisiStatus() {
+    const ix = Number($('#status').value);
+    const izgubljen = ix === 6;
+    $$('#statusKoraki i').forEach((i, n) => { i.className = izgubljen ? '' : n < ix ? 'is-done' : n === ix ? 'is-current' : ''; });
+    $('#statusKoraki').classList.toggle('steps--lost', izgubljen);
+    $('#statusFaza').textContent = izgubljen ? 'Izgubljen' : `${ix + 1} od 6 faz`;
+  }
+  $('#status').addEventListener('change', () => { izrisiStatus(); $('#statusKdaj').textContent = `Spremenjeno danes ob ${uraZdaj()}`; });
+  izrisiStatus();
+
+  // ── Izbira vprasalnika: ena izbira za delavnico in odgovore ──
+  function izberiVprasalnik(q) {
+    $$('#workTabs .tab').forEach(x => x.setAttribute('aria-selected', String(x.dataset.q === q)));
+    $$('[data-work]').forEach(x => { x.hidden = x.dataset.work !== q; });
+    $$('#odgTabs .tab').forEach(x => x.setAttribute('aria-selected', String(x.dataset.q === q)));
+    $$('[data-odg]').forEach(x => { x.hidden = x.dataset.odg !== q; });
+    const opis = {
+      ai: ['AI priporočila · Ocena poslovnega potenciala za AI · generirano 3. 10. 2026 iz 10 odgovorov', true],
+      dz: ['AI priporočila · Digitalna zrelost oddelkov · še ni generirano', false],
+    }[q];
+    $('#workDesc').textContent = opis[0];
+    $('#workStale').hidden = !opis[1];
+    preveriPovzetke();
+  }
+  $$('#workTabs .tab, #odgTabs .tab').forEach(b => b.addEventListener('click', () => izberiVprasalnik(b.dataset.q)));
+  $$('.qlink').forEach(a => a.addEventListener('click', (e) => {
+    e.preventDefault();
+    izberiVprasalnik(a.dataset.q);
+    $('#delavnica').open = true;
+    $('#delavnica').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+
+  // ── Delavnica: regeneracija z vrstico stanja namesto alert() ──
+  $$('[data-regen]').forEach(b => b.addEventListener('click', () => {
+    const vse = b.dataset.regen === 'vse';
+    if (!confirm(`Zagnati regeneracijo ${vse ? 'VSEGA (povzetki in priporočila)' : 'priporočil'}? (${vse ? 'nekaj minut' : 'okoli 70 sekund'})`)) return;
+    const st = b.closest('[data-work]').querySelector('[data-status]');
+    st.hidden = false;
+    st.textContent = `Sproženo ob ${uraZdaj()}. Nova priporočila bodo pripravljena čez ${vse ? 'nekaj minut' : 'okoli 70 sekund'}; do takrat ostane vidna trenutna različica.`;
+  }));
+  $$('[data-natisni]').forEach(b => b.addEventListener('click', () => {
+    document.body.classList.add('tisk-delavnica');
+    window.print();
+    document.body.classList.remove('tisk-delavnica');
+  }));
+
+  // podjetje.html#delavnica: blok se odpre in pokaze takoj ob nalaganju
+  function odpriDelavnicoIzNaslova() {
+    if (location.hash !== '#delavnica') return;
+    $('#delavnica').open = true;
+    requestAnimationFrame(() => $('#delavnica').scrollIntoView({ block: 'start' }));
+  }
+  document.fonts.ready.then(odpriDelavnicoIzNaslova);
+  addEventListener('hashchange', odpriDelavnicoIzNaslova);
+
+  // ── Odgovori: dolg povzetek se zlozi; "Pokazi vse" ──
+  function preveriPovzetke() {
+    $$('.resp__sum').forEach(s => {
+      const g = s.parentElement.querySelector('[data-vec]');
+      if (!g || s.classList.contains('is-open')) return;
+      // izmeri nezlozeno visino; gumb samo, ce je besedilo res odrezano
+      const zlozena = s.offsetHeight;
+      s.classList.add('is-open'); const polna = s.offsetHeight; s.classList.remove('is-open');
+      g.hidden = polna <= zlozena + 2;
+    });
+  }
+  $$('[data-vec]').forEach(g => g.addEventListener('click', () => {
+    const s = g.parentElement.querySelector('.resp__sum');
+    const odpri = !s.classList.contains('is-open');
+    s.classList.toggle('is-open', odpri);
+    g.textContent = odpri ? 'Skrij' : 'Pokaži celoten povzetek';
+  }));
+  $('#odgVse').addEventListener('click', (e) => {
+    const odpri = $('#odgVec').hidden;
+    $('#odgVec').hidden = !odpri;
+    e.currentTarget.textContent = odpri ? 'Pokaži manj' : 'Pokaži vse (12)';
+    e.currentTarget.setAttribute('aria-expanded', String(odpri));
+    $('#odgPrikaz').textContent = odpri ? 'Prikazanih 12 od 12' : 'Prikazanih 5 od 12';
+  });
+  document.fonts.ready.then(preveriPovzetke);
+  addEventListener('resize', preveriPovzetke);
+
+  // ── Upravljanje: isti varovalki kot danes ──
+  $('#btnMerge').addEventListener('click', () => { prompt('ID podjetja, v katerega želite združiti TO podjetje:'); });
+  $('#btnGdpr').addEventListener('click', () => { if (confirm('GDPR izbris izbriše podjetje IN vse odgovore. Ste prepričani?')) confirm('Zares? Tega ni mogoče razveljaviti.'); });
+</script>
+</body>
+</html>

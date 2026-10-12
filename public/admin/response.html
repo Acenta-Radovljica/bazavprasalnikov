@@ -2,38 +2,123 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Odgovor</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Odgovor · Acenta baza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
   <link rel="stylesheet" href="/admin/admin.css">
-</head>
-<body class="min-h-screen">
-  <header id="nav"></header>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    /* Answer record (design-prototype/odgovor.html): who answered, the AI
+       summary, a sticky side column and the questionnaire by section. */
+    .crumbs > a + .icon + a { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .qlink > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+    .qlink .icon { flex: none; }
+    .pager-mini { display: inline-flex; align-items: center; gap: 2px; }
+    .pager-mini > span { font-size: var(--text-sm); color: var(--text-muted); padding: 0 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .izvor { margin-bottom: var(--space-6); }
 
-  <main class="flex-1 min-w-0 flex flex-col">
-    <div class="e-wrap">
-      <div class="e-crumb" id="crumb">Baza vprašalnikov / <a href="/admin/podjetja.html">Podjetja</a></div>
-      <div id="content"></div>
-    </div>
-  </main>
+    .record { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--space-6); grid-template-areas: "sum side" "qs side"; align-items: start; }
+    .a-sum { grid-area: sum; } .a-qs { grid-area: qs; min-width: 0; } .a-side { grid-area: side; align-self: stretch; min-width: 0; }
+    .side { position: sticky; top: calc(var(--topbar-h) + var(--space-4)); display: grid; gap: var(--space-4); }
+    .side__title { font-size: var(--text-sm); font-weight: var(--weight-semibold); margin-bottom: var(--space-2); }
+    .side__title--kv { margin-bottom: var(--space-1); }
+    .side .check { margin-top: var(--space-3); font-size: var(--text-sm); }
+
+    .sum__head { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-4) var(--space-6) 0; }
+    .sum__head h2 { font-size: var(--text-md); }
+    .sum__head p { font-size: var(--text-sm); color: var(--text-muted); }
+    .sum__body { padding: var(--space-4) var(--space-6) var(--space-6); }
+    .sum__body .doc ol { padding-left: 1.4em; margin: 0; }
+    .sum__body .doc li { margin-bottom: var(--space-3); }
+    .sum__body .doc li:last-child { margin-bottom: 0; }
+    .sum__body .doc > :last-child { margin-bottom: 0; }
+    .a-sum > .empty { padding: var(--space-4) var(--space-6) var(--space-6); }
+
+    .stat__val { font-size: 1.375rem; font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.1; }
+    .stat__val small { font-size: var(--text-base); color: var(--text-muted); font-weight: var(--weight-regular); margin-left: 2px; }
+    .stat__note { font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-2); }
+
+    /* Questions and answers by section */
+    .qs__title { display: flex; align-items: baseline; gap: var(--space-3); margin: var(--space-8) 0 var(--space-3); }
+    .qs__title h2 { font-size: var(--text-md); }
+    .qs__title span { font-size: var(--text-sm); color: var(--text-muted); }
+    .qsec { margin-bottom: var(--space-4); }
+    .qsec__head h3 { font-size: var(--text-base); }
+    .qsec > .qa:first-child { border-top: 0; }
+    .qa__label .field__req { margin-left: 2px; }
+
+    /* Previous / next answer of the same company and questionnaire */
+    .pager { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-6); }
+    .pager__item { display: flex; flex-direction: column; gap: 2px; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); min-width: 0; font-size: var(--text-sm); transition: border-color var(--dur-fast) var(--ease-out); }
+    a.pager__item:hover { border-color: var(--accent-muted); }
+    .pager__item small { font-size: var(--text-xs); color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+    .pager__item b { font-weight: var(--weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+    .pager__item--next { text-align: right; align-items: flex-end; }
+    .pager__item--off { background: transparent; border-style: dashed; color: var(--text-muted); justify-content: center; }
+
+    .form-copy { margin-top: var(--space-6); }
+    .form-copy summary h2 { font-size: var(--text-base); }
+    .form-copy summary p { font-size: var(--text-sm); color: var(--text-muted); }
+    .form-copy summary > div { flex: 1; min-width: 0; }
+    .form-copy iframe { display: block; width: 100%; height: 60vh; min-height: 360px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-surface); }
+
+    @media (max-width: 1100px) {
+      .record { grid-template-columns: minmax(0, 1fr); grid-template-areas: "sum" "side" "qs"; }
+      .side { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 760px) {
+      .topbar__actions { justify-content: space-between; }
+      .topbar__actions .btn:not(.btn--icon) { flex: 0 1 auto; }
+      .side { grid-template-columns: minmax(0, 1fr); }
+      .sum__head { padding: var(--space-4) var(--space-4) 0; }
+      .sum__body { padding: var(--space-3) var(--space-4) var(--space-5); }
+      .a-sum > .empty { padding: var(--space-4); }
+      .pager { grid-template-columns: minmax(0, 1fr); }
+      .izvor { margin-bottom: var(--space-4); }
+    }
+    @media print {
+      .pager, .form-copy, .side .check { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <nav class="crumbs" aria-label="Pot" id="crumbs">
+          <a href="/admin/podjetja.html">Podjetja</a>
+          <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chev-right"/></svg>
+          <span aria-current="page">Odgovor</span>
+        </nav>
+        <span class="spacer"></span>
+        <div class="topbar__actions">
+          <div class="pager-mini" id="pager-mini" role="group" aria-label="Odgovori tega podjetja" hidden></div>
+          <button class="btn btn--secondary" type="button" id="btn-csv" hidden><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg><span>Prenesi CSV</span></button>
+        </div>
+      </header>
+
+      <div class="page" id="content"></div>
+    </main>
+  </div>
 
   <script src="/admin/app.js"></script>
   <script>
     renderNav('home');
 
     const id = qs('id');
-    if (!id) {
-      document.getElementById('content').innerHTML = '<div class="bg-red-50 text-red-700 p-4 rounded">Manjka ?id= parameter</div>';
-      throw new Error('no id');
-    }
-
     const prazno = (v) => v == null || v === '' || (Array.isArray(v) && v.length === 0);
 
-    const KLJUKICA = '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
+    function ura(iso) {
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? '' : `${d.getHours()}.${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+    const danObUri = (iso) => `${formatDan(iso)} ob ${ura(iso)}`;
 
-    // Moznosti so lahko nizi (navaden vprasalnik) ali {value, label}
-    // (izlusceno iz HTML obrazca, kjer se shrani value, prikaze pa label).
+    // Options are strings (plain questionnaire) or {value, label} (extracted
+    // from an HTML form, where value is stored and label is shown).
     function normMoznosti(opts) {
       return (Array.isArray(opts) ? opts : [])
         .map(o => (o && typeof o === 'object') ? { value: String(o.value ?? o.label ?? ''), label: String(o.label ?? o.value ?? '') }
@@ -41,107 +126,119 @@
         .filter(o => o.value !== '');
     }
 
-    // Lestvica = same stevilke v zaporedju (1-4, 1-5, 0-10). Izrise se kot
-    // vrsta ploscic, ne kot seznam izbir, ker se tako bere kot ocena.
+    // Scale = consecutive numbers (1-4, 1-5, 0-10). Drawn as a row of tiles,
+    // not as a list of choices, because it reads as a rating.
     function jeLestvica(moznosti) {
       if (moznosti.length < 3 || moznosti.length > 11) return false;
       const n = moznosti.map(o => Number(o.value));
       return n.every((x, i) => Number.isInteger(x) && (i === 0 || x === n[i - 1] + 1));
     }
 
-    // Iz besedila vprasanja potegne razlago lestvice: "(1 = slabo, 4 = zelo dobro)".
+    // Scale legend from the question text: "(1 = slabo, 4 = zelo dobro)".
     function razlagaLestvice(label) {
       const m = String(label || '').match(/\(\s*\d+\s*=\s*([^,)]+),\s*\d+\s*=\s*([^)]+)\)/);
       return m ? `${m[1].trim()} → ${m[2].trim()}` : '';
     }
+    const brezRazlage = (label) => String(label).replace(/\s*\(\s*\d+\s*=[^)]*\)\s*$/, '');
 
-    // En odgovor v HTML. Pri izbirnih vprasanjih pokazemo VSE moznosti in
-    // oznacimo izbrane — tako se bere kot izpolnjen vprasalnik, ne kot izvoz.
-    function izrisOdgovora(q, v) {
-      if (prazno(v)) return '<div class="e-none">Ni odgovora</div>';
-      const izbrane = (Array.isArray(v) ? v : [v]).map(x => String(x));
+    const jeLestvicaZa = (q, v) => {
       const moznosti = normMoznosti(q.options);
       const vec = q.tip === 'checkbox' || q.tip === 'checkbox_multi' || Array.isArray(v);
+      return moznosti.length && !vec && jeLestvica(moznosti) && !prazno(v);
+    };
 
-      if (moznosti.length && !vec && jeLestvica(moznosti) && izbrane.length === 1) {
+    // One answer as HTML. For choice questions ALL options are shown and the
+    // chosen ones marked: it reads as a filled questionnaire, not an export.
+    function izrisOdgovora(q, v) {
+      if (prazno(v)) return '<span class="ans-none">Ni odgovora</span>';
+      const izbrane = (Array.isArray(v) ? v : [v]).map(x => String(x));
+      const moznosti = normMoznosti(q.options);
+
+      if (jeLestvicaZa(q, v) && izbrane.length === 1) {
         const razlaga = razlagaLestvice(q.label);
-        return '<div class="e-scale">' + moznosti.map(o =>
-          `<span class="${izbrane.includes(o.value) ? 'on' : ''}">${esc(o.label)}</span>`).join('')
+        return '<div class="scale">' + moznosti.map(o =>
+          `<span class="${izbrane.includes(o.value) ? 'is-on' : ''}">${esc(o.label)}</span>`).join('')
           + (razlaga ? `<small>${esc(razlaga)}</small>` : '') + '</div>';
       }
+      const opcija = (label, je) => je
+        ? `<span class="opt is-on">${ikona('check')}${esc(label)}</span>`
+        : `<span class="opt">${esc(label)}</span>`;
       if (moznosti.length) {
         const znane = new Set(moznosti.map(o => o.value));
         const dodatne = izbrane.filter(x => !znane.has(x)).map(x => ({ value: x, label: x }));
-        return '<div class="e-opts">' + [...moznosti, ...dodatne].map(o => {
-          const je = izbrane.includes(o.value);
-          return `<span class="e-opt${je ? ' on' : ''}${vec ? ' sq' : ''}"><span class="box">${KLJUKICA}</span>${esc(o.label)}</span>`;
-        }).join('') + '</div>';
+        return '<div class="opts">' + [...moznosti, ...dodatne].map(o => opcija(o.label, izbrane.includes(o.value))).join('') + '</div>';
       }
-      if (Array.isArray(v)) {
-        return '<div class="e-opts">' + v.map(x =>
-          `<span class="e-opt on sq"><span class="box">${KLJUKICA}</span>${esc(String(x))}</span>`).join('') + '</div>';
-      }
-      if (typeof v === 'boolean' || v === 'on') {
-        const da = v === true || v === 'on';
-        return `<div class="e-opts"><span class="e-opt${da ? ' on' : ''} sq"><span class="box">${KLJUKICA}</span>${da ? 'Da' : 'Ne'}</span></div>`;
-      }
-      if (typeof v === 'object') return `<pre class="e-quote" style="font-size:12px">${esc(JSON.stringify(v, null, 2))}</pre>`;
+      if (Array.isArray(v)) return '<div class="opts">' + v.map(x => opcija(String(x), true)).join('') + '</div>';
+      if (typeof v === 'boolean' || v === 'on') return `<p class="ans-short">${v === true || v === 'on' ? 'Da' : 'Ne'}</p>`;
+      if (typeof v === 'object') return `<pre class="ans-code">${esc(JSON.stringify(v, null, 2))}</pre>`;
       const t = String(v);
-      if (t.length > 70 || t.includes('\n')) return `<div class="e-quote">${esc(t)}</div>`;
-      return `<div class="e-short">${esc(t)}</div>`;
+      if (q.tip === 'email' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t.trim())) {
+        return `<p class="ans-short"><a href="mailto:${esc(t.trim())}">${esc(t)}</a></p>`;
+      }
+      if (t.length > 70 || t.includes('\n')) return `<p class="ans-long">${esc(t)}</p>`;
+      return `<p class="ans-short">${esc(t)}</p>`;
     }
 
-    // Vprasalnik kot zaporedje kartic, v vrstnem redu obrazca, s sklopi.
-    // Polja, ki niso v vprasanjih (gdpr_consent ...), gredo na konec.
-    // Razreda q-item/q-label/q-kljuc/q-answer bereta testi (odgovori.test.mjs).
+    // The questionnaire as panels by section, in the order of the form.
+    // Fields that are not questions (gdpr_consent ...) go last and are not
+    // counted. Classes q-item/q-label/q-kljuc/q-answer are read by tests.
     function renderVprasalnik(raw, questions) {
       const r = raw && typeof raw === 'object' ? raw : {};
       const qList = Array.isArray(questions) ? questions : [];
       const handled = new Set([HONEYPOT]);
-      const deli = [];
-      let st = 0, odgovorjeno = 0, obveznihBrez = 0, zadnjiSklop = '';
-
-      const kartica = (q, v) => {
-        st++;
-        const je = !prazno(v);
-        if (je) odgovorjeno++;
-        else if (q.obvezno) obveznihBrez++;
-        return `
-          <section class="e-q q-item${je ? '' : ' empty'}" data-kljuc="${esc(q.id)}">
-            <div class="rank">${st}</div>
-            <div style="min-width:0">
-              <h3 class="q-label">${esc(q.label || q.id)}${q.obvezno ? '<span class="req">*</span>' : ''}</h3>
-              <div class="key q-kljuc">${esc(q.id)}</div>
-              <div class="ans q-answer">${izrisOdgovora(q, v)}</div>
-            </div>
-          </section>`;
-      };
+      const sklopi = [];
+      let trenutni = null, zadnjiSklop = '';
+      const nov = (label) => { trenutni = { label, polja: [] }; sklopi.push(trenutni); };
 
       for (const q of qList) {
         if (handled.has(q.id)) continue;
+        if (q.tip === 'section') { nov(q.label || ''); continue; }
         handled.add(q.id);
-        if (q.tip === 'section') {
-          deli.push(`<div class="e-section"><i></i>${esc(q.label || '')}</div>`);
-          continue;
-        }
-        if (q.sklop && q.sklop !== zadnjiSklop) {
-          zadnjiSklop = q.sklop;
-          deli.push(`<div class="e-section"><i></i>${esc(q.sklop)}</div>`);
-        }
-        deli.push(kartica(q, r[q.id]));
+        if (q.sklop && q.sklop !== zadnjiSklop) { zadnjiSklop = q.sklop; nov(q.sklop); }
+        if (!trenutni) nov('');
+        trenutni.polja.push({ q, v: r[q.id], steje: true });
       }
-
       const meta = { gdpr_consent: 'Soglasje GDPR' };
       const ostala = Object.entries(r).filter(([k, v]) => !handled.has(k) && !prazno(v));
       if (ostala.length) {
-        deli.push(`<div class="e-section"><i></i>${qList.length ? 'Ostala polja' : 'Odgovori'}</div>`);
-        for (const [k, v] of ostala) deli.push(kartica({ id: k, label: meta[k] || k }, v));
+        nov(qList.length ? 'Ostala polja' : 'Odgovori');
+        // Without questions these ARE the answers, so they count.
+        for (const [k, v] of ostala) trenutni.polja.push({ q: { id: k, label: meta[k] || k }, v, steje: !qList.length });
       }
 
-      return { html: deli.join('') || '<div class="e-panel"><div class="e-empty">Odgovor nima polj.</div></div>', st, odgovorjeno, obveznihBrez };
+      let st = 0, vse = 0, odgovorjeno = 0, obveznihBrez = 0;
+      const html = sklopi.filter(s => s.polja.length).map(s => {
+        const n = s.polja.filter(p => !prazno(p.v)).length;
+        const vrstice = s.polja.map(({ q, v, steje }) => {
+          const je = !prazno(v);
+          if (steje) {
+            vse++;
+            if (je) odgovorjeno++;
+            else if (q.obvezno) obveznihBrez++;
+          }
+          const stevilka = steje ? ++st : '';
+          const label = jeLestvicaZa(q, v) && razlagaLestvice(q.label) ? brezRazlage(q.label) : (q.label || q.id);
+          return `
+            <article class="qa q-item${je ? '' : ' qa--empty'}" data-kljuc="${esc(q.id)}">
+              <span class="qa__n" aria-hidden="true">${stevilka}</span>
+              <div style="min-width:0">
+                <h4 class="qa__label q-label">${esc(label)}${q.obvezno ? '<span class="field__req" aria-label="obvezno">*</span>' : ''}</h4>
+                <div class="qa__key q-kljuc">${esc(q.id)}</div>
+                <div class="qa__ans q-answer">${izrisOdgovora(q, v)}</div>
+              </div>
+            </article>`;
+        }).join('');
+        const glava = s.label ? `<div class="qsec__head"><h3>${esc(s.label)}</h3><span>${n}/${s.polja.length}</span></div>` : '';
+        return `<section class="panel qsec">${glava}${vrstice}</section>`;
+      }).join('');
+
+      return {
+        html: html || '<section class="panel"><p class="empty-line">Odgovor nima polj.</p></section>',
+        vse, odgovorjeno, obveznihBrez,
+      };
     }
 
-    // Pretvori eno vrednost v navadno besedilo za CSV (arrays → "a; b", objekti → JSON).
+    // One value as plain text for CSV (arrays "a; b", objects JSON).
     function valToText(v) {
       if (v == null) return '';
       if (Array.isArray(v)) return v.join('; ');
@@ -149,21 +246,20 @@
       return String(v);
     }
 
-    // CSV celica — ovij v narekovaje in podvoji notranje narekovaje (RFC 4180).
+    // CSV cell: wrap in quotes, double inner quotes (RFC 4180).
     function csvCell(v) {
       return '"' + String(v ?? '').replace(/"/g, '""') + '"';
     }
 
-    // Zgradi vrstice (vprašanje, odgovor) v istem vrstnem redu kot prikaz na zaslonu.
-    // Prazna NEOBVEZNA polja preskočimo, ostala polja (gdpr_consent ...) dodamo na konec.
+    // Rows (question, answer) in the same order as on screen. Empty OPTIONAL
+    // fields are skipped, other fields (gdpr_consent ...) go last.
     function zberiVrstice(raw, questions) {
       const qList = Array.isArray(questions) ? questions : [];
       const handled = new Set();
       const vrstice = [];
       for (const q of qList) {
         const v = raw?.[q.id];
-        const prazno = v == null || v === '' || (Array.isArray(v) && v.length === 0);
-        if (prazno && !q.obvezno) { handled.add(q.id); continue; }
+        if (prazno(v) && !q.obvezno) { handled.add(q.id); continue; }
         vrstice.push([q.label || q.id, valToText(v)]);
         handled.add(q.id);
       }
@@ -176,27 +272,27 @@
       return vrstice;
     }
 
-    // Slug iz naziva podjetja za ime datoteke (ascii, brez presledkov).
+    // Slug from the company name for the file name (ascii, no spaces).
     function vSlug(s) {
       return String(s || 'podjetje').toLowerCase()
         .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') || 'podjetje';
     }
 
-    // Pove, od kod so vprašanja nad odgovori. Molk bi pomenil, da bralec misli,
-    // da bere vprašalnik iz časa oddaje, čeprav bere današnjega.
+    // Says where the questions above the answers come from. Silence would let
+    // the reader think these are the questions from the day of submission.
     function opozoriloOIzvoru(r) {
       if (r.ima_snapshot) return '';
       const hudo = r.vprasalnik_urejen_po_oddaji;
       const besedilo = hudo
-        ? 'Ta odgovor je bil oddan, <b>preden je bil vprašalnik nazadnje urejen</b>. ' +
-          'Kopija vprašanj iz časa oddaje ne obstaja, zato so spodaj današnja vprašanja — ' +
-          'nekatera se od tistih, ki jih je stranka videla, lahko razlikujejo.'
-        : 'Ta odgovor je iz časa pred shranjevanjem kopije vprašalnika, zato so spodaj ' +
-          'današnja vprašanja. Vprašalnik od oddaje ni bil urejen, zato se najverjetneje ujemajo.';
-      return `<div class="e-note ${hudo ? 'bad' : 'warn'}">${besedilo}</div>`;
+        ? 'Ta odgovor je bil oddan, <b>preden je bil vprašalnik nazadnje urejen</b>. '
+          + 'Kopija vprašanj iz časa oddaje ne obstaja, zato so spodaj današnja vprašanja; '
+          + 'nekatera se lahko razlikujejo od tistih, ki jih je videla stranka.'
+        : 'Ta odgovor je iz časa pred shranjevanjem kopije vprašalnika, zato so spodaj '
+          + 'današnja vprašanja. Vprašalnik od oddaje ni bil urejen, zato se najverjetneje ujemajo.';
+      return `<div class="callout callout--${hudo ? 'danger' : 'warning'} izvor" id="izvor">${ikona('alert')}<div>${besedilo}</div></div>`;
     }
 
-    // Sestavi CSV in sproži prenos. Doda UTF-8 BOM, da Excel pravilno pokaže šumnike.
+    // Build the CSV and download it. UTF-8 BOM so Excel shows the letters right.
     function prenesiCsv(r) {
       const vrstice = zberiVrstice(r.raw_data, vprasanjaZaPrikaz(r));
       const lines = [
@@ -209,7 +305,7 @@
         ...vrstice,
       ];
       const csv = lines.map(row => row.map(csvCell).join(',')).join('\r\n');
-      const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+      const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -220,8 +316,44 @@
       URL.revokeObjectURL(url);
     }
 
+    // Previous / next answer of the same company on the same questionnaire.
+    // The company API lists them newest first, with the data for the name.
+    async function naloziPager(r) {
+      const data = await apiFetch(`/api/companies/${r.company_id}`);
+      const seznam = (data?.responses || []).filter(x => x.questionnaire_id === r.questionnaire_id);
+      const ix = seznam.findIndex(x => x.id === r.id);
+      if (ix < 0 || seznam.length < 2) return;
+      const ime = (x) => {
+        const o = izpolnjevalec(x.raw_data, x.vprasanja);
+        return o.vloga ? `${o.ime}, ${o.vloga}` : o.ime;
+      };
+      const prej = seznam[ix - 1], nasl = seznam[ix + 1];
+
+      const mini = document.getElementById('pager-mini');
+      mini.innerHTML = `
+        ${prej
+          ? `<a class="btn btn--ghost btn--icon" href="/admin/response.html?id=${prej.id}" aria-label="Prejšnji odgovor: ${esc(ime(prej))}" title="Prejšnji: ${esc(ime(prej))}">${ikona('chev-left')}</a>`
+          : `<button class="btn btn--ghost btn--icon" type="button" disabled aria-label="Prejšnji odgovor" title="To je prvi odgovor">${ikona('chev-left')}</button>`}
+        <span>${ix + 1} od ${seznam.length}</span>
+        ${nasl
+          ? `<a class="btn btn--ghost btn--icon" href="/admin/response.html?id=${nasl.id}" aria-label="Naslednji odgovor: ${esc(ime(nasl))}" title="Naslednji: ${esc(ime(nasl))}">${ikona('chev-right')}</a>`
+          : `<button class="btn btn--ghost btn--icon" type="button" disabled aria-label="Naslednji odgovor" title="To je zadnji odgovor">${ikona('chev-right')}</button>`}`;
+      mini.hidden = false;
+
+      const spodaj = document.getElementById('pager');
+      spodaj.innerHTML = `
+        ${prej
+          ? `<a class="pager__item" href="/admin/response.html?id=${prej.id}"><small>${ikona('chev-left', 'icon--sm')}Prejšnji odgovor</small><b>${esc(ime(prej))}</b></a>`
+          : '<span class="pager__item pager__item--off"><small>Prejšnji odgovor</small>To je prvi odgovor</span>'}
+        ${nasl
+          ? `<a class="pager__item pager__item--next" href="/admin/response.html?id=${nasl.id}"><small>Naslednji odgovor${ikona('chev-right', 'icon--sm')}</small><b>${esc(ime(nasl))}</b></a>`
+          : '<span class="pager__item pager__item--next pager__item--off"><small>Naslednji odgovor</small>To je zadnji odgovor</span>'}`;
+      spodaj.hidden = false;
+    }
+
     (async () => {
-      showLoading('content');
+      if (!id) { showError('content', 'Manjka parameter ?id=.'); return; }
+      showLoading('content', 'Nalagam odgovor …');
       const data = await apiFetch(`/api/responses/${id}`);
       if (!data?.response) {
         showError('content', 'Odgovor ni najden.');
@@ -231,94 +363,114 @@
       const vprasanja = vprasanjaZaPrikaz(r);
       const oseba = izpolnjevalec(r.raw_data, vprasanja);
       const vpr = renderVprasalnik(r.raw_data, vprasanja);
-      const odstotek = vpr.st ? Math.round((vpr.odgovorjeno / vpr.st) * 100) : 0;
+      const odstotek = vpr.vse ? Math.round((vpr.odgovorjeno / vpr.vse) * 100) : 0;
       const podjetjeUrl = `/admin/company.html?id=${r.company_id}`;
+      const naziv = r.naziv_prikaz || 'Podjetje';
 
-      document.getElementById('crumb').innerHTML =
-        `Baza vprašalnikov / <a href="/admin/podjetja.html">Podjetja</a> / <a href="${podjetjeUrl}">${esc(r.naziv_prikaz || '')}</a> / <strong>${esc(oseba.ime)}</strong>`;
-      document.title = `Acenta — ${oseba.ime}`;
+      document.getElementById('crumbs').innerHTML = `
+        <a href="/admin/podjetja.html">Podjetja</a>
+        ${ikona('chev-right', 'icon--sm')}
+        <a href="${podjetjeUrl}">${esc(naziv)}</a>
+        ${ikona('chev-right', 'icon--sm')}
+        <span aria-current="page">${esc(oseba.ime)}</span>`;
+      document.title = `${oseba.ime} · ${naziv} · Acenta baza`;
 
-      const povzetek = r.ai_povzetek
-        ? `<div class="e-reco" style="margin-top:12px">${md(r.ai_povzetek)}</div>`
-        : '<div class="e-empty-on-accent">AI povzetek še ni generiran.</div>';
+      const kdo = [oseba.vloga ? esc(oseba.vloga) : '', oseba.imaIme && oseba.mail ? `<a href="mailto:${esc(oseba.mail)}">${esc(oseba.mail)}</a>` : '']
+        .filter(Boolean).join(' · ');
       const kopija = r.ima_snapshot ? 'kopija ob oddaji' : (r.vprasalnik_urejen_po_oddaji ? 'današnja (urejena)' : 'današnja');
+      const povzetek = r.ai_povzetek
+        ? `<div class="sum__head">
+             <h2 id="sumNaslov">AI povzetek odgovora</h2>
+             ${r.ai_processed_at ? `<p>pripravljeno ${danObUri(r.ai_processed_at)}</p>` : ''}
+           </div>
+           <div class="sum__body"><div class="doc">${md(r.ai_povzetek)}</div></div>`
+        : `<div class="sum__head"><h2 id="sumNaslov">AI povzetek odgovora</h2></div>
+           <div class="empty">
+             <span class="empty__icon" aria-hidden="true">${ikona('sparkles', 'icon--lg')}</span>
+             <p class="empty__title">AI povzetek še ni generiran</p>
+             <p class="empty__text">Povzetek pripravi AI po oddaji. Če ga ni, ga pripravite na strani podjetja z »Regeneriraj vse« v Pripravi na delavnico. Odgovori spodaj so popolni tudi brez povzetka.</p>
+             <a class="btn btn--secondary" href="${podjetjeUrl}&amp;q=${r.questionnaire_id}#delavnica"><span>Odpri pripravo na delavnico</span>${ikona('arrow-right', 'icon--sm')}</a>
+           </div>`;
+      const izpolnjenost = vpr.vse
+        ? `${vpr.odgovorjeno} od ${vpr.vse} ${vpr.vse === 1 ? 'vprašanja' : 'vprašanj'} odgovorjenih${vpr.obveznihBrez ? ` · ${sklon(vpr.obveznihBrez, ['obvezno', 'obvezni', 'obvezna', 'obveznih'])} brez odgovora` : ''}`
+        : 'Odgovor nima vprašanj.';
+      const znakov = r.custom_html_snapshot ? r.custom_html_snapshot.length : 0;
 
       document.getElementById('content').innerHTML = `
-        <div class="e-title">
-          <div class="e-profile">
-            <div class="e-logo round${oseba.imaIme ? '' : ' anon'}">${esc(oseba.zacetnice)}</div>
-            <div style="min-width:0">
-              <div class="e-eyebrow"><i></i>Izpolnil/-a · ${formatDatum(r.submitted_at)}</div>
-              <h1 class="r-ime">${esc(oseba.ime)}</h1>
-              <div class="e-links">
-                <a href="${podjetjeUrl}">${esc(r.naziv_prikaz)}</a>
-                <span>${esc(r.q_naziv || '')}</span>
-                ${oseba.podnaslov ? `<span>${esc(oseba.podnaslov)}</span>` : ''}
-              </div>
+        <header class="ident">
+          <span class="ident__av${oseba.imaIme ? '' : ' ident__av--anon'}" aria-hidden="true">${esc(oseba.zacetnice)}</span>
+          <div class="ident__txt">
+            <h1 class="r-ime">${esc(oseba.ime)}</h1>
+            ${kdo ? `<p class="ident__who">${kdo}</p>` : ''}
+            <div class="ident__meta">
+              <a class="qlink" href="${podjetjeUrl}">${ikona('building', 'icon--sm')}<span>${esc(naziv)}</span></a>
+              ${r.q_naziv ? `<span class="qlink"><span>${esc(r.q_naziv)}</span></span>` : ''}
+              <span>Oddano ${danObUri(r.submitted_at)}</span>
             </div>
           </div>
-          <div class="e-actions">
-            <button id="btn-csv" class="e-btn-soft" type="button">Prenesi CSV</button>
-            ${r.custom_html_snapshot ? '<button id="btn-obrazec" class="e-btn-soft" type="button">Pokaži obrazec</button>' : ''}
-            <a class="e-btn-soft" href="${podjetjeUrl}">← Podjetje</a>
-          </div>
-        </div>
-
-        <div class="e-grid">
-          <div class="e-feature">
-            <div class="e-feature-top">
-              <span class="lbl">AI povzetek odgovora</span>
-              ${r.ai_processed_at ? `<span class="e-badge">${formatDatum(r.ai_processed_at)}</span>` : ''}
-            </div>
-            ${povzetek}
-            <div class="e-progress"><span>Odgovorjeno</span><div class="track"><i style="width:${odstotek}%"></i></div><b>${vpr.odgovorjeno} / ${vpr.st}</b></div>
-          </div>
-          <div class="e-side">
-            <div class="e-sidecard">
-              <div class="label">Izpolnjenost</div>
-              <div class="big">${odstotek} <span style="font-size:15px;color:var(--muted-2);letter-spacing:0">%</span></div>
-              <div class="e-stack"><i style="flex:${vpr.odgovorjeno || 0};background:var(--accent)"></i><i style="flex:${Math.max(0, vpr.st - vpr.odgovorjeno)};background:var(--track)"></i></div>
-              <p class="note">${vpr.odgovorjeno} od ${sklon(vpr.st, SKLONI.vprasanje)} odgovorjenih${vpr.obveznihBrez ? ` · ${vpr.obveznihBrez} obveznih brez odgovora` : ''}</p>
-            </div>
-            <div class="e-sidecard">
-              <div class="label">Podatki oddaje</div>
-              <dl class="e-kv">
-                <div><dt>Soglasje GDPR</dt><dd><span class="e-chip ${r.consent_gdpr ? 'ok' : 'warn'}">${r.consent_gdpr ? 'Da' : 'Ne'}</span></dd></div>
-                <div><dt>Vprašanja</dt><dd>${kopija}</dd></div>
-                <div><dt>Podjetje</dt><dd><a href="${podjetjeUrl}">${esc(r.naziv_prikaz)} →</a></dd></div>
-              </dl>
-            </div>
-          </div>
-        </div>
+        </header>
 
         ${opozoriloOIzvoru(r)}
 
-        <div class="e-section"><i></i>Vprašalnik · ${sklon(vpr.st, SKLONI.vprasanje)}</div>
-        <div>${vpr.html}</div>
+        <div class="record">
+          <section class="panel a-sum" aria-labelledby="sumNaslov">${povzetek}</section>
 
-        ${r.custom_html_snapshot ? `
-        <div id="obrazec-ovoj" class="hidden e-panel" style="margin-top:16px">
-          <h2>Obrazec, kot ga je videla stranka</h2>
-          <p class="desc">Shranjena kopija obrazca ob oddaji (${r.custom_html_snapshot.length.toLocaleString('sl-SI')} znakov), samo za branje.</p>
-          <iframe id="obrazec" sandbox="" class="w-full" style="height:70vh;border:1px solid var(--hairline);border-radius:10px;background:#fff;margin-top:12px"></iframe>
-        </div>` : ''}
-      `;
+          <div class="a-side">
+            <div class="side">
+              <section class="panel panel__body" aria-label="Izpolnjenost">
+                <p class="side__title">Izpolnjenost</p>
+                <p class="stat__val">${odstotek}<small>%</small></p>
+                <div class="progress" style="margin-top:var(--space-3)" aria-hidden="true"><span class="progress__fill" style="width:${odstotek}%"></span></div>
+                <p class="stat__note">${izpolnjenost}</p>
+              </section>
+              <section class="panel panel__body" aria-label="Podatki oddaje">
+                <p class="side__title side__title--kv">Podatki oddaje</p>
+                <dl class="kv">
+                  <div><dt>Oddano</dt><dd>${formatDan(r.submitted_at)}, ${ura(r.submitted_at)}</dd></div>
+                  <div><dt>Soglasje GDPR</dt><dd><span class="chip chip--${r.consent_gdpr ? 'success' : 'warning'}">${r.consent_gdpr ? 'Da' : 'Ne'}</span></dd></div>
+                  <div><dt>Vprašanja</dt><dd>${kopija}</dd></div>
+                  <div><dt>Podjetje</dt><dd><a href="${podjetjeUrl}" title="${esc(naziv)}">${esc(naziv)}</a></dd></div>
+                </dl>
+                <label class="check"><input type="checkbox" id="kljuci">Pokaži ključe polj</label>
+              </section>
+            </div>
+          </div>
 
-      document.getElementById('btn-csv')?.addEventListener('click', () => prenesiCsv(r));
+          <div class="a-qs">
+            <div class="qs__title"><h2>Vprašalnik</h2><span>${sklon(vpr.vse, SKLONI.vprasanje)}</span></div>
+            <div id="vprasalnik">${vpr.html}</div>
 
-      // Kopijo obrazca prikažemo v peskovniku (sandbox="" ugasne skripte in
-      // oddajo), ker je to tuj HTML, shranjen kot podatek.
-      document.getElementById('btn-obrazec')?.addEventListener('click', (e) => {
-        const ovoj = document.getElementById('obrazec-ovoj');
+            <nav class="pager" id="pager" aria-label="Odgovori tega podjetja" hidden></nav>
+
+            ${r.custom_html_snapshot ? `
+            <details class="disclosure form-copy" id="obrazec-ovoj">
+              <summary id="btn-obrazec">
+                ${ikona('chev-right', 'disclosure__chev')}
+                <div><h2>Obrazec, kot ga je videla stranka</h2><p>Shranjena kopija obrazca ob oddaji (${znakov.toLocaleString('sl-SI')} ${znakov === 1 ? 'znak' : znakov === 2 ? 'znaka' : znakov % 100 === 3 || znakov % 100 === 4 ? 'znaki' : 'znakov'}), samo za branje.</p></div>
+              </summary>
+              <div class="panel__body"><iframe id="obrazec" sandbox="" title="Kopija obrazca ob oddaji"></iframe></div>
+            </details>` : ''}
+          </div>
+        </div>`;
+
+      const csv = document.getElementById('btn-csv');
+      csv.hidden = false;
+      csv.addEventListener('click', () => prenesiCsv(r));
+
+      // Technical field keys only on request; they get in the way of reading.
+      document.getElementById('kljuci').addEventListener('change', (e) =>
+        document.getElementById('vprasalnik').classList.toggle('show-keys', e.target.checked));
+
+      // The stored form is shown in a sandbox (sandbox="" disables scripts
+      // and submit) because it is foreign HTML stored as data. Loaded on
+      // first open only.
+      document.getElementById('obrazec-ovoj')?.addEventListener('toggle', (e) => {
+        if (!e.target.open) return;
         const okvir = document.getElementById('obrazec');
-        const odpiramo = ovoj.classList.contains('hidden');
-        if (odpiramo && !okvir.getAttribute('srcdoc')) {
-          okvir.setAttribute('srcdoc', r.custom_html_snapshot);
-        }
-        ovoj.classList.toggle('hidden');
-        e.currentTarget.textContent = odpiramo ? 'Skrij obrazec' : 'Pokaži obrazec';
-        if (odpiramo) ovoj.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (!okvir.getAttribute('srcdoc')) okvir.setAttribute('srcdoc', r.custom_html_snapshot);
       });
+
+      naloziPager(r);
     })();
   </script>
 </body>

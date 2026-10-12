@@ -382,8 +382,8 @@ await page.click('#btnUredi');   // izklop
 await pocakaj(350);
 t('izklop urejanja skrije gumbe', (await page.$$('[data-odstrani]')).length === 0,
    (await page.$$('[data-odstrani]')).length);
-t('gumb se preimenuje nazaj', (await page.$eval('#btnUredi', e => e.textContent.trim())) === 'Uredi vprašanja',
-   await page.$eval('#btnUredi', e => e.textContent.trim()));
+t('gumb se preimenuje nazaj', (await page.$eval('#btnUredi', e => (e.querySelector('[data-uredi]') || e).textContent.trim())) === 'Uredi vprašanja',
+   await page.$eval('#btnUredi', e => (e.querySelector('[data-uredi]') || e).textContent.trim()));
 
 // Transkript in posiljanje
 console.log('\n=== Transkript in posiljanje ===');

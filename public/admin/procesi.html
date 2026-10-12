@@ -2,202 +2,207 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Procesi</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Procesi · Acenta baza</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
-    /* Glava tabele: klik razvrsti. Puscica se pokaze na aktivnem stolpcu. */
-    th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
-    th.sortable:hover { color: var(--ink); }
-    th.sortable .pusc { opacity: 0; margin-left: 4px; font-size: 9px; }
-    th.sortable:hover .pusc { opacity: 0.35; }
-    th.sortable.aktiven { color: var(--ink); }
-    th.sortable.aktiven .pusc { opacity: 1; }
-
-    /* Orodna vrstica filtrov: ena vrstica, ki se ovija; oznake so drobne,
-       ker so filtri pripomocek in ne glavna vsebina strani. */
-    .orodna { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; padding: 10px 12px; }
-    .polje { display: block; min-width: 132px; }
-    .polje > span { display: block; font-size: 10px; font-weight: 700; letter-spacing: .06em;
-                    text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
-    .polje .select, .polje .input { height: 30px; padding: 0 8px; font-size: 12.5px; }
-    .znacke { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
-              padding: 0 12px 10px; }
-
-    /* Znacka aktivnega filtra. */
-    .cip {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 2px 9px; border-radius: 999px;
-      background: var(--acenta-teal-soft); color: var(--acenta-teal);
-      box-shadow: inset 0 0 0 1px var(--acenta-teal-line);
-      font-size: 11.5px; font-weight: 600;
+    /* Page-only styles. Closest prototypes: podjetja.html (toolbar, table,
+       panel foot) and danes.html (tabs with counts). */
+    #nsNapaka { color: var(--danger-text); font-size: var(--text-sm); }
+    .ns-dejanja { margin-top: var(--space-5); }
+    .panel__head .panel__desc { margin-left: auto; text-align: right; }
+    .panel__body > .filter-chips { margin-top: var(--space-3); }
+    #pogledi:empty, #cipi:empty { display: none; }
+    #seje > .callout, #predloge > .callout { margin: var(--space-4); }
+    /* Eight filters in two even rows of four on a desktop */
+    @media (min-width: 761px) {
+      .filters > .field, .filters > .field--grow { flex: 1 1 230px; max-width: none; }
     }
-    .cip button { line-height: 1; opacity: 0.65; font-weight: 700; }
-    .cip button:hover { opacity: 1; }
 
-    tbody tr.vrstica { cursor: pointer; }
-    td, th { text-align: left; }
+    /* Session table: fixed layout in percentages, so it ALWAYS fits its
+       frame; long text is cut with an ellipsis (full value in the tooltip).
+       Widths were measured: at 1440 px no header is cut. */
+    .seje-tabela { min-width: 900px; }
+    .seje-tabela th { padding: 0 10px; }
+    .seje-tabela td { padding-left: 10px; padding-right: 10px; }
+    .seje-tabela .table__name { font-weight: var(--weight-medium); }
+    .seje-tabela .da { display: inline-flex; align-items: center; gap: 4px; color: var(--accent-text); font-weight: var(--weight-medium); }
+    .seje-tabela .ni { color: var(--text-muted); }
+    .skupina__namig { float: right; font-weight: var(--weight-regular); color: var(--text-muted); }
 
-    /* Fiksna postavitev z odstotki: tabela se VEDNO prilega svojemu ovoju,
-       predolgo besedilo pa odreze s tropicjem (cela vrednost je v namigu).
-       Brez tega je "Ocena poslovnega potenciala za AI" ovila v tri vrstice
-       pri vsaki vrstici, tabela pa je bila sirsa od zaslona, tako da je bilo
-       treba do stolpca Datum drseti. */
-    table.seznam { table-layout: fixed; width: 100%; min-width: 900px; border-collapse: collapse; }
+    /* Template library */
+    .predloge-tabela .table__sub { font-family: var(--font-mono); font-size: var(--text-xs); }
+    .predloge-tabela tr.is-off td { color: var(--text-muted); }
+    .predloge-tabela tr.is-off .table__name { color: var(--text-secondary); }
+    .predloge-tabela .table__name .chip { margin-left: var(--space-2); vertical-align: 1px; }
 
-    /* Vrstica z naslovom skupine. Status je zato viden brez branja stolpca,
-       hkrati pa ostane en sam sortljiv naslov tabele za vse skupine. */
-    tr.skupina td {
-      background: var(--bg-sub); height: 30px;
-      font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-      color: var(--ink-2); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+    @media (max-width: 760px) {
+      .panel__head { flex-wrap: wrap; row-gap: 4px; }
+      .panel__head .panel__desc { margin-left: 0; text-align: left; flex: 1 1 100%; }
+      .seje-tabela { min-width: 0; }
+      /* Session card: name + status, process, progress + date */
+      .seje-tabela td { display: none; }
+      .seje-tabela td.c-stranka { display: block; order: 0; flex: 1 1 0; min-width: 0; }
+      .seje-tabela td.c-status { display: block; order: 1; flex: none; }
+      .seje-tabela td.c-proces { display: block; order: 2; flex: 1 1 100%; color: var(--text-muted); font-size: var(--text-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .seje-tabela td.c-napredek { display: block; order: 3; flex: 1 1 0; min-width: 0; }
+      .seje-tabela td.c-datum { display: block; order: 4; flex: none; color: var(--text-muted); font-size: var(--text-sm); }
+      /* no process: an empty full-width line keeps name and progress apart */
+      .seje-tabela td.c-proces.is-empty { height: 0; overflow: hidden; margin-top: calc(-1 * var(--space-2)); }
+      .filters > .field--grow { flex-basis: 100%; }
+      .seje-tabela .table__name { white-space: normal; }
+      .seje-tabela tr.table__group { background: var(--bg-canvas); padding: var(--space-2) var(--space-4); }
+      .seje-tabela tr.table__group td { display: block; flex: 1 1 100%; background: none; height: auto; }
+      .skupina__namig { display: none; }
+      .predloge-tabela td.c-dejanje { flex: 1 1 100%; }
+      .predloge-tabela td.c-ime { flex: 1 1 100%; min-width: 0; }
     }
-    tr.skupina .st { font-weight: 600; color: var(--muted); text-transform: none; letter-spacing: 0; margin-left: 8px; }
-    tr.skupina .namig { float: right; font-weight: 500; color: var(--muted); text-transform: none; letter-spacing: 0; }
   </style>
 </head>
 <body>
-  <div class="flex min-h-screen">
-    <aside id="sidebar" class="w-52 app-sidebar p-3 flex flex-col"></aside>
-
-    <main class="flex-1 min-w-0 flex flex-col">
-
-      <!-- ── Glava ── -->
-      <header class="page-head">
-        <h1 class="display">Procesi</h1>
-        <span class="sub" id="stevec">&mdash;</span>
-        <div class="spacer"></div>
-        <a class="btn-secondary" href="#knjiznica">Knjižnica</a>
-        <button id="btnNova" class="btn-dark">+ Nov sestanek</button>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar__title">
+          <h1>Procesi</h1>
+          <span class="topbar__meta" id="stevec">Nalagam …</span>
+        </div>
+        <span class="spacer"></span>
+        <div class="topbar__actions">
+          <a class="btn btn--secondary" href="#knjiznica"><svg class="icon" aria-hidden="true"><use href="#i-book"/></svg>Knjižnica</a>
+          <button class="btn btn--primary" type="button" id="btnNova" aria-expanded="false" aria-controls="novaSeja"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg><span>Nov sestanek</span></button>
+        </div>
       </header>
 
-      <div class="p-4 flex flex-col gap-4">
+      <div class="page stack">
+        <!-- Saved views: each one only presets the filters below -->
+        <nav class="tabs" id="pogledi" aria-label="Pogledi"></nav>
 
-      <!-- ── Shranjeni pogledi ── (vsak nastavi spodnje filtre) -->
-      <nav class="tabs" id="pogledi"></nav>
+        <!-- New meeting -->
+        <section class="panel hidden" id="novaSeja" aria-labelledby="novaSejaNaslov">
+          <header class="panel__head">
+            <h2 class="panel__title" id="novaSejaNaslov">Nov sestanek</h2>
+            <span class="panel__desc">Po shranjevanju se odpre vprašalnik za izpolnjevanje med sestankom.</span>
+          </header>
+          <div class="panel__body">
+            <div class="form-grid" style="--form-cols:3">
+              <div class="field">
+                <label class="field__label field__label--sm" for="nsPredloga">Vprašalnik<span class="field__req" aria-hidden="true">*</span></label>
+                <span class="select-wrap"><select class="select" id="nsPredloga" required></select></span>
+              </div>
+              <div class="field">
+                <label class="field__label field__label--sm" for="nsStranka">Stranka<span class="field__req" aria-hidden="true">*</span></label>
+                <input class="input" id="nsStranka" type="text" placeholder="npr. Hotel Smrekov gaj" required autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="field__label field__label--sm" for="nsProces">Proces</label>
+                <input class="input" id="nsProces" type="text" placeholder="npr. priprava urnikov zaposlenih" autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="field__label field__label--sm" for="nsOddelek">Oddelek</label>
+                <input class="input" id="nsOddelek" type="text" placeholder="npr. recepcija" autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="field__label field__label--sm" for="nsSvetovalec">Svetovalec Acente</label>
+                <input class="input" id="nsSvetovalec" type="text" autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="field__label field__label--sm" for="nsDatum">Datum sestanka</label>
+                <input class="input" id="nsDatum" type="date">
+              </div>
+            </div>
+            <div class="cluster ns-dejanja">
+              <button class="btn btn--primary" type="button" id="nsShrani"><span>Začni izpolnjevati</span><svg class="icon" aria-hidden="true"><use href="#i-arrow-right"/></svg></button>
+              <button class="btn btn--secondary" type="button" id="nsPreklici">Prekliči</button>
+              <span class="field__status" id="nsNapaka" role="alert"></span>
+            </div>
+          </div>
+        </section>
 
-      <!-- ── Nov sestanek ── -->
-      <section id="novaSeja" class="hidden card p-4">
-        <div class="text-xs font-semibold uppercase tracking-[0.07em] text-muted mb-3">Nov sestanek</div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Vprašalnik <span class="text-red-500">*</span></span>
-            <select id="nsPredloga" class="select"></select>
-          </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Stranka <span class="text-red-500">*</span></span>
-            <input id="nsStranka" type="text" class="input" placeholder="npr. Hotel Astoria Bled">
-          </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Proces</span>
-            <input id="nsProces" type="text" class="input" placeholder="npr. priprava urnikov zaposlenih">
-          </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Oddelek</span>
-            <input id="nsOddelek" type="text" class="input" placeholder="npr. recepcija">
-          </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Svetovalec Acente</span>
-            <input id="nsSvetovalec" type="text" class="input">
-          </label>
-          <label class="block">
-            <span class="text-xs text-muted block mb-1.5 font-medium">Datum sestanka</span>
-            <input id="nsDatum" type="date" class="input">
-          </label>
-        </div>
-        <div class="flex items-center gap-3 mt-4 flex-wrap">
-          <button id="nsShrani" class="btn-primary">Začni izpolnjevati &rarr;</button>
-          <button id="nsPreklici" class="btn-secondary">Prekliči</button>
-          <span id="nsNapaka" class="text-sm" style="color:var(--danger)"></span>
-        </div>
-      </section>
+        <!-- Filters: fields wrap in rows; active ones show as chips below -->
+        <section class="panel" aria-label="Filtri">
+          <div class="panel__body">
+            <div class="filters">
+              <div class="field field--grow">
+                <label class="field__label" for="fStranka">Iskanje</label>
+                <input class="input input--sm" id="fStranka" type="search" placeholder="Stranka, proces, oddelek …" autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="field__label" for="fPredloga">Vprašalnik</label>
+                <span class="select-wrap"><select class="select select--sm" id="fPredloga"><option value="">Vsi</option></select></span>
+              </div>
+              <div class="field">
+                <label class="field__label" for="fSvetovalec">Svetovalec</label>
+                <span class="select-wrap"><select class="select select--sm" id="fSvetovalec"><option value="">Vsi</option></select></span>
+              </div>
+              <div class="field">
+                <label class="field__label" for="fStatus">Status</label>
+                <span class="select-wrap"><select class="select select--sm" id="fStatus">
+                  <option value="">Aktivni (brez arhiva)</option>
+                  <option value="osnutek">Osnutki</option>
+                  <option value="zakljucen">Zaključeni</option>
+                  <option value="poslan">Poslani stranki</option>
+                  <option value="arhiv">Arhiv</option>
+                  <option value="vse">Vsi, tudi arhiv</option>
+                </select></span>
+              </div>
+              <div class="field">
+                <label class="field__label" for="fObdobje">Obdobje</label>
+                <span class="select-wrap"><select class="select select--sm" id="fObdobje">
+                  <option value="">Kadarkoli</option>
+                  <option value="7">Zadnjih 7 dni</option>
+                  <option value="30">Zadnjih 30 dni</option>
+                  <option value="90">Zadnjih 90 dni</option>
+                </select></span>
+              </div>
+              <div class="field">
+                <label class="field__label" for="fNapredek">Izpolnjenost</label>
+                <span class="select-wrap"><select class="select select--sm" id="fNapredek">
+                  <option value="">Vse</option>
+                  <option value="prazno">Še ni začeto</option>
+                  <option value="delno">V teku (1–79 %)</option>
+                  <option value="polno">Skoraj polno (80 %+)</option>
+                </select></span>
+              </div>
+              <div class="field">
+                <label class="field__label" for="fTranskript">Transkript</label>
+                <span class="select-wrap"><select class="select select--sm" id="fTranskript">
+                  <option value="">Vseeno</option>
+                  <option value="da">Shranjen</option>
+                  <option value="ne">Manjka</option>
+                </select></span>
+              </div>
+              <div class="field">
+                <label class="field__label" for="fPoslano">Poslano stranki</label>
+                <span class="select-wrap"><select class="select select--sm" id="fPoslano">
+                  <option value="">Vseeno</option>
+                  <option value="da">Poslano</option>
+                  <option value="ne">Ni poslano</option>
+                </select></span>
+              </div>
+            </div>
+            <div class="filter-chips" id="cipi" aria-live="polite"></div>
+          </div>
+        </section>
 
-      <!-- ── Filtri ── (ena vrstica, ki se ovija; podrobnosti v znackah spodaj) -->
-      <section class="card">
-        <div class="orodna">
-          <label class="polje" style="min-width:190px;flex:1 1 190px">
-            <span>Iskanje</span>
-            <input id="fStranka" type="text" class="input" placeholder="stranka, proces, oddelek...">
-          </label>
-          <label class="polje">
-            <span>Vprašalnik</span>
-            <select id="fPredloga" class="select"><option value="">Vsi</option></select>
-          </label>
-          <label class="polje">
-            <span>Svetovalec</span>
-            <select id="fSvetovalec" class="select"><option value="">Vsi</option></select>
-          </label>
-          <label class="polje">
-            <span>Status</span>
-            <select id="fStatus" class="select">
-              <option value="">Aktivni (brez arhiva)</option>
-              <option value="osnutek">Osnutki</option>
-              <option value="zakljucen">Zaključeni</option>
-              <option value="poslan">Poslani stranki</option>
-              <option value="arhiv">Arhiv</option>
-              <option value="vse">Vsi, tudi arhiv</option>
-            </select>
-          </label>
-          <label class="polje">
-            <span>Obdobje</span>
-            <select id="fObdobje" class="select">
-              <option value="">Kadarkoli</option>
-              <option value="7">Zadnjih 7 dni</option>
-              <option value="30">Zadnjih 30 dni</option>
-              <option value="90">Zadnjih 90 dni</option>
-            </select>
-          </label>
-          <label class="polje">
-            <span>Izpolnjenost</span>
-            <select id="fNapredek" class="select">
-              <option value="">Vse</option>
-              <option value="prazno">Še ni začeto</option>
-              <option value="delno">V teku (1&ndash;79 %)</option>
-              <option value="polno">Skoraj polno (80 %+)</option>
-            </select>
-          </label>
-          <label class="polje">
-            <span>Transkript</span>
-            <select id="fTranskript" class="select">
-              <option value="">Vseeno</option>
-              <option value="da">Shranjen</option>
-              <option value="ne">Manjka</option>
-            </select>
-          </label>
-          <label class="polje">
-            <span>Poslano stranki</span>
-            <select id="fPoslano" class="select">
-              <option value="">Vseeno</option>
-              <option value="da">Poslano</option>
-              <option value="ne">Ni poslano</option>
-            </select>
-          </label>
-        </div>
+        <!-- Sessions: groups by status, one shared sortable header -->
+        <section class="panel" aria-label="Sestanki">
+          <div class="table-scroll" id="seje"></div>
+        </section>
 
-        <div id="cipi" class="znacke"></div>
-      </section>
-
-      <!-- ── Seznam sej ── (skupine po statusu, en skupen sortljiv naslov) -->
-      <section class="card overflow-hidden">
-        <div id="seje" class="scroll-x"></div>
-      </section>
-
-      <!-- ── Knjiznica ── -->
-      <section class="card overflow-hidden" id="knjiznica">
-        <div class="card-head">
-          <h2>Knjižnica vprašalnikov</h2>
-          <span class="count" id="stPredlog">&mdash;</span>
-          <span style="margin-left:auto;font-size:11px;color:var(--muted)">
-            Urejanje velja za prihodnje sestanke; že začeti obdržijo svoja vprašanja.
-          </span>
-        </div>
-        <div id="predloge" class="scroll-x"></div>
-      </section>
-
+        <!-- Library -->
+        <section class="panel" id="knjiznica" aria-labelledby="knjiznicaNaslov">
+          <header class="panel__head">
+            <h2 class="panel__title" id="knjiznicaNaslov">Knjižnica vprašalnikov</h2>
+            <span class="count" id="stPredlog">—</span>
+            <span class="panel__desc">Urejanje velja za prihodnje sestanke; že začeti obdržijo svoja vprašanja.</span>
+          </header>
+          <div class="table-scroll" id="predloge"></div>
+        </section>
       </div>
     </main>
   </div>
@@ -206,72 +211,58 @@
   <script>
     renderSidebar('procesi');
 
-    // ── Stanje ────────────────────────────────────────────────────────────
-    let vseSeje = [];         // vse seje s streznika (do 200)
+    // ── State ─────────────────────────────────────────────────────────────
+    let vseSeje = [];         // every session from the server (up to 200)
     let predlogeCache = [];
     let razvrsti = { stolpec: 'updated_at', smer: 'desc' };
 
-    // Znacke statusov uporabljajo skupne razrede iz admin.css, da so enake
-    // kot na strani Danes in v podjetjih.
+    // Status chips: the same meaning as on Danes and in the company list.
     const STATUS_OZNAKA = {
-      osnutek:   ['Osnutek', 'tag'],
-      zakljucen: ['Zaključen', 'tag ok'],
-      poslan:    ['Poslan', 'tag info'],
-      arhiv:     ['Arhiv', 'tag'],
+      osnutek:   ['Osnutek', 'chip'],
+      zakljucen: ['Zaključen', 'chip chip--info'],
+      poslan:    ['Poslan', 'chip chip--success'],
+      arhiv:     ['Arhiv', 'chip'],
     };
 
-    // Skupine v seznamu. Vrstni red je vrstni red dela: kar je v teku, je
-    // zgoraj; arhiv na dnu.
+    // Groups in the list. The order is the order of work: what is in
+    // progress is on top, the archive at the bottom.
     const SKUPINE = [
-      { status: 'osnutek',   naslov: 'V teku',                       namig: 'Izpolnjuje se med sestankom, autosave' },
-      { status: 'zakljucen', naslov: 'Zaključeno, čaka pošiljanje',   namig: 'Pripravljeno za stranko' },
-      { status: 'poslan',    naslov: 'Poslano stranki',               namig: 'Zapis je pri stranki' },
-      { status: 'arhiv',     naslov: 'Arhiv',                         namig: '' },
+      { status: 'osnutek',   naslov: 'V teku',                      namig: 'Izpolnjuje se med sestankom, sproti se shranjuje' },
+      { status: 'zakljucen', naslov: 'Zaključeno, čaka pošiljanje', namig: 'Pripravljeno za stranko' },
+      { status: 'poslan',    naslov: 'Poslano stranki',             namig: 'Zapis je pri stranki' },
+      { status: 'arhiv',     naslov: 'Arhiv',                       namig: '' },
     ];
 
     function statusBadge(s) {
-      const [besedilo, razred] = STATUS_OZNAKA[s] || [s, 'tag'];
+      const [besedilo, razred] = STATUS_OZNAKA[s] || [s, 'chip'];
       return `<span class="${razred}">${esc(besedilo)}</span>`;
     }
 
-    // Slovenska dvojina: 1 seja, 2 seji, 3-4 seje, 5+ sej.
-    function steviloSej(n) {
-      const zadnji = n % 100;
-      if (zadnji === 1) return `${n} seja`;
-      if (zadnji === 2) return `${n} seji`;
-      if (zadnji === 3 || zadnji === 4) return `${n} seje`;
-      return `${n} sej`;
-    }
-
-    function steviloSestankov(n) {
-      const zadnji = n % 100;
-      if (zadnji === 1) return `${n} sestanek`;
-      if (zadnji === 2) return `${n} sestanka`;
-      if (zadnji === 3 || zadnji === 4) return `${n} sestanki`;
-      return `${n} sestankov`;
-    }
+    const steviloSej = (n) => sklon(n, SKLONI.seja);
+    const steviloSestankov = (n) => sklon(n, ['sestanek', 'sestanka', 'sestanki', 'sestankov']);
+    const PRAZNO = '<span class="ni">—</span>';
 
     function napredekBar(n) {
-      if (!n || !n.skupaj) return '<span class="text-muted-2">&mdash;</span>';
-      const nizko = n.odstotek < 40 ? ' low' : '';
+      if (!n || !n.skupaj) return PRAZNO;
+      const nizko = n.odstotek < 40 ? ' progress__fill--low' : '';
       return `
-        <div class="meter">
-          <span class="track"><i class="fill${nizko}" style="width:${n.odstotek}%;display:block;height:100%"></i></span>
-          <span>${n.odstotek} %</span>
+        <div class="meter" title="${n.izpolnjenih ?? 0} od ${n.skupaj} polj">
+          <span class="progress"><span class="progress__fill${nizko}" style="width:${n.odstotek}%"></span></span>
+          <span class="meter__val">${n.odstotek}&nbsp;%</span>
         </div>`;
     }
 
     function kljukica(jeTam, besedilo) {
       return jeTam
-        ? `<span class="ok" style="color:var(--acenta-teal);font-weight:700">${esc(besedilo || '✓')}</span>`
-        : '<span class="text-muted-2">&mdash;</span>';
+        ? `<span class="da">${ikona('check', 'icon--sm')}${besedilo ? `<span>${esc(besedilo)}</span>` : '<span class="sr-only">Da</span>'}</span>`
+        : PRAZNO;
     }
 
-    // ── Filtri ────────────────────────────────────────────────────────────
-    // Filtriramo v brskalniku, ne na strezniku: seznam je omejen na 200 vrstic,
-    // vsi potrebni podatki so ze v odzivu, in filtriranje je zato takojsnje
-    // brez cakanja na omrezje. Ce seznam kdaj preseze to velikost, se filtri
-    // preselijo v SQL (ruta jih ze delno podpira).
+    // ── Filters ───────────────────────────────────────────────────────────
+    // Filtering happens in the browser, not on the server: the list is capped
+    // at 200 rows, every needed field is already in the response, so a filter
+    // change is instant. If the list ever outgrows that, the filters move to
+    // SQL (the route already supports some of them).
     const FILTRI = [
       { id: 'fStranka',    naslov: 'Iskanje' },
       { id: 'fPredloga',   naslov: 'Vprašalnik' },
@@ -288,7 +279,7 @@
       return el ? el.value : '';
     }
 
-    // Berljiv opis izbrane vrednosti (za znacke aktivnih filtrov).
+    // Readable label of the chosen value (for the active filter chips).
     function opisFiltra(id) {
       const el = document.getElementById(id);
       if (!el || !el.value) return null;
@@ -320,7 +311,7 @@
         if (predloga && String(s.questionnaire_id ?? '') !== predloga) return false;
         if (svetovalec && (s.svetovalec || '') !== svetovalec) return false;
 
-        // Privzeto skrijemo arhiv; "vse" ga izrecno vklopi.
+        // The archive is hidden by default; "vse" turns it on explicitly.
         if (!status) { if (s.status === 'arhiv') return false; }
         else if (status !== 'vse' && s.status !== status) return false;
 
@@ -349,29 +340,27 @@
 
       const el = document.getElementById('cipi');
       if (!aktivni.length) {
-        el.innerHTML = '<span class="text-xs text-muted-2">Ni aktivnih filtrov.</span>';
+        el.innerHTML = '<span>Ni aktivnih filtrov.</span>';
         return;
       }
       el.innerHTML = aktivni.map(f => `
-        <span class="cip">
-          ${esc(f.naslov)}: ${esc(f.opis)}
-          <button type="button" data-pocisti-filter="${f.id}" title="Odstrani filter">&times;</button>
-        </span>`).join('')
-        + `<button type="button" id="pocistiVse" class="text-xs text-muted hover:text-[#16262e] underline ml-1">Počisti vse</button>`;
+        <span class="chip chip--filter cip">${esc(f.naslov)}: ${esc(f.opis)}<button class="chip__x" type="button" data-pocisti-filter="${f.id}" aria-label="Odstrani filter ${esc(f.naslov)}" title="Odstrani filter">${ikona('x')}</button></span>`).join('')
+        + '<button class="link" type="button" id="pocistiVse">Počisti vse</button>';
     }
 
-    // ── Razvrscanje ───────────────────────────────────────────────────────
+    // ── Sorting ───────────────────────────────────────────────────────────
+    // `r` = class of the cell; the phone card shows only some of them.
     const STOLPCI = [
-      { kljuc: 'stranka_naziv', naslov: 'Stranka',      sort: true  },
-      { kljuc: 'proces',        naslov: 'Proces',       sort: true  },
-      { kljuc: 'oddelek',       naslov: 'Oddelek',      sort: true  },
-      { kljuc: 'naziv_prikaz',  naslov: 'Vprašalnik',   sort: true  },
-      { kljuc: 'svetovalec',    naslov: 'Svetovalec',   sort: true  },
-      { kljuc: 'napredek',      naslov: 'Izpolnjenost', sort: true  },
-      { kljuc: 'status',        naslov: 'Status',       sort: true  },
-      { kljuc: 'st_transkriptov', naslov: 'Transkript', sort: true  },
-      { kljuc: 'st_poslanih',   naslov: 'Poslano',      sort: true  },
-      { kljuc: 'datum_sestanka', naslov: 'Datum',       sort: true  },
+      { kljuc: 'stranka_naziv',   naslov: 'Stranka',      r: 'c-stranka'  },
+      { kljuc: 'proces',          naslov: 'Proces',       r: 'c-proces'   },
+      { kljuc: 'oddelek',         naslov: 'Oddelek',      r: 'c-oddelek'  },
+      { kljuc: 'naziv_prikaz',    naslov: 'Vprašalnik',   r: 'c-vpr'      },
+      { kljuc: 'svetovalec',      naslov: 'Svetovalec',   r: 'c-svet'     },
+      { kljuc: 'napredek',        naslov: 'Izpolnjenost', r: 'c-napredek' },
+      { kljuc: 'status',          naslov: 'Status',       r: 'c-status'   },
+      { kljuc: 'st_transkriptov', naslov: 'Transkript',   r: 'c-tr'       },
+      { kljuc: 'st_poslanih',     naslov: 'Poslano',      r: 'c-poslano'  },
+      { kljuc: 'datum_sestanka',  naslov: 'Datum',        r: 'c-datum'    },
     ];
 
     function kljucZaSort(s, kljuc) {
@@ -389,15 +378,15 @@
         const va = kljucZaSort(a, stolpec);
         const vb = kljucZaSort(b, stolpec);
         if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * znak;
-        // Prazne vrednosti vedno na konec, ne glede na smer — prazen oddelek
-        // na vrhu seznama ni koristna informacija.
+        // Empty values always last, whatever the direction: an empty
+        // department on top of the list is not useful information.
         if (!va && vb) return 1;
         if (va && !vb) return -1;
         return String(va).localeCompare(String(vb), 'sl') * znak;
       });
     }
 
-    // ── Izris tabele sej ──────────────────────────────────────────────────
+    // ── Session table ─────────────────────────────────────────────────────
     function izrisiSeje() {
       const filtrirane = uporabiFiltre(vseSeje);
       const seje = razvrstiSeje(filtrirane);
@@ -408,77 +397,70 @@
 
       if (!vseSeje.length) {
         document.getElementById('seje').innerHTML = `
-          <div class="text-center py-16 px-6">
-            <div class="text-[#16262e] font-medium mb-1">Še ni sestankov.</div>
-            <div class="text-sm text-muted">Klikni „Nov sestanek“ zgoraj in začni izpolnjevati vprašalnik.</div>
+          <div class="empty empty--center">
+            <b class="empty__title">Še ni sestankov</b>
+            <p class="empty__text">Kliknite »Nov sestanek« zgoraj in začnite izpolnjevati vprašalnik.</p>
           </div>`;
         return;
       }
       if (!seje.length) {
         document.getElementById('seje').innerHTML = `
-          <div class="text-center py-16 px-6">
-            <div class="text-[#16262e] font-medium mb-1">Noben sestanek ne ustreza filtrom.</div>
-            <div class="text-sm text-muted">Odstrani kakšen filter zgoraj.</div>
+          <div class="empty empty--center">
+            <b class="empty__title">Noben sestanek ne ustreza filtrom</b>
+            <p class="empty__text">Odstranite kakšen filter zgoraj ali kliknite »Počisti vse«.</p>
           </div>`;
         return;
       }
 
       const glava = STOLPCI.map(c => {
-        if (!c.sort) return `<th>${esc(c.naslov)}</th>`;
         const jeAktiven = razvrsti.stolpec === c.kljuc;
         const pusc = jeAktiven ? (razvrsti.smer === 'asc' ? '▲' : '▼') : '▼';
-        return `<th class="sortable ${jeAktiven ? 'aktiven sorted' : ''}"
-                    data-sort="${c.kljuc}" title="Razvrsti po: ${esc(c.naslov)}">${esc(c.naslov)}<span class="pusc">${pusc}</span></th>`;
+        const aria = jeAktiven ? ` aria-sort="${razvrsti.smer === 'asc' ? 'ascending' : 'descending'}"` : '';
+        return `<th class="is-sortable${jeAktiven ? ' is-sorted aktiven' : ''}" data-sort="${c.kljuc}"${aria} title="Razvrsti po: ${esc(c.naslov)}">${esc(c.naslov)}<span class="sort-arrow" aria-hidden="true">${pusc}</span></th>`;
       }).join('');
 
-      const prazno = '<span class="text-muted-2">&mdash;</span>';
-
       const vrstica = (s) => `
-        <tr class="vrstica" data-odpri="${s.id}">
-          <td title="${esc(s.stranka_naziv)}"><b>${esc(s.stranka_naziv)}</b></td>
-          <td title="${esc(s.proces || '')}">${esc(s.proces) || prazno}</td>
-          <td title="${esc(s.oddelek || '')}">${esc(s.oddelek) || prazno}</td>
-          <td title="${esc(s.naziv_prikaz)}">${esc(s.naziv_prikaz)}</td>
-          <td title="${esc(s.svetovalec || '')}">${esc(s.svetovalec) || prazno}</td>
-          <td>${napredekBar(s.napredek)}</td>
-          <td>${statusBadge(s.status)}</td>
-          <td>${kljukica(s.st_transkriptov)}</td>
-          <td>${kljukica(s.st_poslanih, s.st_poslanih ? s.st_poslanih + '×' : '')}</td>
-          <td class="nowrap">${formatDan(s.datum_sestanka || s.created_at)}</td>
+        <tr class="is-link" data-odpri="${s.id}" tabindex="0">
+          <td class="c-stranka" title="${esc(s.stranka_naziv)}"><span class="table__name">${esc(s.stranka_naziv)}</span></td>
+          <td class="c-proces${s.proces ? '' : ' is-empty'}" title="${esc(s.proces || '')}">${esc(s.proces) || PRAZNO}</td>
+          <td class="c-oddelek" title="${esc(s.oddelek || '')}">${esc(s.oddelek) || PRAZNO}</td>
+          <td class="c-vpr" title="${esc(s.naziv_prikaz)}">${esc(s.naziv_prikaz)}</td>
+          <td class="c-svet" title="${esc(s.svetovalec || '')}">${esc(s.svetovalec) || PRAZNO}</td>
+          <td class="c-napredek">${napredekBar(s.napredek)}</td>
+          <td class="c-status">${statusBadge(s.status)}</td>
+          <td class="c-tr">${kljukica(s.st_transkriptov)}</td>
+          <td class="c-poslano">${kljukica(s.st_poslanih, s.st_poslanih ? s.st_poslanih + '×' : '')}</td>
+          <td class="c-datum nowrap">${formatDan(s.datum_sestanka || s.created_at)}</td>
         </tr>`;
 
-      // Skupine se izpisejo samo, kadar imajo vrstice. Razvrscanje znotraj
-      // skupine ostane po izbranem stolpcu — naslovi tabele so skupni.
+      // Groups are printed only when they have rows. Sorting applies within
+      // each group, by the chosen column; the header is shared.
       const vrstice = SKUPINE.map(g => {
         const vGrupi = seje.filter(s => s.status === g.status);
         if (!vGrupi.length) return '';
-        const namig = g.namig ? `<span class="namig">${esc(g.namig)}</span>` : '';
+        const namig = g.namig ? `<span class="skupina__namig">${esc(g.namig)}</span>` : '';
         return `
-          <tr class="skupina"><td colspan="${STOLPCI.length}">
-            ${esc(g.naslov)}<span class="st">${steviloSej(vGrupi.length)}</span>${namig}
-          </td></tr>
+          <tr class="table__group skupina"><td colspan="${STOLPCI.length}">${esc(g.naslov)}<span class="table__group-meta">${steviloSej(vGrupi.length)}</span>${namig}</td></tr>
           ${vGrupi.map(vrstica).join('')}`;
       }).join('');
 
-      // Sirine (v %) so IZMERJENE, ne ocenjene. Pri ovoju 1104px so naslovi
-      // stolpcev potrebovali: Transkript 92px, Poslano 80px, Datum 88px —
-      // dokler tega nisem izmeril, so bili odrezani na "TR..." in "PO...",
-      // datum pa je tabelo raztegnil cez rob. Vsota mora ostati 100.
+      // Widths in % are MEASURED, not guessed (no header may be cut at
+      // 1440 px; the test checks scrollWidth). The sum stays 100.
       //          stranka proces oddelek vpr. svet. izpol. status transk. poslano datum
-      const sirine = [13,    11,    9,     10,  10,   11,    9,     9,      8,      10];
+      const sirine = [13,    11,    9,     11,  10,   11,    9,     9,      8,      9];
       const colgroup = `<colgroup>${sirine.map(w => `<col style="width:${w}%">`).join('')}</colgroup>`;
 
       document.getElementById('seje').innerHTML = `
-        <table class="seznam app-table">
+        <table class="table table--fixed table--stack seje-tabela">
           ${colgroup}
           <thead><tr>${glava}</tr></thead>
           <tbody>${vrstice}</tbody>
         </table>`;
     }
 
-    // ── Shranjeni pogledi ─────────────────────────────────────────────────
-    // Vsak pogled je samo prednastavljen nabor filtrov — nobene skrite
-    // logike, zato se v znackah spodaj vedno vidi, kaj pogled dejansko dela.
+    // ── Saved views ───────────────────────────────────────────────────────
+    // A view is only a preset of filters, no hidden logic: the chips below
+    // always show what the view actually does.
     const POGLEDI = [
       { kljuc: 'vsi',        naslov: 'Vsi',              filtri: {} },
       { kljuc: 'vteku',      naslov: 'V teku',           filtri: { fStatus: 'osnutek' } },
@@ -489,8 +471,8 @@
     ];
     let aktivenPogled = 'vsi';
 
-    // Koliko sej bi pogled pokazal — stevec na zavihku. Racuna se iz ze
-    // nalozenega seznama, brez dodatnega obhoda do streznika.
+    // How many sessions a view would show: the count on the tab, from the
+    // already loaded list, no extra server round trip.
     function stejZaPogled(p) {
       return vseSeje.filter(s => {
         const st = p.filtri.fStatus;
@@ -503,17 +485,17 @@
     }
 
     function izrisiPoglede() {
-      document.getElementById('pogledi').innerHTML = POGLEDI.map(p => `
-        <button type="button" class="tab ${p.kljuc === aktivenPogled ? 'active' : ''}" data-pogled="${p.kljuc}">
-          ${esc(p.naslov)}<span class="num">${stejZaPogled(p)}</span>
-        </button>`).join('');
+      document.getElementById('pogledi').innerHTML = POGLEDI.map(p => {
+        const on = p.kljuc === aktivenPogled;
+        return `<button class="tab${on ? ' active' : ''}" type="button" data-pogled="${p.kljuc}" aria-pressed="${on}">${esc(p.naslov)}<span class="count">${stejZaPogled(p)}</span></button>`;
+      }).join('');
     }
 
     function uporabiPogled(kljuc) {
       const p = POGLEDI.find(x => x.kljuc === kljuc);
       if (!p) return;
       aktivenPogled = kljuc;
-      // Pogled prepise SAMO svoje filtre; iskanje in ostalo ostane.
+      // A view overwrites ONLY its own filters; search and the rest stay.
       ['fStatus', 'fTranskript', 'fPoslano'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = p.filtri[id] ?? '';
@@ -522,51 +504,49 @@
       izrisiSeje();
     }
 
-    // ── Knjiznica predlog ─────────────────────────────────────────────────
+    // ── Template library ──────────────────────────────────────────────────
     function izrisiPredloge() {
+      document.getElementById('stPredlog').textContent = predlogeCache.length;
       if (!predlogeCache.length) {
-        document.getElementById('predloge').innerHTML =
-          `<div class="text-center text-muted py-12 px-6">
-             Ni procesnih vprašalnikov. Migracija 009 doda „Ocena poslovnega potenciala za AI“ &mdash;
-             če je seznam prazen, migracija še ni stekla.
-           </div>`;
+        document.getElementById('predloge').innerHTML = `
+          <div class="empty">
+            <b class="empty__title">Ni procesnih vprašalnikov</b>
+            <p class="empty__text">Migracija 009 doda »Ocena poslovnega potenciala za AI«. Če je seznam prazen, migracija še ni stekla.</p>
+          </div>`;
         return;
       }
-      document.getElementById('stPredlog').textContent = predlogeCache.length;
       document.getElementById('predloge').innerHTML = `
-        <table class="app-table" style="min-width:720px">
-          <colgroup><col style="width:38%"><col style="width:11%"><col style="width:12%"><col style="width:19%"><col style="width:20%"></colgroup>
-          <thead>
-            <tr>
-              <th>Vprašalnik</th><th>Vprašanj</th><th>Sestankov</th><th>Zadnja sprememba</th><th></th>
-            </tr>
-          </thead>
+        <table class="table table--fixed table--stack predloge-tabela">
+          <colgroup><col style="width:44%"><col style="width:12%"><col style="width:12%"><col style="width:16%"><col style="width:16%"></colgroup>
+          <thead><tr>
+            <th>Vprašalnik</th><th class="is-num">Vprašanj</th><th class="is-num">Sestankov</th><th>Zadnja sprememba</th><th><span class="sr-only">Dejanje</span></th>
+          </tr></thead>
           <tbody>
             ${predlogeCache.map(p => `
-              <tr class="${p.aktivna ? '' : 'opacity-50'}" style="height:44px">
-                <td title="${esc(p.naziv_prikaz)}">
-                  <b>${esc(p.naziv_prikaz)}</b>${p.aktivna ? '' : ' <span class="text-muted">(ugasnjen)</span>'}
-                  <span class="sub" style="font-family:ui-monospace,monospace">${esc(p.slug)}</span>
+              <tr class="${p.aktivna ? '' : 'is-off'}">
+                <td class="c-ime" title="${esc(p.naziv_prikaz)}">
+                  <span class="table__name">${esc(p.naziv_prikaz)}${p.aktivna ? '' : '<span class="chip">Ugasnjen</span>'}</span>
+                  <span class="table__sub">${esc(p.slug)}</span>
                 </td>
-                <td>${p.st_vprasanj}</td>
-                <td>${p.st_sej}</td>
-                <td>${formatDan(p.updated_at)}</td>
-                <td style="text-align:right">
-                  <a href="/admin/predloga.html?id=${p.id}"
-                     style="color:var(--acenta-teal);font-weight:600">Uredi vprašanja &rarr;</a>
-                </td>
+                <td class="is-num" data-label="Vprašanj:">${p.st_vprasanj}</td>
+                <td class="is-num" data-label="Sestankov:">${p.st_sej}</td>
+                <td data-label="Spremenjeno:">${formatDan(p.updated_at)}</td>
+                <td class="c-dejanje" style="text-align:right"><a class="link" href="/admin/predloga.html?id=${p.id}">Uredi vprašanja${ikona('arrow-right', 'icon--sm')}</a></td>
               </tr>`).join('')}
           </tbody>
         </table>`;
     }
 
-    // ── Nalaganje ─────────────────────────────────────────────────────────
+    // ── Loading ───────────────────────────────────────────────────────────
     async function naloziSeje() {
-      showLoading('seje', 'Nalagam sestanke...');
-      // Vzamemo VSE (tudi arhiv) in filtriramo v brskalniku, da preklop
-      // filtra ne rabi novega obhoda do streznika.
+      showLoading('seje', 'Nalagam sestanke …');
+      // Take ALL (archive too) and filter in the browser, so a filter change
+      // needs no new round trip.
       const d = await apiFetch('/api/procesi/seje?status=vse');
-      if (!d) return showError('seje', 'Sestankov ni bilo mogoče naložiti.');
+      if (!d) {
+        document.getElementById('stevec').textContent = '';
+        return showError('seje', 'Sestankov ni bilo mogoče naložiti. Osvežite stran.');
+      }
 
       vseSeje = d.seje;
       napolniSvetovalce();
@@ -574,7 +554,7 @@
       izrisiSeje();
     }
 
-    // Izbirnik svetovalcev sestavimo iz podatkov — sifranta zanje ni.
+    // The consultant picker is built from the data; there is no code list.
     function napolniSvetovalce() {
       const imena = [...new Set(vseSeje.map(s => s.svetovalec).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b, 'sl'));
@@ -586,16 +566,16 @@
     }
 
     async function naloziPredloge() {
-      showLoading('predloge', 'Nalagam vprašalnike...');
+      showLoading('predloge', 'Nalagam vprašalnike …');
       const d = await apiFetch('/api/procesi/predloge');
-      if (!d) return showError('predloge', 'Vprašalnikov ni bilo mogoče naložiti.');
+      if (!d) return showError('predloge', 'Vprašalnikov ni bilo mogoče naložiti. Osvežite stran.');
 
       predlogeCache = d.predloge;
 
       const aktivne = predlogeCache.filter(p => p.aktivna);
       document.getElementById('nsPredloga').innerHTML = aktivne.length
         ? aktivne.map(p => `<option value="${p.id}">${esc(p.naziv_prikaz)}</option>`).join('')
-        : '<option value="">&mdash; ni aktivnih vprašalnikov &mdash;</option>';
+        : '<option value="">Ni aktivnih vprašalnikov</option>';
 
       document.getElementById('fPredloga').innerHTML = '<option value="">Vsi</option>'
         + predlogeCache.map(p => `<option value="${p.id}">${esc(p.naziv_prikaz)}</option>`).join('');
@@ -603,21 +583,27 @@
       izrisiPredloge();
     }
 
-    // ── Dogodki ───────────────────────────────────────────────────────────
+    // ── Events ────────────────────────────────────────────────────────────
     function odpri(id) { window.location.href = `/admin/proces-seja.html?id=${id}`; }
 
-    document.getElementById('seje').addEventListener('click', (e) => {
-      const th = e.target.closest('th[data-sort]');
-      if (th) {
-        const kljuc = th.dataset.sort;
-        if (razvrsti.stolpec === kljuc) {
-          razvrsti.smer = razvrsti.smer === 'asc' ? 'desc' : 'asc';
-        } else {
-          razvrsti = { stolpec: kljuc, smer: 'asc' };
-        }
-        izrisiSeje();
-        return;
+    function razvrstiPo(kljuc) {
+      if (razvrsti.stolpec === kljuc) {
+        razvrsti.smer = razvrsti.smer === 'asc' ? 'desc' : 'asc';
+      } else {
+        razvrsti = { stolpec: kljuc, smer: 'asc' };
       }
+      izrisiSeje();
+    }
+
+    const sejeEl = document.getElementById('seje');
+    sejeEl.addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-sort]');
+      if (th) { razvrstiPo(th.dataset.sort); return; }
+      const tr = e.target.closest('tr[data-odpri]');
+      if (tr) odpri(tr.dataset.odpri);
+    });
+    sejeEl.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
       const tr = e.target.closest('tr[data-odpri]');
       if (tr) odpri(tr.dataset.odpri);
     });
@@ -627,11 +613,13 @@
       if (x) {
         const el = document.getElementById(x.dataset.pocistiFilter);
         if (el) el.value = '';
+        osveziAktivenPogled();
         izrisiSeje();
         return;
       }
-      if (e.target.id === 'pocistiVse') {
+      if (e.target.closest('#pocistiVse')) {
         FILTRI.forEach(f => { const el = document.getElementById(f.id); if (el) el.value = ''; });
+        osveziAktivenPogled();
         izrisiSeje();
       }
     });
@@ -641,9 +629,9 @@
       if (b) uporabiPogled(b.dataset.pogled);
     });
 
-    // Kateri shranjeni pogled ustreza trenutnim filtrom (ce sploh kateri).
-    // Brez tega bi zavihek ostal poudarjen, ko uporabnik rocno spremeni
-    // status ali transkript — in bi lagal, kaj je prikazano.
+    // Which saved view matches the current filters (if any). Without this
+    // a tab would stay highlighted after a manual change of status or
+    // transcript, and lie about what is shown.
     function osveziAktivenPogled() {
       const trenutno = {
         fStatus: vrednostFiltra('fStatus'),
@@ -656,7 +644,7 @@
       izrisiPoglede();
     }
 
-    // Spustni seznami takoj, iskalno polje z zamikom.
+    // Selects apply at once, the search box after a short pause.
     FILTRI.forEach(f => {
       const el = document.getElementById(f.id);
       if (!el) return;
@@ -665,12 +653,14 @@
       else el.addEventListener('input', debounce(izrisiSeje, 220));
     });
 
-    // ── Nov sestanek ──────────────────────────────────────────────────────
+    // ── New meeting ───────────────────────────────────────────────────────
     const panel = document.getElementById('novaSeja');
     const napakaEl = document.getElementById('nsNapaka');
+    const btnNova = document.getElementById('btnNova');
 
     function odpriNovSestanek() {
       panel.classList.remove('hidden');
+      btnNova.setAttribute('aria-expanded', 'true');
       const d = new Date();
       const mm = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
@@ -678,31 +668,39 @@
       document.getElementById('nsStranka').focus();
     }
 
-    document.getElementById('btnNova').addEventListener('click', () => {
+    function zapriNovSestanek() {
+      panel.classList.add('hidden');
+      btnNova.setAttribute('aria-expanded', 'false');
+      napakaEl.textContent = '';
+    }
+
+    btnNova.addEventListener('click', () => {
       if (panel.classList.contains('hidden')) odpriNovSestanek();
-      else panel.classList.add('hidden');
+      else zapriNovSestanek();
     });
 
-    // Gumb "+ Nov sestanek" na strani Danes pripelje sem s #nov, zato mora
-    // panel biti odprt takoj — sicer bi klik izgledal, kot da ni naredil nic.
+    // "Nov sestanek" on Danes links here with #nov, so the panel must open
+    // at once; otherwise the click would look like it did nothing.
     if (window.location.hash === '#nov') odpriNovSestanek();
 
-    document.getElementById('nsPreklici').addEventListener('click', () => {
-      panel.classList.add('hidden');
-      napakaEl.textContent = '';
-    });
+    document.getElementById('nsPreklici').addEventListener('click', zapriNovSestanek);
 
     document.getElementById('nsShrani').addEventListener('click', async () => {
       napakaEl.textContent = '';
       const questionnaire_id = parseInt(document.getElementById('nsPredloga').value, 10);
       const stranka_naziv = document.getElementById('nsStranka').value.trim();
 
-      if (!questionnaire_id) { napakaEl.textContent = 'Izberi vprašalnik.'; return; }
-      if (!stranka_naziv) { napakaEl.textContent = 'Vpiši stranko.'; return; }
+      if (!questionnaire_id) { napakaEl.textContent = 'Izberite vprašalnik.'; return; }
+      if (!stranka_naziv) {
+        napakaEl.textContent = 'Vpišite stranko.';
+        document.getElementById('nsStranka').focus();
+        return;
+      }
 
       const gumb = document.getElementById('nsShrani');
+      const oznaka = gumb.querySelector('span');
       gumb.disabled = true;
-      gumb.textContent = 'Ustvarjam...';
+      oznaka.textContent = 'Ustvarjam …';
 
       const d = await apiFetch('/api/procesi/seje', {
         method: 'POST',
@@ -717,10 +715,15 @@
       });
 
       gumb.disabled = false;
-      gumb.textContent = 'Začni izpolnjevati →';
+      oznaka.textContent = 'Začni izpolnjevati';
 
-      if (!d?.ok) { napakaEl.textContent = 'Sestanka ni bilo mogoče ustvariti. Poskusi znova.'; return; }
+      if (!d?.ok) { napakaEl.textContent = 'Sestanka ni bilo mogoče ustvariti. Poskusite znova.'; return; }
       odpri(d.seja.id);
+    });
+
+    // Enter in a form field = save (the panel is not a <form>).
+    panel.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.matches('input')) document.getElementById('nsShrani').click();
     });
 
     naloziPredloge();

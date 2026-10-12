@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Danes · Acenta baza</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    /* Dnevni poudarek: edina izpostavljena stevilka na zaslonu */
+    .focus {
+      display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap;
+      padding: var(--space-5) var(--space-6);
+      background: var(--accent-subtle); border: 1px solid var(--accent-border); border-radius: var(--radius-lg);
+    }
+    .focus__main { display: flex; align-items: center; gap: var(--space-4); min-width: 0; flex: 1 1 320px; }
+    .focus__num { font-size: 2.5rem; line-height: 1; font-weight: var(--weight-semibold); letter-spacing: -0.03em; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+    .focus h2 { font-size: var(--text-md); }
+    .focus p { font-size: var(--text-sm); color: var(--text-secondary); margin-top: 2px; }
+    .focus__stats { display: flex; gap: var(--space-6); margin: 0; }
+    .focus__stats div { display: flex; flex-direction: column-reverse; gap: 2px; padding-left: var(--space-6); border-left: 1px solid var(--accent-border); }
+    .focus__stats dt { font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap; }
+    .focus__stats dd { font-size: var(--text-lg); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; line-height: 1.1; }
+
+    /* Trak kazalnikov: en panel, celice locene s 1 px */
+    .metrics {
+      display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px;
+      background: var(--border-subtle); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden;
+      margin-top: var(--space-4);
+    }
+    .metric { background: var(--bg-surface); padding: 14px var(--space-4); min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .metric__label { font-size: var(--text-sm); color: var(--text-secondary); display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .metric__row { display: flex; align-items: flex-end; gap: var(--space-3); }
+    .metric__value { font-size: 1.375rem; font-weight: var(--weight-semibold); letter-spacing: -0.01em; line-height: 1.15; font-variant-numeric: tabular-nums; }
+    .metric__note { font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .delta-up { color: var(--success-text); font-weight: var(--weight-medium); }
+    .delta-down { color: var(--danger-text); font-weight: var(--weight-medium); }
+    .spark { flex: 1; height: 24px; min-width: 40px; max-width: 120px; }
+    .spark path { fill: none; stroke: var(--accent); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+    /* Tri vedra dela */
+    .buckets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-6); align-items: start; }
+    .bucket__hint { margin-left: auto; font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; }
+    .tasks { list-style: none; margin: 0; padding: 0; }
+    .task { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: var(--space-3); padding: 14px var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+    .task:last-child { border-bottom: 0; }
+    .task .dot { margin-top: 6px; }
+    .task__top { display: flex; align-items: baseline; gap: var(--space-3); }
+    .task__title { font-weight: var(--weight-medium); color: var(--text); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task__when { margin-left: auto; font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .task__desc { font-size: var(--text-sm); color: var(--text-muted); margin-top: 2px; }
+    .task__actions { display: flex; align-items: center; gap: var(--space-2); margin-top: 10px; flex-wrap: wrap; }
+
+    /* Statistika (skrita, odpre jo gumb v vrhnji vrstici) */
+    .stats { margin-top: var(--space-6); display: grid; gap: var(--space-4); }
+    .stats[hidden] { display: none; }
+    .stats .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; border: 0; border-radius: 0; border-top: 1px solid var(--border-subtle); }
+    .chart { padding: var(--space-3) var(--space-4) var(--space-4); }
+    .chart svg { width: 100%; height: 190px; overflow: visible; }
+    .chart .grid line { stroke: var(--border-subtle); stroke-dasharray: 3 3; }
+    .chart .axis text { fill: var(--text-muted); font-size: 11px; font-family: var(--font-sans); }
+    .chart .area { fill: var(--accent); fill-opacity: 0.08; }
+    .chart .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+    .chart .pt { fill: var(--accent-text); }
+    .rows { list-style: none; margin: 0; padding: 0; }
+    .row { display: flex; align-items: center; gap: var(--space-3); padding: 10px var(--space-4); border-bottom: 1px solid var(--border-subtle); transition: background var(--dur-fast) var(--ease-out); }
+    .row:last-child { border-bottom: 0; }
+    .row:hover { background: var(--bg-hover); }
+    .row__txt { min-width: 0; flex: 1; }
+    .row__txt b { display: block; font-weight: var(--weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row__txt span { display: block; font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    @media (max-width: 1179px) {
+      .metrics { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      .metrics > .metric:nth-child(-n+2) { grid-column: span 3; }
+      .metrics > .metric:nth-child(n+3) { grid-column: span 2; }
+      .buckets { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 699px) {
+      .focus { padding: var(--space-4); gap: var(--space-4); }
+      .focus__num { font-size: 2.25rem; }
+      .focus__stats { width: 100%; gap: 0; padding-top: var(--space-3); border-top: 1px solid var(--accent-border); }
+      .focus__stats div { flex: 1; border-left: 0; padding-left: 0; }
+      .focus__stats div + div { padding-left: var(--space-4); border-left: 1px solid var(--accent-border); }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metrics > .metric:nth-child(n) { grid-column: span 1; }
+      .metrics > .metric:nth-child(2) { grid-column: 1 / -1; order: -1; }
+      .stats .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .stats .metrics > .metric:nth-child(2) { grid-column: span 1; order: 0; }
+      .task { padding: 14px; }
+      .metric__note { white-space: normal; }
+      .task__actions .btn { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="i-check-square" viewBox="0 0 24 24"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2zM9 7h7M9 11h5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-bars" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="mobilebar">
+    <button class="btn btn--ghost btn--icon" type="button" data-nav-open-btn aria-label="Odpri meni" aria-controls="sidebar" aria-expanded="false"><svg class="icon icon--lg"><use href="#i-menu"/></svg></button>
+    <span class="mobilebar__brand"><span class="brand-mark" aria-hidden="true">a</span>Acenta baza</span>
+    <span class="spacer"></span>
+    <a class="btn btn--ghost btn--icon" href="#" aria-label="Iskanje"><svg class="icon icon--lg"><use href="#i-search"/></svg></a>
+  </header>
+
+  <aside class="sidebar" id="sidebar" aria-label="Glavna navigacija">
+    <div class="sidebar__brand">
+      <span class="brand-mark" aria-hidden="true">a</span>
+      <span class="sidebar__brand-text"><b>Acenta baza</b><small>Interna konzola</small></span>
+      <button class="btn btn--ghost btn--icon sidebar__close" type="button" data-nav-close aria-label="Zapri meni"><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <nav class="nav">
+      <a class="nav-item is-active" href="danes.html" aria-current="page"><svg class="icon"><use href="#i-inbox"/></svg><span class="nav-item__label">Danes</span><span class="nav-item__count" aria-label="6 nalog na tebi">6</span></a>
+      <div class="nav-group">Delo</div>
+      <a class="nav-item" href="seja.html"><svg class="icon"><use href="#i-check-square"/></svg><span class="nav-item__label">Procesi</span></a>
+      <a class="nav-item" href="podjetja.html"><svg class="icon"><use href="#i-building"/></svg><span class="nav-item__label">Podjetja</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-file"/></svg><span class="nav-item__label">Vprašalniki</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-book"/></svg><span class="nav-item__label">Katalog</span></a>
+      <div class="nav-group">Analiza</div>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-chart"/></svg><span class="nav-item__label">Primerjava</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-search"/></svg><span class="nav-item__label">Iskanje</span><span class="nav-item__kbd">Ctrl K</span></a>
+      <button class="nav-item" type="button" id="naprednoToggle" aria-expanded="false" aria-controls="naprednoSeznam" style="margin-top:var(--space-3)"><svg class="icon nav-item__chev"><use href="#i-chev-down"/></svg><span class="nav-item__label">Napredno</span></button>
+      <div class="nav-sub" id="naprednoSeznam" hidden>
+        <a class="nav-item" href="#"><svg class="icon"><use href="#i-book-open"/></svg><span class="nav-item__label">Vpogledi</span></a>
+      </div>
+    </nav>
+    <div class="sidebar__foot">
+      <span class="avatar" aria-hidden="true">MZ</span>
+      <div class="ellipsis"><b class="ellipsis">ai@acenta.si</b><span>Admin</span></div>
+    </div>
+  </aside>
+  <div class="scrim" data-nav-close></div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar__title">
+        <h1>Danes</h1>
+        <span class="topbar__meta">petek, 9. oktober 2026 · osveženo pred 2 min</span>
+      </div>
+      <span class="spacer"></span>
+      <div class="topbar__actions">
+        <button class="btn btn--secondary" type="button" id="btnStatistika" aria-expanded="false" aria-controls="statistika"><svg class="icon"><use href="#i-bars"/></svg><span>Statistika</span></button>
+        <a class="btn btn--primary" href="seja.html"><svg class="icon"><use href="#i-plus"/></svg>Nov sestanek</a>
+      </div>
+    </header>
+
+    <div class="page">
+      <section class="focus" aria-label="Stanje dneva">
+        <div class="focus__main">
+          <span class="focus__num">6</span>
+          <div>
+            <h2>nalog je na tebi</h2>
+            <p>Začni na vrhu seznama Ukrepaj. Razvrščeno je po nujnosti.</p>
+          </div>
+        </div>
+        <dl class="focus__stats">
+          <div><dt>Čaka druge</dt><dd>2</dd></div>
+          <div><dt>Zaključeno ta teden</dt><dd>3</dd></div>
+        </dl>
+      </section>
+
+      <section class="metrics" aria-label="Kazalniki">
+        <div class="metric">
+          <span class="metric__label">Podjetja</span>
+          <span class="metric__value">24</span>
+          <span class="metric__note"><span class="delta-up">↑&nbsp;3</span> novih ta teden</span>
+        </div>
+        <div class="metric">
+          <span class="metric__label">Odgovori (7 dni)</span>
+          <span class="metric__row">
+            <span class="metric__value">31</span>
+            <svg class="spark" viewBox="0 0 120 24" preserveAspectRatio="none" aria-hidden="true"><path d="M0 18 L9 15 L18 19 L28 12 L37 14 L46 9 L55 13 L65 11 L74 16 L83 8 L92 10 L102 6 L111 9 L120 4"/></svg>
+          </span>
+          <span class="metric__note"><span class="delta-up">↑&nbsp;24&nbsp;%</span> glede na prejšnji teden</span>
+        </div>
+        <div class="metric">
+          <span class="metric__label">Procesne seje</span>
+          <span class="metric__value">14</span>
+          <span class="metric__note">4 v teku · 3 aktivni vprašalniki</span>
+        </div>
+        <div class="metric">
+          <span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Brez priporočil</span>
+          <span class="metric__value">2</span>
+          <span class="metric__note">imajo odgovore, AI ni tekel</span>
+        </div>
+        <div class="metric">
+          <span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Zastarela priporočila</span>
+          <span class="metric__value">1</span>
+          <span class="metric__note">novejši odgovor po generaciji</span>
+        </div>
+      </section>
+
+      <section class="buckets" aria-label="Naloge">
+        <article class="panel">
+          <header class="panel__head">
+            <span class="dot dot--danger" aria-hidden="true"></span>
+            <h2 class="panel__title">Ukrepaj</h2><span class="count">6</span>
+            <span class="bucket__hint">na tebi</span>
+          </header>
+          <ul class="tasks">
+            <li class="task">
+              <span class="dot dot--danger"><span class="sr-only">Nujno</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">Zavod za kulturo Lipnica</b><span class="task__when">3 h</span></div>
+                <p class="task__desc">Pošiljanje stranki ni uspelo, dopisa ni prejela</p>
+                <div class="task__actions"><a class="btn btn--soft btn--sm" href="seja.html">Odpri sejo</a></div>
+              </div>
+            </li>
+            <li class="task">
+              <span class="dot dot--danger"><span class="sr-only">Nujno</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">Hotel Smrekov gaj</b><span class="task__when">1 dan</span></div>
+                <p class="task__desc">Zaključeno · Rezervacije · stranki še ni poslano</p>
+                <div class="task__actions"><a class="btn btn--soft btn--sm" href="seja.html#posiljanje">Odpri in pošlji</a></div>
+              </div>
+            </li>
+            <li class="task">
+              <span class="dot dot--danger"><span class="sr-only">Nujno</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">Mizarstvo Kovač d.o.o.</b><span class="task__when">2 dni</span></div>
+                <p class="task__desc">Brez transkripta · Priprava ponudb · izpolnjeno 64&nbsp;%</p>
+                <div class="task__actions">
+                  <a class="btn btn--soft btn--sm" href="seja.html#transkript">Dodaj transkript</a>
+                  <a class="btn btn--secondary btn--sm" href="seja.html">Odpri</a>
+                </div>
+              </div>
+            </li>
+            <li class="task">
+              <span class="dot dot--warning"><span class="sr-only">Opozorilo</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">Gostilna Pri treh javorjih</b><span class="task__when">5 h</span></div>
+                <p class="task__desc">Nov odgovor, brez kvalifikacije</p>
+                <div class="task__actions"><a class="btn btn--soft btn--sm" href="podjetje.html">Oceni</a></div>
+              </div>
+            </li>
+            <li class="task">
+              <span class="dot dot--warning"><span class="sr-only">Opozorilo</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">2 podjetji brez priporočil</b></div>
+                <p class="task__desc">Imajo odgovore, AI priporočila še niso bila generirana</p>
+                <div class="task__actions"><a class="btn btn--soft btn--sm" href="podjetja.html">Odpri seznam</a></div>
+              </div>
+            </li>
+            <li class="task">
+              <span class="dot dot--warning"><span class="sr-only">Opozorilo</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">1 zastarelo priporočilo</b></div>
+                <p class="task__desc">Po zadnji generaciji je prišel novejši odgovor</p>
+                <div class="task__actions"><a class="btn btn--soft btn--sm" href="podjetja.html">Odpri seznam</a></div>
+              </div>
+            </li>
+          </ul>
+        </article>
+
+        <article class="panel">
+          <header class="panel__head">
+            <span class="dot dot--warning" aria-hidden="true"></span>
+            <h2 class="panel__title">Čaka druge</h2><span class="count">2</span>
+            <span class="bucket__hint">ne blokira tebe</span>
+          </header>
+          <ul class="tasks">
+            <li class="task">
+              <span class="dot dot--warning"><span class="sr-only">Opozorilo</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">Apartmaji Na klancu</b><span class="task__when">6 dni</span></div>
+                <p class="task__desc">Osnutek brez sprememb 6 dni · Nina Petek</p>
+                <div class="task__actions"><a class="btn btn--secondary btn--sm" href="seja.html">Odpri</a></div>
+              </div>
+            </li>
+            <li class="task">
+              <span class="dot dot--warning"><span class="sr-only">Opozorilo</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">Turistična kmetija Ravnik</b><span class="task__when">5 dni</span></div>
+                <p class="task__desc">Poslano stranki, brez odziva</p>
+                <div class="task__actions"><a class="btn btn--secondary btn--sm" href="seja.html">Odpri</a></div>
+              </div>
+            </li>
+          </ul>
+        </article>
+
+        <article class="panel">
+          <header class="panel__head">
+            <span class="dot dot--accent" aria-hidden="true"></span>
+            <h2 class="panel__title">Zaključeno ta teden</h2><span class="count">3</span>
+            <span class="bucket__hint">brez ukrepa</span>
+          </header>
+          <ul class="tasks">
+            <li class="task">
+              <span class="dot dot--accent"><span class="sr-only">V redu</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">Pekarna Ržen</b><span class="task__when">1 dan</span></div>
+                <p class="task__desc">Poslano stranki</p>
+                <div class="task__actions"><span class="chip chip--accent">Poslano</span></div>
+              </div>
+            </li>
+            <li class="task">
+              <span class="dot dot--accent"><span class="sr-only">V redu</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">Dom upokojencev Jesenov breg</b><span class="task__when">2 dni</span></div>
+                <p class="task__desc">Seja zaključena · 100&nbsp;%</p>
+                <div class="task__actions"><span class="chip chip--success">Zaključeno</span></div>
+              </div>
+            </li>
+            <li class="task">
+              <span class="dot dot--accent"><span class="sr-only">V redu</span></span>
+              <div>
+                <div class="task__top"><b class="task__title">Kamp Prodnik</b><span class="task__when">3 dni</span></div>
+                <p class="task__desc">Poslano stranki</p>
+                <div class="task__actions"><span class="chip chip--accent">Poslano</span></div>
+              </div>
+            </li>
+          </ul>
+        </article>
+      </section>
+
+      <!-- Statistika: skrita, odpre jo gumb v vrhnji vrstici -->
+      <section class="stats" id="statistika" hidden aria-label="Statistika">
+        <article class="panel">
+          <header class="panel__head">
+            <h2 class="panel__title">Glavni podatki</h2>
+            <span class="spacer"></span>
+            <label class="sr-only" for="filterQ">Vprašalnik</label>
+            <span class="select-wrap select-wrap--inline">
+              <select class="select select--sm" id="filterQ">
+                <option>Vsi vprašalniki</option>
+                <option>Ocena poslovnega potenciala za AI</option>
+                <option>Digitalna zrelost oddelkov</option>
+                <option>Zadovoljstvo gostov po bivanju</option>
+              </select>
+            </span>
+          </header>
+          <div class="metrics">
+            <div class="metric"><span class="metric__label">Podjetja skupaj</span><span class="metric__value">24</span><span class="metric__note"><span class="delta-up">↑&nbsp;14&nbsp;%</span> glede na prejšnji teden</span></div>
+            <div class="metric"><span class="metric__label">Odgovori skupaj</span><span class="metric__value">186</span><span class="metric__note"><span class="delta-up">↑&nbsp;24&nbsp;%</span> glede na prejšnji teden</span></div>
+            <div class="metric"><span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Zastarela priporočila</span><span class="metric__value">1</span><span class="metric__note">regeneriraj v podjetju</span></div>
+            <div class="metric"><span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Brez priporočil</span><span class="metric__value">2</span><span class="metric__note">še nikoli generirana</span></div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <header class="panel__head">
+            <h2 class="panel__title">Odgovori, zadnjih 30 dni</h2>
+            <span class="count" id="chartTotal">0</span>
+          </header>
+          <div class="chart"><svg id="chart" viewBox="0 0 1000 190" preserveAspectRatio="none" role="img" aria-label="Število odgovorov po dnevih"></svg></div>
+        </article>
+
+        <article class="panel">
+          <header class="panel__head">
+            <h2 class="panel__title">Aktivnost podjetij</h2>
+            <span class="spacer"></span>
+            <a class="link" href="podjetja.html">Odpri seznam<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+          </header>
+          <ul class="rows">
+            <li><a class="row" href="podjetje.html"><span class="avatar">SG</span><span class="row__txt"><b>Hotel Smrekov gaj</b><span>17 odgovorov · pred 3 dnevi</span></span><span class="chip chip--warning">AI zastarela</span></a></li>
+            <li><a class="row" href="podjetje.html"><span class="avatar">GJ</span><span class="row__txt"><b>Gostilna Pri treh javorjih</b><span>4 odgovori · pred 5 h</span></span><span class="chip">AI ni pripravljeno</span></a></li>
+            <li><a class="row" href="podjetje.html"><span class="avatar">MK</span><span class="row__txt"><b>Mizarstvo Kovač d.o.o.</b><span>9 odgovorov · pred 1 dnem</span></span><span class="chip chip--success">AI pripravljeno</span></a></li>
+            <li><a class="row" href="podjetje.html"><span class="avatar">ZL</span><span class="row__txt"><b>Zavod za kulturo Lipnica</b><span>11 odgovorov · pred 2 dnevoma</span></span><span class="chip chip--success">AI pripravljeno</span></a></li>
+            <li><a class="row" href="podjetje.html"><span class="avatar">AR</span><span class="row__txt"><b>Hotel Alpski rob</b><span>6 odgovorov · pred 4 dnevi</span></span><span class="chip">AI ni pripravljeno</span></a></li>
+            <li><a class="row" href="podjetje.html"><span class="avatar">VG</span><span class="row__txt"><b>Vinska klet Grič</b><span>3 odgovori · pred 6 dnevi</span></span><span class="chip chip--success">AI pripravljeno</span></a></li>
+          </ul>
+        </article>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ── Navigacija: predal na ozkem zaslonu, zlozena skupina "Napredno" ──
+  const telo = document.body;
+  const odpriGumb = document.querySelector('[data-nav-open-btn]');
+  function zapriMeni() { telo.removeAttribute('data-nav-open'); odpriGumb?.setAttribute('aria-expanded', 'false'); }
+  odpriGumb?.addEventListener('click', () => {
+    telo.setAttribute('data-nav-open', '');
+    odpriGumb.setAttribute('aria-expanded', 'true');
+    document.querySelector('.sidebar__close')?.focus();
+  });
+  document.querySelectorAll('[data-nav-close]').forEach(el => el.addEventListener('click', zapriMeni));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') zapriMeni(); });
+  const napredno = document.getElementById('naprednoToggle');
+  napredno.addEventListener('click', () => {
+    const odpri = napredno.getAttribute('aria-expanded') !== 'true';
+    napredno.setAttribute('aria-expanded', String(odpri));
+    document.getElementById('naprednoSeznam').hidden = !odpri;
+  });
+
+  // ── Statistika: gumb odpre/zapre razdelek ──
+  const btnStat = document.getElementById('btnStatistika');
+  const stat = document.getElementById('statistika');
+  btnStat.addEventListener('click', () => {
+    const odpri = stat.hidden;
+    stat.hidden = !odpri;
+    btnStat.setAttribute('aria-expanded', String(odpri));
+    btnStat.querySelector('span').textContent = odpri ? 'Skrij statistiko' : 'Statistika';
+    if (odpri) stat.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+  if (location.hash === '#statistika') btnStat.click();
+
+  // ── Graf 30 dni (barve iz CSS spremenljivk, ne iz kode) ──
+  const dnevi = [2, 3, 1, 0, 4, 2, 3, 1, 0, 2, 5, 3, 2, 4, 1, 0, 3, 2, 6, 4, 3, 2, 1, 5, 4, 3, 2, 6, 3, 4];
+  const W = 1000, H = 190, L = 28, R = 8, T = 10, B = 26;
+  const max = Math.max(3, ...dnevi), iw = W - L - R, ih = H - T - B, korak = iw / (dnevi.length - 1);
+  const tocke = dnevi.map((v, i) => [L + i * korak, T + ih - (v / max) * ih]);
+  const pot = 'M ' + tocke.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(' L ');
+  const mreza = [0, Math.round(max / 2), max].map(t => {
+    const y = T + ih - (t / max) * ih;
+    return `<line x1="${L}" y1="${y}" x2="${W - R}" y2="${y}"/>`;
+  }).join('');
+  const osY = [0, Math.round(max / 2), max].map(t => `<text x="${L - 8}" y="${T + ih - (t / max) * ih + 4}" text-anchor="end">${t}</text>`).join('');
+  const zacetek = new Date(2026, 8, 10);
+  const osX = tocke.map(([x], i) => {
+    if (i % 5 !== 0 && i !== tocke.length - 1) return '';
+    const d = new Date(zacetek); d.setDate(d.getDate() + i);
+    return `<text x="${x}" y="${H - 6}" text-anchor="middle">${d.getDate()}. ${d.getMonth() + 1}.</text>`;
+  }).join('');
+  document.getElementById('chart').innerHTML =
+    `<g class="grid">${mreza}</g><g class="axis">${osY}${osX}</g>` +
+    `<path class="area" d="${pot} L ${W - R} ${T + ih} L ${L} ${T + ih} Z"/>` +
+    `<path class="line" d="${pot}"/>`;
+  document.getElementById('chartTotal').textContent = `${dnevi.reduce((s, v) => s + v, 0)} skupaj`;
+</script>
+</body>
+</html>

@@ -66,7 +66,11 @@ function qs(name) {
 function md(t) {
   const varno = String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   if (typeof marked === 'undefined') return `<p style="white-space:pre-wrap">${varno}</p>`;
-  return marked.parse(varno);
+  // Wide markdown tables scroll inside their own frame (.doc-table in
+  // admin.css) instead of stretching the page on a phone.
+  return marked.parse(varno)
+    .replace(/<table>/g, '<div class="doc-table"><table>')
+    .replace(/<\/table>/g, '</table></div>');
 }
 
 // ── Izpolnjevalec ─────────────────────────────────────────────────────────
@@ -310,64 +314,89 @@ function debounce(fn, ms = 300) {
   };
 }
 
+// ── Ikone ─────────────────────────────────────────────────────────────────
+// One SVG sprite for every admin page (same set as design-prototype/).
+// renderNav() injects it once; markup uses <svg class="icon"><use href="#i-plus"/></svg>
+// and page JS can call ikona('plus'). Lucide-style paths, 24x24, stroke only.
+const IKONE = {
+  'alert': '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/>',
+  'arrow-down': '<path d="M12 5v14M19 12l-7 7-7-7"/>',
+  'arrow-left': '<path d="m12 19-7-7 7-7M19 12H5"/>',
+  'arrow-right': '<path d="M5 12h14M12 5l7 7-7 7"/>',
+  'arrow-up': '<path d="M12 19V5M5 12l7-7 7 7"/>',
+  'bars': '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+  'book': '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2zM9 7h7M9 11h5"/>',
+  'book-open': '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+  'building': '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/>',
+  'chart': '<path d="M12 20V10M18 20V4M6 20v-4"/>',
+  'check': '<path d="M20 6 9 17l-5-5"/>',
+  'check-square': '<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  'chev-down': '<path d="m6 9 6 6 6-6"/>',
+  'chev-left': '<path d="m15 18-6-6 6-6"/>',
+  'chev-right': '<path d="m9 18 6-6-6-6"/>',
+  'chev-up': '<path d="m18 15-6-6-6 6"/>',
+  'columns': '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/>',
+  'copy': '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  'download': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',
+  'external': '<path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  'eye': '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',
+  'file': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/>',
+  'inbox': '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  'info': '<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',
+  'lock': '<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+  'menu': '<path d="M4 6h16M4 12h16M4 18h16"/>',
+  'merge': '<circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>',
+  'pencil': '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  'plus': '<path d="M12 5v14M5 12h14"/>',
+  'power': '<path d="M12 2v10"/><path d="M18.4 6.6a9 9 0 1 1-12.77.04"/>',
+  'printer': '<path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/>',
+  'refresh': '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
+  'search': '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+  'send': '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  'sparkles': '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
+  'trash': '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  'x': '<path d="M18 6 6 18M6 6l12 12"/>',
+};
+
+// <svg> that points to a sprite symbol. `razred` adds e.g. 'icon--sm'.
+function ikona(ime, razred = '') {
+  return `<svg class="icon${razred ? ' ' + razred : ''}" aria-hidden="true"><use href="#i-${ime}"/></svg>`;
+}
+
+// Inject the sprite once, as the first child of <body>. <use> elements in
+// static page markup above the script resolve as soon as the symbols exist.
+function vstaviIkone() {
+  if (document.getElementById('ikone')) return;
+  const simboli = Object.entries(IKONE)
+    .map(([ime, pot]) => `<symbol id="i-${ime}" viewBox="0 0 24 24">${pot}</symbol>`).join('');
+  document.body.insertAdjacentHTML('afterbegin',
+    `<svg id="ikone" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">${simboli}</svg>`);
+}
+
 // ── Navigacija ────────────────────────────────────────────────────────────
-// EN nabor postavk za VSE strani. Prej sta v aplikaciji obstajala dva
-// navigacijska sistema: "Pregled" je imel premium stransko vrstico, ostale
-// strani pa temno vrhnjo — z različnima seznamoma postavk, tako da Procesov
-// v stranski vrstici sploh ni bilo. Zdaj je vir en sam.
-// Vrstni red in skupine sledita potrjeni maketi (design-prototype/, smer A+B):
-// najprej "Danes" (kaj je treba narediti), potem delo, potem analiza.
+// ONE set of items for ALL pages, labeled sidebar as in the approved
+// prototype (design-prototype/danes.html, October 2026): Danes, group Delo,
+// group Analiza, folded group Napredno, user block at the bottom.
+// test/navigacija.test.mjs reads: #sidebar, nav a.sidebar-item (label = first
+// <span>), a.active, #naprednoToggle, #naprednoSeznam, #nav-ukrepaj.
 const NAV_POSTAVKE = [
-  {
-    kljuc: 'pregled', naslov: 'Danes', href: '/admin/',
-    ikona: '<path d="M4 6h16"/><path d="M4 12h10"/><path d="M4 18h7"/>',
-    // Stevilo nalog v vedru "Ukrepaj"; napolni ga napolniZnackoNalog().
-    znacka: 'nav-ukrepaj',
-  },
-  {
-    skupina: 'Delo',
-    kljuc: 'procesi', naslov: 'Procesi', href: '/admin/procesi.html',
-    ikona: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
-  },
-  {
-    kljuc: 'podjetja', naslov: 'Podjetja', href: '/admin/podjetja.html',
-    ikona: '<path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>',
-    // Na strani Danes se pod to postavko izpiše seznam podjetij.
-    podseznam: true,
-  },
-  {
-    // 25. 9. 2026: iz "Napredno" nazaj v Delo — vprasalnike se ureja redno,
-    // skrita postavka pod zlozeno skupino je bila odvec klik.
-    kljuc: 'questionnaires', naslov: 'Vprašalniki', href: '/admin/questionnaires.html',
-    ikona: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/>',
-  },
-  {
-    // Kaj Acenta zna narediti; bere ga prodajni predlog (migracija 014).
-    kljuc: 'katalog', naslov: 'Katalog', href: '/admin/katalog.html',
-    ikona: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9" y1="7" x2="16" y2="7"/><line x1="9" y1="11" x2="14" y2="11"/>',
-  },
-  {
-    skupina: 'Analiza',
-    kljuc: 'analiza', naslov: 'Primerjava', href: '/admin/analiza.html',
-    ikona: '<line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>',
-  },
-  {
-    kljuc: 'search', naslov: 'Iskanje', href: '/admin/search.html',
-    ikona: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
-  },
+  // Count of tasks in the "Ukrepaj" bucket; filled by napolniZnackoNalog().
+  { kljuc: 'pregled', naslov: 'Danes', href: '/admin/', ikona: 'inbox', znacka: 'nav-ukrepaj' },
+  { skupina: 'Delo', kljuc: 'procesi', naslov: 'Procesi', href: '/admin/procesi.html', ikona: 'check-square' },
+  { kljuc: 'podjetja', naslov: 'Podjetja', href: '/admin/podjetja.html', ikona: 'building' },
+  // 25. 9. 2026: back from "Napredno" to Delo, questionnaires are edited regularly.
+  { kljuc: 'questionnaires', naslov: 'Vprašalniki', href: '/admin/questionnaires.html', ikona: 'file' },
+  // What Acenta can build; read by the sales proposal (migration 014).
+  { kljuc: 'katalog', naslov: 'Katalog', href: '/admin/katalog.html', ikona: 'book' },
+  { skupina: 'Analiza', kljuc: 'analiza', naslov: 'Primerjava', href: '/admin/analiza.html', ikona: 'chart' },
+  { kljuc: 'search', naslov: 'Iskanje', href: '/admin/search.html', ikona: 'search', bliznjica: true },
 ];
 
-// Tehnicna stran, ki je komercialist ne rabi (AI analiza cez kliente).
-// Zlozena je v skupino "Napredno" na dnu — dosegljiva ostaja, a ne moti
-// osnovnega dela. Vprasalniki so bili tu do 25. 9. 2026. Stanje (odprto /
-// zaprto) si zapomni brskalnik; ce je odprta katera od teh strani, je
-// skupina prisilno odprta, da aktivna postavka ni skrita.
+// Technical page the sales person does not need (AI analysis across clients).
+// Folded into "Napredno" at the bottom; the browser remembers open/closed.
+// If the active page is in the group, the group is forced open.
 const NAPREDNO_POSTAVKE = [
-  {
-    // "Vpogledi", ne "Cross-client" — edina angleska postavka je bila prav ta.
-    kljuc: 'insights', naslov: 'Vpogledi', href: '/admin/insights.html',
-    ikona: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
-  },
+  { kljuc: 'insights', naslov: 'Vpogledi', href: '/admin/insights.html', ikona: 'book-open' },
 ];
 
 const NAPREDNO_LS_KLJUC = 'nav_napredno_odprto';
@@ -377,87 +406,76 @@ function jeNaprednoOdprto(aktiven) {
   try { return localStorage.getItem(NAPREDNO_LS_KLJUC) === '1'; } catch { return false; }
 }
 
-// Stare strani so uporabljale druge ključe (npr. 'home' za Podjetja). Da
-// klicev po straneh ni treba popravljati, jih preslikamo.
+// Old pages used other keys (e.g. 'home' for Podjetja); map them so call
+// sites do not have to change.
 const NAV_VZDEVKI = { home: 'podjetja', kanban: 'podjetja', questionnaires: 'questionnaires' };
 
+// Kept for compatibility: inline SVG from raw path markup.
 function svgIkona(pot, velikost = 20) {
   return `<svg width="${velikost}" height="${velikost}" viewBox="0 0 24 24" fill="none"
     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${pot}</svg>`;
 }
 
-// Zgradi HTML stranske vrstice. Vrne niz.
+// "Ctrl K" on Windows/Linux, "⌘K" on Apple keyboards.
+function oznakaBliznjice() {
+  const apple = /Mac|iPhone|iPad/i.test(navigator.userAgentData?.platform || navigator.platform || '');
+  return apple ? '⌘K' : 'Ctrl K';
+}
+
+// One nav item. Label is the FIRST <span> (the test reads it that way).
+function navPostavkaHtml(p, aktiven) {
+  const jeAktivna = p.kljuc === aktiven;
+  const znacka = p.znacka ? `<span class="nav-item__count" id="${p.znacka}" hidden></span>` : '';
+  const bliznjica = p.bliznjica ? `<span class="nav-item__kbd" aria-hidden="true">${oznakaBliznjice()}</span>` : '';
+  return `<a class="nav-item sidebar-item${jeAktivna ? ' active' : ''}" href="${p.href}"${jeAktivna ? ' aria-current="page"' : ''}>`
+    + `${ikona(p.ikona)}<span class="nav-item__label">${esc(p.naslov)}</span>${znacka}${bliznjica}</a>`;
+}
+
+// Sidebar contents. Returns a string.
 function sidebarHtml(active = '') {
   const aktiven = NAV_VZDEVKI[active] || active;
-
-  const postavke = NAV_POSTAVKE.map(p => {
-    const jeAktivna = p.kljuc === aktiven;
-    const razred = `sidebar-item${jeAktivna ? ' active' : ''}`;
-    const naslovSkupine = p.skupina ? `<div class="sidebar-group">${esc(p.skupina)}</div>` : '';
-    const znacka = p.znacka ? `<span class="badge-count" id="${p.znacka}" hidden></span>` : '';
-
-    if (p.podseznam) {
-      // Razširljiva postavka: klik odpre/zapre podseznam podjetij.
-      // Puščico in podseznam prikažemo samo, kadar ju stran zna napolniti
-      // (Pregled) — sicer bi bila to mrtva kontrola.
-      return `
-        ${naslovSkupine}
-        <div>
-          <a href="${p.href}" class="${razred}">
-            ${svgIkona(p.ikona, 16)}
-            <span class="flex-1">${esc(p.naslov)}</span>
-            <span id="chev-ovoj" class="hidden">
-              <svg id="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400">
-                <polyline points="6 9 12 15 18 9"/></svg>
-            </span>
-          </a>
-          <div id="sub" class="mt-1 space-y-0.5"></div>
-        </div>`;
-    }
-
-    return `
-      ${naslovSkupine}
-      <a href="${p.href}" class="${razred}">
-        ${svgIkona(p.ikona, 16)}
-        <span>${esc(p.naslov)}</span>
-        ${znacka}
-      </a>`;
-  }).join('');
+  const postavke = NAV_POSTAVKE.map(p =>
+    (p.skupina ? `<div class="nav-group">${esc(p.skupina)}</div>` : '') + navPostavkaHtml(p, aktiven)).join('');
 
   return `
-    <div class="flex items-center gap-2.5 mb-2 px-1">
-      <div class="brand-mark">a</div>
-      <div class="min-w-0 rail-name">
-        <div class="font-semibold leading-tight ellipsis" style="font-size:12.5px; letter-spacing:-0.01em;">Acenta baza</div>
-        <small class="ellipsis" style="font-size:10.5px">Interna konzola</small>
-      </div>
+    <div class="sidebar__brand">
+      <span class="brand-mark" aria-hidden="true">a</span>
+      <span class="sidebar__brand-text"><b>Acenta baza</b><small>Interna konzola</small></span>
+      <button class="btn btn--ghost btn--icon sidebar__close" type="button" id="navZapri" data-nav-close aria-label="Zapri meni">${ikona('x')}</button>
     </div>
-
-    <a href="/admin/search.html" class="cmd-bar mb-3" title="Iskanje po odgovorih (⌘K ali /)">
-      <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-      <span>Išči</span>
-      <span class="keys"><b>⌘</b><b>K</b></span>
-    </a>
-
-    <nav class="space-y-0.5 flex-1">
+    <nav class="nav" aria-label="Glavna navigacija">
       ${postavke}
       ${naprednoHtml(aktiven)}
     </nav>
-
-    <div class="rail-foot" style="padding-top:10px; margin-top:10px">
-      <div class="flex items-center gap-2">
-        <div class="rail-avatar">MZ</div>
-        <div class="min-w-0">
-          <b class="ellipsis" style="display:block;font-size:11.5px;line-height:1.25">ai@acenta.si</b>
-          <span class="ellipsis" style="display:block;font-size:10.5px" id="nav-noga">Admin</span>
-        </div>
-      </div>
+    <div class="sidebar__foot">
+      <span class="avatar" aria-hidden="true">MZ</span>
+      <div class="ellipsis"><b class="ellipsis">ai@acenta.si</b><span class="ellipsis" id="nav-noga">Admin</span></div>
     </div>`;
 }
 
-// ⌘K / Ctrl+K in "/" odpreta iskanje. Ukazna vrstica v railu je povezava,
-// zato deluje tudi brez tipkovnice — bliznjica je pospesek, ne pogoj.
+// Folded group "Napredno" at the bottom of the sidebar.
+function naprednoHtml(aktiven) {
+  const odprto = jeNaprednoOdprto(aktiven);
+  return `
+    <button class="nav-item nav-item--toggle" type="button" id="naprednoToggle" aria-expanded="${odprto}" aria-controls="naprednoSeznam">
+      ${ikona('chev-down', 'nav-item__chev')}<span class="nav-item__label">Napredno</span>
+    </button>
+    <div class="nav-sub" id="naprednoSeznam"${odprto ? '' : ' hidden'}>
+      ${NAPREDNO_POSTAVKE.map(p => navPostavkaHtml(p, aktiven)).join('')}
+    </div>`;
+}
+
+// Mobile bar (only visible at <= 760 px): menu button, brand, search.
+function mobilnaVrsticaHtml() {
+  return `
+    <button class="btn btn--ghost btn--icon" type="button" id="navOdpri" data-nav-open-btn aria-label="Odpri meni" aria-controls="sidebar" aria-expanded="false">${ikona('menu', 'icon--lg')}</button>
+    <a class="mobilebar__brand" href="/admin/"><span class="brand-mark" aria-hidden="true">a</span>Acenta baza</a>
+    <span class="spacer"></span>
+    <a class="btn btn--ghost btn--icon" href="/admin/search.html" aria-label="Iskanje">${ikona('search', 'icon--lg')}</a>`;
+}
+
+// Ctrl/Cmd+K and "/" open search. The nav item is a plain link, so the
+// shortcut is a speed-up, not a requirement.
 function vezaviTipkovnice() {
   if (window.__bliznjiceVezane) return;
   window.__bliznjiceVezane = true;
@@ -469,182 +487,63 @@ function vezaviTipkovnice() {
     if (!jeK && !jePosevnica) return;
     e.preventDefault();
     if (location.pathname.endsWith('/search.html')) {
-      document.querySelector('input')?.focus();
+      document.querySelector('main input')?.focus();
     } else {
       location.href = '/admin/search.html';
     }
   });
 }
 
-// Napolni stevec nalog v navigaciji. Tiho odneha, ce ruta ni dosegljiva —
-// znacka je pripomocek, ne pogoj za delovanje strani.
+// Fill the task counter in the nav. Fails silently: the badge is a helper,
+// not a requirement for the page to work.
 async function napolniZnackoNalog() {
   const el = document.getElementById('nav-ukrepaj');
   if (!el) return;
   try {
     const r = await apiFetch('/api/naloge');
     const n = r?.skupno?.ukrepaj ?? 0;
-    if (n > 0) { el.textContent = n; el.hidden = false; }
-  } catch { /* brez znacke */ }
+    if (n > 0) {
+      el.textContent = n;
+      el.setAttribute('aria-label', `${sklon(n, ['naloga', 'nalogi', 'naloge', 'nalog'])} na tebi`);
+      el.hidden = false;
+    }
+  } catch { /* no badge */ }
 }
 
-// Drsna vrstica za ozke zaslone, kjer stranske vrstice ni.
-function mobilnaVrsticaHtml(active = '') {
-  const aktiven = NAV_VZDEVKI[active] || active;
-  // Na ozkem zaslonu ni zlaganja — drsna vrstica prenese vse postavke.
-  return [...NAV_POSTAVKE, ...NAPREDNO_POSTAVKE].map(p => {
-    const jeAktivna = p.kljuc === aktiven;
-    return `<a href="${p.href}" class="${jeAktivna ? 'active' : ''}">${esc(p.naslov)}</a>`;
-  }).join('');
-}
+// Drawer on narrow screens: open/close, Escape, focus, inert content.
+function priklopiPredal() {
+  if (window.__predalVezan) return;
+  window.__predalVezan = true;
+  const telo = document.body;
+  const odpriGumb = () => document.getElementById('navOdpri');
+  const vsebina = () => document.querySelector('.app > .main');
 
-// Poskrbi, da je stranska vrstica na ozkem zaslonu SKRITA in nadomescena z
-// drsno vrstico, ter da vsebina stoji v svojem stolpcu.
-//
-// Klice se za obe vrsti strani: tiste, ki ovojnico ze imajo v HTML
-// (index.html, questionnaires.html, procesi.html, proces-seja.html), in
-// tiste, ki so prej uporabljale vrhnjo vrstico. Logika je zato na ENEM mestu
-// — prej je fiksna w-64 vrstica na 390px prelivala celo stran.
-function poskrbiZaOdzivnost(aside, active) {
-  aside.classList.add('hidden', 'md:flex', 'shrink-0');
-
-  const vrsta = aside.parentElement;
-  if (!vrsta) return;
-
-  // Ce je desni stolpec ze postavljen, samo osvezimo vrstico.
-  let desno = vrsta.querySelector(':scope > [data-vsebina]');
-  if (desno) {
-    const obstojeca = desno.querySelector('[data-mobilna-nav]');
-    if (obstojeca) obstojeca.innerHTML = mobilnaVrsticaHtml(active);
-    return;
+  function odpri() {
+    telo.setAttribute('data-nav-open', '');
+    odpriGumb()?.setAttribute('aria-expanded', 'true');
+    if (vsebina()) vsebina().inert = true;
+    document.getElementById('navZapri')?.focus();
+  }
+  function zapri(vrniFokus = true) {
+    if (!telo.hasAttribute('data-nav-open')) return;
+    telo.removeAttribute('data-nav-open');
+    odpriGumb()?.setAttribute('aria-expanded', 'false');
+    if (vsebina()) vsebina().inert = false;
+    if (vrniFokus) odpriGumb()?.focus();
   }
 
-  const vsebina = vrsta.querySelector(':scope > main') || document.querySelector('main');
-  if (!vsebina) return;
-
-  desno = document.createElement('div');
-  desno.setAttribute('data-vsebina', '');
-  desno.className = 'flex-1 min-w-0 flex flex-col';
-
-  const mobilna = document.createElement('div');
-  mobilna.setAttribute('data-mobilna-nav', '');
-  mobilna.className = 'md:hidden flex overflow-x-auto whitespace-nowrap';
-  // Barve in oblika so v admin.css ([data-mobilna-nav]).
-  mobilna.innerHTML = mobilnaVrsticaHtml(active);
-
-  vsebina.parentNode.insertBefore(desno, vsebina);
-  desno.appendChild(mobilna);
-  desno.appendChild(vsebina);
-
-  // Nekatere strani imajo na <main> max-w in mx-auto, misljena za celo sirino
-  // zaslona. Ob stranski vrstici to pusti prevec praznega prostora na desni.
-  vsebina.classList.remove('mx-auto');
-  vsebina.classList.add('w-full');
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('[data-nav-open-btn]')) { odpri(); return; }
+    if (e.target.closest('[data-nav-close]')) { zapri(); return; }
+    // Following a link inside the drawer closes it (matters for #hash links).
+    if (e.target.closest('#sidebar a[href]')) zapri(false);
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') zapri(); });
+  // Growing past the breakpoint with the drawer open must not leave the page inert.
+  window.matchMedia('(min-width: 761px)').addEventListener('change', (m) => { if (m.matches) zapri(false); });
 }
 
-// Napolni <aside id="sidebar">. Uporabljajo strani, ki ovojnico ze imajo
-// v svojem HTML (index.html, questionnaires.html, procesi.html, proces-seja.html).
-function renderSidebar(active = '') {
-  zagotoviStile();
-  const el = document.getElementById('sidebar');
-  if (!el) {
-    console.warn('[nav] na strani ni <aside id="sidebar">');
-    return;
-  }
-  el.innerHTML = sidebarHtml(active);
-  el.parentElement?.classList.add('app-shell');
-  priklopiNapredno();
-  poskrbiZaOdzivnost(el, active);
-  napolniZnackoNalog();
-  vezaviTipkovnice();
-}
-
-// Poskrbi, da so nalozeni skupni stili in pisave. Stare strani nalagajo samo
-// Tailwind CDN in brez tega premium razredi (.card, .sidebar-item, .display)
-// ne bi imeli stilov.
-function zagotoviStile() {
-  if (!document.querySelector('link[href="/admin/admin.css"]')) {
-    const l = document.createElement('link');
-    l.rel = 'stylesheet';
-    l.href = '/admin/admin.css';
-    document.head.appendChild(l);
-  }
-  if (!document.querySelector('link[href*="fonts.googleapis.com"]')) {
-    const f = document.createElement('link');
-    f.rel = 'stylesheet';
-    f.href = 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap';
-    document.head.appendChild(f);
-  }
-}
-
-// Vzdevek zaradi zgodovine: stare strani klicejo renderNav('home') in imajo
-// <header id="nav"></header> ter <main>. Namesto vrhnje vrstice jim tu
-// SESTAVIMO ovojnico s stransko vrstico — tako dobijo enotno navigacijo,
-// ne da bi bilo treba urejati vsako stran posebej.
-function renderNav(active = '') {
-  zagotoviStile();
-
-  // Strani, ki ovojnico ze imajo v svojem HTML, gredo po isti poti.
-  if (document.getElementById('sidebar')) {
-    renderSidebar(active);
-    return;
-  }
-
-  const glava = document.getElementById('nav');
-  const vsebina = document.querySelector('main');
-  if (!vsebina) {
-    console.warn('[nav] stran ni <main>, navigacije ne morem vstaviti');
-    return;
-  }
-
-  // Sestavimo ovojnico, kakrsno imajo nove strani ze v HTML — potem
-  // odzivnost uredi ista funkcija za vse.
-  const ovoj = document.createElement('div');
-  ovoj.className = 'flex min-h-screen app-shell';
-
-  const aside = document.createElement('aside');
-  aside.id = 'sidebar';
-  aside.className = 'w-52 app-sidebar p-3 flex flex-col';
-  aside.innerHTML = sidebarHtml(active);
-
-  vsebina.parentNode.insertBefore(ovoj, vsebina);
-  ovoj.appendChild(aside);
-  ovoj.appendChild(vsebina);
-  priklopiNapredno();
-
-  poskrbiZaOdzivnost(aside, active);
-  napolniZnackoNalog();
-  vezaviTipkovnice();
-
-  if (glava) glava.remove();
-  document.body.classList.remove('bg-gray-50');
-}
-
-// Zlozena skupina "Napredno" na dnu stranske vrstice.
-function naprednoHtml(aktiven) {
-  const odprto = jeNaprednoOdprto(aktiven);
-  const postavke = NAPREDNO_POSTAVKE.map(p => {
-    const razred = `sidebar-item${p.kljuc === aktiven ? ' active' : ''}`;
-    return `
-      <a href="${p.href}" class="${razred}">
-        ${svgIkona(p.ikona, 16)}
-        <span>${esc(p.naslov)}</span>
-      </a>`;
-  }).join('');
-
-  return `
-    <div class="rail-napredno">
-      <button type="button" id="naprednoToggle" class="sidebar-item${odprto ? ' odprto' : ''}" aria-expanded="${odprto}">
-        <span id="naprednoSev" aria-hidden="true">${svgIkona('<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>', 18)}</span>
-        <span>Napredno</span>
-      </button>
-      <div id="naprednoSeznam" ${odprto ? '' : 'hidden'}>
-        ${postavke}
-      </div>
-    </div>`;
-}
-
-// Klik na "Napredno" odpre/zapre podseznam in stanje shrani v brskalnik.
+// Click on "Napredno" opens/closes the group and remembers the state.
 function priklopiNapredno() {
   const gumb = document.getElementById('naprednoToggle');
   const seznam = document.getElementById('naprednoSeznam');
@@ -654,25 +553,100 @@ function priklopiNapredno() {
     const odpri = seznam.hidden;
     seznam.hidden = !odpri;
     gumb.setAttribute('aria-expanded', String(odpri));
-    gumb.classList.toggle('odprto', odpri);
-    try { localStorage.setItem(NAPREDNO_LS_KLJUC, odpri ? '1' : '0'); } catch { /* zasebni nacin */ }
+    try { localStorage.setItem(NAPREDNO_LS_KLJUC, odpri ? '1' : '0'); } catch { /* private mode */ }
   });
 }
 
-// Privzeti toggle podseznama. Stran Pregled ima svojo razlicico, ki to
-// funkcijo povozi (definirana je pozneje v dokumentu).
-function toggleSub() {
-  const sub = document.getElementById('sub');
-  if (sub) sub.classList.toggle('hidden');
+// Make sure the shared stylesheet and the font are loaded (pages should
+// link both in <head>; this covers pages that forget).
+function zagotoviStile() {
+  if (!document.querySelector('link[href*="fonts.googleapis.com/css2?family=Inter:opsz"]')) {
+    const f = document.createElement('link');
+    f.rel = 'stylesheet';
+    f.href = 'https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap';
+    document.head.appendChild(f);
+  }
+  if (!document.querySelector('link[href="/admin/admin.css"]')) {
+    const l = document.createElement('link');
+    l.rel = 'stylesheet';
+    l.href = '/admin/admin.css';
+    document.head.appendChild(l);
+  }
 }
 
-// Spinner / loading state helper.
-function showLoading(targetId, msg = 'Nalagam...') {
+// Build the app shell around the page:
+//   <div class="app"> .mobilebar  aside#sidebar.sidebar  .scrim  main.main </div>
+// Pages provide <div class="app"><aside id="sidebar"></aside><main>…</main></div>;
+// a page with only <main> (or the old <header id="nav">) gets the wrapper
+// built here, so both keep working.
+function zgradiOvojnico(active) {
+  const vsebina = document.querySelector('main');
+  let aside = document.getElementById('sidebar');
+  if (!aside && !vsebina) {
+    console.warn('[nav] page has neither <aside id="sidebar"> nor <main>');
+    return;
+  }
+  if (!aside) {
+    aside = document.createElement('aside');
+    aside.id = 'sidebar';
+    let ovoj = vsebina.parentElement;
+    if (!ovoj || ovoj === document.body || ovoj.tagName === 'HTML') {
+      ovoj = document.createElement('div');
+      vsebina.parentNode.insertBefore(ovoj, vsebina);
+      ovoj.appendChild(vsebina);
+    }
+    ovoj.insertBefore(aside, vsebina);
+  }
+
+  const ovoj = aside.parentElement;
+  ovoj.className = 'app';
+  aside.className = 'sidebar';
+  aside.setAttribute('aria-label', 'Glavna navigacija');
+  aside.innerHTML = sidebarHtml(active);
+
+  if (!ovoj.querySelector(':scope > .mobilebar')) {
+    const vrstica = document.createElement('header');
+    vrstica.className = 'mobilebar';
+    vrstica.innerHTML = mobilnaVrsticaHtml();
+    ovoj.insertBefore(vrstica, aside);
+  }
+  if (!ovoj.querySelector(':scope > .scrim')) {
+    const zavesa = document.createElement('div');
+    zavesa.className = 'scrim';
+    zavesa.setAttribute('data-nav-close', '');
+    aside.after(zavesa);
+  }
+  const glavna = ovoj.querySelector(':scope > main') || vsebina;
+  glavna?.classList.add('main');
+
+  // The old dark top bar is gone for good.
+  document.getElementById('nav')?.remove();
+}
+
+// Entry point for every admin page: renderNav('procesi') etc.
+function renderNav(active = '') {
+  zagotoviStile();
+  vstaviIkone();
+  zgradiOvojnico(active);
+  priklopiNapredno();
+  priklopiPredal();
+  napolniZnackoNalog();
+  vezaviTipkovnice();
+}
+
+// Same as renderNav(); pages that already had <aside id="sidebar"> call this.
+function renderSidebar(active = '') {
+  renderNav(active);
+}
+
+// Loading state inside an element.
+function showLoading(targetId, msg = 'Nalagam …') {
   const el = document.getElementById(targetId);
-  if (el) el.innerHTML = `<div class="text-center text-gray-500 py-12">${esc(msg)}</div>`;
+  if (el) el.innerHTML = `<div class="loading" role="status"><span class="spinner" aria-hidden="true"></span>${esc(msg)}</div>`;
 }
 
+// Error state inside an element.
 function showError(targetId, msg) {
   const el = document.getElementById(targetId);
-  if (el) el.innerHTML = `<div class="bg-red-50 text-red-700 p-4 rounded">${esc(msg)}</div>`;
+  if (el) el.innerHTML = `<div class="callout callout--danger" role="alert">${ikona('alert')}<div>${esc(msg)}</div></div>`;
 }

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Podjetja · Acenta baza</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    /* Orodna vrstica: iskanje levo, distancnik potisne status desno */
+    .toolbar { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-4); }
+    .toolbar .search { flex: 1 1 260px; max-width: 360px; }
+    .toolbar__group { display: flex; align-items: center; gap: var(--space-2); min-width: 0; }
+    .toolbar__lbl { font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; }
+    .toolbar .select-wrap { width: 168px; }
+
+    /* Tabela podjetij */
+    .ctable { table-layout: fixed; }
+    .ctable col.c-name { width: auto; }
+    .ctable col.c-ocena { width: 120px; }
+    .ctable col.c-status { width: 160px; }
+    .ctable col.c-odg { width: 96px; }
+    .ctable col.c-pp { width: 152px; }
+    .ctable col.c-prip { width: 148px; }
+    .ctable col.c-zadnji { width: 128px; }
+    .ctable col.c-go { width: 44px; }
+    .ctable td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctable td.c-name { white-space: normal; }
+    .ctable .table__name { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .ctable .select-wrap { width: 100%; }
+    .ctable td.c-go { color: var(--text-faint); text-align: right; }
+    .ctable tr.is-link:hover td.c-go { color: var(--accent); }
+    .ctable tr.is-link td:first-child { border-radius: 0; }
+    .ni { color: var(--text-muted); }
+    .prip-ok { color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; }
+    .only-m { display: none; }
+
+    @media (max-width: 899px) {
+      .toolbar .search { flex: 1 1 100%; max-width: none; }
+      .toolbar__group { flex: 1 1 100%; }
+      .toolbar__group .seg { flex: 1; }
+      .toolbar .select-wrap { flex: 1; width: auto; }
+      .toolbar .spacer { display: none; }
+      /* Tabela postane seznam kartic, brez vodoravnega drsenja */
+      .ctable, .ctable tbody { display: block; }
+      .ctable thead, .ctable colgroup { display: none; }
+      .ctable tr { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-2); padding: 14px var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+      .ctable tr:last-child { border-bottom: 0; }
+      .ctable td { display: block; height: auto; padding: 0; border: 0 !important; overflow: visible; }
+      .ctable td.c-name { order: 0; flex: 1 1 0; min-width: 0; }
+      .ctable td.c-go { order: 1; flex: none; }
+      .ctable td.c-status { order: 2; flex: 1 1 100%; }
+      .ctable td.c-ocena { order: 3; }
+      .ctable td.c-pp { order: 4; }
+      .ctable td.c-prip { order: 5; }
+      .ctable td.c-odg, .ctable td.c-zadnji, .ctable td.c-prip.is-ok, .hide-m { display: none; }
+      .ctable .only-m { display: block; }
+      .ctable td[data-label]::before { content: attr(data-label) " "; color: var(--text-muted); font-size: var(--text-sm); }
+      .ctable tr.is-link:hover td { background: none; }
+      .ctable tr.is-link:active { background: var(--bg-hover); }
+    }
+  </style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="i-check-square" viewBox="0 0 24 24"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2zM9 7h7M9 11h5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-columns" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="mobilebar">
+    <button class="btn btn--ghost btn--icon" type="button" data-nav-open-btn aria-label="Odpri meni" aria-controls="sidebar" aria-expanded="false"><svg class="icon icon--lg"><use href="#i-menu"/></svg></button>
+    <span class="mobilebar__brand"><span class="brand-mark" aria-hidden="true">a</span>Acenta baza</span>
+    <span class="spacer"></span>
+    <a class="btn btn--ghost btn--icon" href="#" aria-label="Iskanje"><svg class="icon icon--lg"><use href="#i-search"/></svg></a>
+  </header>
+
+  <aside class="sidebar" id="sidebar" aria-label="Glavna navigacija">
+    <div class="sidebar__brand">
+      <span class="brand-mark" aria-hidden="true">a</span>
+      <span class="sidebar__brand-text"><b>Acenta baza</b><small>Interna konzola</small></span>
+      <button class="btn btn--ghost btn--icon sidebar__close" type="button" data-nav-close aria-label="Zapri meni"><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="danes.html"><svg class="icon"><use href="#i-inbox"/></svg><span class="nav-item__label">Danes</span><span class="nav-item__count" aria-label="6 nalog na tebi">6</span></a>
+      <div class="nav-group">Delo</div>
+      <a class="nav-item" href="seja.html"><svg class="icon"><use href="#i-check-square"/></svg><span class="nav-item__label">Procesi</span></a>
+      <a class="nav-item is-active" href="podjetja.html" aria-current="page"><svg class="icon"><use href="#i-building"/></svg><span class="nav-item__label">Podjetja</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-file"/></svg><span class="nav-item__label">Vprašalniki</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-book"/></svg><span class="nav-item__label">Katalog</span></a>
+      <div class="nav-group">Analiza</div>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-chart"/></svg><span class="nav-item__label">Primerjava</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-search"/></svg><span class="nav-item__label">Iskanje</span><span class="nav-item__kbd">Ctrl K</span></a>
+      <button class="nav-item" type="button" id="naprednoToggle" aria-expanded="false" aria-controls="naprednoSeznam" style="margin-top:var(--space-3)"><svg class="icon nav-item__chev"><use href="#i-chev-down"/></svg><span class="nav-item__label">Napredno</span></button>
+      <div class="nav-sub" id="naprednoSeznam" hidden>
+        <a class="nav-item" href="#"><svg class="icon"><use href="#i-book-open"/></svg><span class="nav-item__label">Vpogledi</span></a>
+      </div>
+    </nav>
+    <div class="sidebar__foot">
+      <span class="avatar" aria-hidden="true">MZ</span>
+      <div class="ellipsis"><b class="ellipsis">ai@acenta.si</b><span>Admin</span></div>
+    </div>
+  </aside>
+  <div class="scrim" data-nav-close></div>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar__title">
+        <h1>Podjetja</h1>
+        <span class="topbar__meta" id="meta">24 podjetij · 186 odgovorov · razvrščeno po zadnjem odgovoru</span>
+      </div>
+      <span class="spacer"></span>
+      <div class="topbar__actions">
+        <a class="btn btn--secondary" href="#"><svg class="icon"><use href="#i-columns"/></svg>Kanban pogled</a>
+      </div>
+    </header>
+
+    <div class="page">
+      <div class="toolbar" role="search">
+        <label class="search">
+          <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+          <input id="filter" type="search" placeholder="Filtriraj po nazivu …" aria-label="Filtriraj po nazivu">
+        </label>
+        <div class="toolbar__group">
+          <span class="toolbar__lbl" id="ocenaLbl">Ocena</span>
+          <div class="seg" role="group" aria-labelledby="ocenaLbl" id="filterKval">
+            <button class="seg__item is-active" type="button" aria-pressed="true" data-kval="">Vse</button>
+            <button class="seg__item" type="button" aria-pressed="false" data-kval="hot">Hot</button>
+            <button class="seg__item" type="button" aria-pressed="false" data-kval="warm">Warm</button>
+            <button class="seg__item" type="button" aria-pressed="false" data-kval="cold">Cold</button>
+            <button class="seg__item" type="button" aria-pressed="false" data-kval="neocenjeno">Neocenjeno</button>
+          </div>
+        </div>
+        <span class="spacer"></span>
+        <div class="toolbar__group">
+          <label class="toolbar__lbl" for="filterStatus">Status</label>
+          <span class="select-wrap"><select class="select" id="filterStatus">
+            <option value="">Vsi statusi</option>
+          </select></span>
+        </div>
+      </div>
+
+      <section class="panel" aria-label="Seznam podjetij">
+        <div class="table-scroll" id="content"></div>
+        <footer class="panel__foot">
+          <span id="footCount"></span>
+          <span class="spacer"></span>
+          <span class="hide-m">Klik na vrstico odpre podjetje · status spremenite kar v tabeli</span>
+        </footer>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ── Navigacija (skupno vsem zaslonom) ──
+  const telo = document.body;
+  const odpriGumb = document.querySelector('[data-nav-open-btn]');
+  function zapriMeni() { telo.removeAttribute('data-nav-open'); odpriGumb?.setAttribute('aria-expanded', 'false'); }
+  odpriGumb?.addEventListener('click', () => { telo.setAttribute('data-nav-open', ''); odpriGumb.setAttribute('aria-expanded', 'true'); document.querySelector('.sidebar__close')?.focus(); });
+  document.querySelectorAll('[data-nav-close]').forEach(el => el.addEventListener('click', zapriMeni));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') zapriMeni(); });
+  const napredno = document.getElementById('naprednoToggle');
+  napredno.addEventListener('click', () => {
+    const odpri = napredno.getAttribute('aria-expanded') !== 'true';
+    napredno.setAttribute('aria-expanded', String(odpri));
+    document.getElementById('naprednoSeznam').hidden = !odpri;
+  });
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // Lijak: ista resnica kot STATUSI v src/routes/api.js
+  const STATUSI = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen', 'izgubljen'];
+  const STATUS_NAZIV = { nov: 'Nov', kvalificiran: 'Kvalificiran', kontaktiran: 'Kontaktiran', sestanek: 'Sestanek', ponudba: 'Ponudba', dobljen: 'Dobljen', izgubljen: 'Izgubljen' };
+  const AI = 'Ocena poslovnega potenciala za AI', DZ = 'Digitalna zrelost oddelkov';
+
+  // naziv, vprasalniki, ocena, status, odgovori, prodajni predlog, priporocila, zadnji odgovor
+  const P = (naziv, vpr, kval, status, st, predlog, prip, zadnji) => ({ naziv, vpr, kval, status, st, predlog, prip, zadnji });
+  const podjetja = [
+    P('Gostilna Pri treh javorjih', [AI], null, 'nov', 4, 'ne', 'brez', '9. 10. 2026'),
+    P('Mizarstvo Kovač d.o.o.', [AI], 'hot', 'ponudba', 9, 'da', 'ok', '8. 10. 2026'),
+    P('Hotel Smrekov gaj', [AI, DZ], 'warm', 'sestanek', 17, 'da', 'zastarelo', '7. 10. 2026'),
+    P('Zavod za kulturo Lipnica', [AI, DZ], 'warm', 'kontaktiran', 11, 'da', 'ok', '7. 10. 2026'),
+    P('Hotel Alpski rob', [AI], 'cold', 'kvalificiran', 6, 'ne', 'brez', '5. 10. 2026'),
+    P('Vinska klet Grič', [AI], 'warm', 'kontaktiran', 3, 'ne', 'ok', '3. 10. 2026'),
+    P('Apartmaji Na klancu', [AI], 'warm', 'sestanek', 5, 'tece', 'ok', '2. 10. 2026'),
+    P('Turistična kmetija Ravnik', [AI], 'hot', 'ponudba', 8, 'da', 'ok', '1. 10. 2026'),
+    P('Pekarna Ržen', [AI], 'hot', 'dobljen', 12, 'da', 'ok', '30. 9. 2026'),
+    P('Dom upokojencev Jesenov breg', [DZ], 'warm', 'sestanek', 14, 'da', 'ok', '29. 9. 2026'),
+    P('Kamp Prodnik', [AI], 'cold', 'kontaktiran', 7, 'ne', 'ok', '27. 9. 2026'),
+    P('Kovinoplastika Rožnik d.o.o.', [AI, DZ], 'hot', 'ponudba', 20, 'da', 'ok', '25. 9. 2026'),
+    P('Wellness center Bistra', [AI], 'warm', 'kvalificiran', 6, 'ne', 'ok', '24. 9. 2026'),
+    P('Računovodstvo Dolinar s.p.', [AI], 'cold', 'nov', 2, 'ne', 'ok', '22. 9. 2026'),
+    P('Logistika Mreža d.o.o.', [DZ], 'warm', 'kontaktiran', 13, 'ne', 'ok', '19. 9. 2026'),
+    P('Zobna ordinacija Nasmeh', [AI], 'cold', 'izgubljen', 3, 'ne', 'ok', '17. 9. 2026'),
+    P('Glamping Gozdna jasa', [AI], 'hot', 'sestanek', 9, 'da', 'ok', '15. 9. 2026'),
+    P('Trgovina Kolesar d.o.o.', [AI], null, 'nov', 1, 'ne', 'ok', '12. 9. 2026'),
+    P('Turistično društvo Kamniti most', [AI], 'warm', 'kvalificiran', 16, 'ne', 'ok', '10. 9. 2026'),
+    P('Elektro Iskrica d.o.o.', [DZ], 'cold', 'kontaktiran', 4, 'ne', 'ok', '8. 9. 2026'),
+    P('Hostel Postaja', [AI], 'warm', 'kvalificiran', 5, 'ne', 'ok', '5. 9. 2026'),
+    P('Čebelarstvo Medena pot', [AI], null, 'nov', 2, 'ne', 'ok', '2. 9. 2026'),
+    P('Arhitekturni biro Okvir', [DZ], 'cold', 'izgubljen', 4, 'ne', 'ok', '28. 8. 2026'),
+    P('Avtohiša Medved d.o.o.', [AI], 'warm', 'dobljen', 5, 'da', 'ok', '25. 8. 2026'),
+  ];
+
+  const KVAL = { hot: ['chip--hot', 'Hot'], warm: ['chip--warm', 'Warm'], cold: ['chip--cold', 'Cold'] };
+  const kvalChip = (k) => k ? `<span class="chip ${KVAL[k][0]}">${KVAL[k][1]}</span>` : '<span class="chip">Neocenjeno</span>';
+  // Prodajni predlog: da / ne / se pripravlja
+  const predlog = (p) => p === 'da' ? '<span class="chip chip--success"><svg class="icon"><use href="#i-check"/></svg>Pripravljen</span>'
+    : p === 'tece' ? '<span class="chip chip--accent"><span class="pulse" aria-hidden="true"></span>Pripravlja se</span>'
+    : '<span class="ni">ni</span>';
+  // Priporocila (priprava na delavnico): barva samo, ce je treba ukrepati
+  const prip = (p) => p === 'brez' ? '<span class="chip chip--warning">Brez priporočil</span>'
+    : p === 'zastarelo' ? '<span class="chip chip--warning">Zastarelo</span>'
+    : '<span class="prip-ok">pripravljeno</span>';
+  const statusSelect = (p, i) => `<span class="select-wrap"><select class="select select--sm" data-i="${i}" aria-label="Status: ${esc(p.naziv)}">${STATUSI.map(s => `<option value="${s}" ${s === p.status ? 'selected' : ''}>${STATUS_NAZIV[s]}</option>`).join('')}</select></span>`;
+
+  const sklonOdg = (n) => { const z = n % 100; return `${n} ${z === 1 ? 'odgovor' : z === 2 ? 'odgovora' : (z === 3 || z === 4) ? 'odgovori' : 'odgovorov'}`; };
+  let fKval = '';
+  function render() {
+    const q = $('#filter').value.toLowerCase().trim();
+    const fStatus = $('#filterStatus').value;
+    const vrstice = podjetja.map((p, i) => ({ p, i })).filter(({ p }) => {
+      if (q && !p.naziv.toLowerCase().includes(q)) return false;
+      if (fStatus && p.status !== fStatus) return false;
+      if (fKval === 'neocenjeno') return !p.kval;
+      if (fKval && p.kval !== fKval) return false;
+      return true;
+    });
+    $('#footCount').textContent = `Prikazanih ${vrstice.length} od ${podjetja.length}`;
+    if (!vrstice.length) {
+      $('#content').innerHTML = `<div class="empty empty--center"><p class="empty__title">Nobeno podjetje ne ustreza filtrom</p><p class="empty__text">Spremenite iskanje ali počistite filtre.</p><button class="btn btn--secondary" type="button" id="pocisti">Počisti filtre</button></div>`;
+      $('#pocisti').addEventListener('click', pocistiFiltre);
+      return;
+    }
+    $('#content').innerHTML = `
+      <table class="table ctable">
+        <colgroup><col class="c-name"><col class="c-ocena"><col class="c-status"><col class="c-odg"><col class="c-pp"><col class="c-prip"><col class="c-zadnji"><col class="c-go"></colgroup>
+        <thead><tr><th>Podjetje</th><th>Ocena</th><th>Status</th><th class="is-num">Odgovori</th><th>Prodajni predlog</th><th>Priporočila</th><th class="is-num">Zadnji odgovor</th><th><span class="sr-only">Odpri</span></th></tr></thead>
+        <tbody>${vrstice.map(({ p, i }) => `
+          <tr class="is-link" data-href="podjetje.html" tabindex="0">
+            <td class="c-name"><span class="table__name">${esc(p.naziv)}</span><span class="table__sub">${esc(p.vpr.join(', '))}</span><span class="table__sub only-m">${sklonOdg(p.st)} · zadnji ${p.zadnji}</span></td>
+            <td class="c-ocena">${kvalChip(p.kval)}</td>
+            <td class="c-status">${statusSelect(p, i)}</td>
+            <td class="c-odg is-num" data-label="Odgovori:">${p.st}</td>
+            <td class="c-pp" data-label="Predlog:">${predlog(p.predlog)}</td>
+            <td class="c-prip${p.prip === 'ok' ? ' is-ok' : ''}">${prip(p.prip)}</td>
+            <td class="c-zadnji is-num" data-label="Zadnji:">${p.zadnji}</td>
+            <td class="c-go"><svg class="icon" aria-hidden="true"><use href="#i-chev-right"/></svg></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+  function pocistiFiltre() {
+    $('#filter').value = ''; $('#filterStatus').value = ''; fKval = '';
+    $$('#filterKval .seg__item').forEach(x => { const on = x.dataset.kval === ''; x.classList.toggle('is-active', on); x.setAttribute('aria-pressed', String(on)); });
+    render();
+  }
+
+  // Filtri
+  $('#filterStatus').insertAdjacentHTML('beforeend', STATUSI.map(s => `<option value="${s}">${STATUS_NAZIV[s]}</option>`).join(''));
+  $('#filter').addEventListener('input', render);
+  $('#filterStatus').addEventListener('change', render);
+  $('#filterKval').addEventListener('click', (e) => {
+    const b = e.target.closest('[data-kval]'); if (!b) return;
+    fKval = b.dataset.kval;
+    $$('#filterKval .seg__item').forEach(x => { x.classList.toggle('is-active', x === b); x.setAttribute('aria-pressed', String(x === b)); });
+    render();
+  });
+
+  // Vrstica odpre podjetje; izbor statusa v vrstici je ne odpre
+  $('#content').addEventListener('click', (e) => {
+    if (e.target.closest('select')) return;
+    const tr = e.target.closest('tr[data-href]'); if (tr) location.href = tr.dataset.href;
+  });
+  $('#content').addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.target.closest('select')) return;
+    const tr = e.target.closest('tr[data-href]'); if (tr) location.href = tr.dataset.href;
+  });
+  $('#content').addEventListener('change', (e) => {
+    const s = e.target.closest('select[data-i]'); if (!s) return;
+    podjetja[s.dataset.i].status = s.value;   // lokalni seznam ostane skladen s filtrom
+  });
+
+  render();
+</script>
+</body>
+</html>

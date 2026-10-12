@@ -2,259 +2,270 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Primerjava vprašalnikov</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Primerjava vprašalnikov · Acenta baza</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
-    /* Orodna vrstica filtrov — enaka kot na Procesih, da se stran ne uci znova. */
-    .orodna { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; padding: 10px 12px; }
-    .polje { display: block; min-width: 140px; }
-    .polje > span { display: block; font-size: 10px; font-weight: 700; letter-spacing: .06em;
-                    text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
-    .polje .select, .polje .input { height: 30px; padding: 0 8px; font-size: 12.5px; }
-    .znacke { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 12px 10px; }
+    /* ── Layout ───────────────────────────────────────────────────────── */
+    .an { display: grid; gap: var(--space-4); min-width: 0; }
+    .an-filtri .panel__body { display: grid; gap: var(--space-3); }
+    #opozorila:empty { display: none; }
+    .an-rezultati { display: grid; gap: var(--space-4); min-width: 0; transition: opacity var(--dur) var(--ease-out); }
+    .an-rezultati.is-busy { opacity: 0.55; }
+    #znacke .chip--filter { cursor: pointer; }
+    .an-head { flex-wrap: wrap; row-gap: var(--space-2); }
+    .an-head__txt { display: grid; gap: 2px; min-width: 0; }
+    .an-meta { font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    #porazdelitve, #kazalniki { display: grid; gap: var(--space-4); }
 
-    /* ── Matrika pokritosti ──────────────────────────────────────────
-       Vprasanja v vrsticah, seje v stolpcih. Prvi stolpec je lepljiv, ker
-       je brez imena vprasanja stolpec kljukic neberljiv takoj, ko je sej
-       toliko, da je treba drseti. */
-    table.matrika { border-collapse: separate; border-spacing: 0; width: 100%; }
-    table.matrika th, table.matrika td { border-bottom: 1px solid var(--row-line); }
+    /* ── Coverage matrix ──────────────────────────────────────────────────
+       Questions in rows, sessions in columns. The first column sticks while
+       the sessions scroll: without the question name a column of ticks is
+       unreadable as soon as there are enough sessions to scroll. */
+    .an-legenda { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-4); margin: 0; padding: 0; list-style: none; font-size: var(--text-sm); color: var(--text-muted); }
+    .an-legenda li { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    #matrika { max-height: 70vh; overflow: auto; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    table.matrika { border-collapse: separate; border-spacing: 0; width: 100%; font-size: var(--text-sm); }
+    table.matrika th, table.matrika td { border-bottom: 1px solid var(--border-subtle); }
     table.matrika thead th {
       position: sticky; top: 0; z-index: 2;
-      background: var(--bg-sub); border-bottom: 1px solid var(--hairline);
-      font-size: 10.5px; font-weight: 700; color: var(--ink-2);
-      text-align: center; padding: 7px 6px; vertical-align: bottom;
+      padding: var(--space-2) 6px; vertical-align: bottom; text-align: center; white-space: nowrap;
+      background: var(--bg-subtle); font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--text-muted);
     }
-    table.matrika thead th.vprasanje, table.matrika tbody td.vprasanje {
-      position: sticky; left: 0; z-index: 3;
-      text-align: left; min-width: 260px; max-width: 340px;
-      background: var(--card-bg);
-      box-shadow: 1px 0 0 var(--hairline);
+    table.matrika .vprasanje {
+      position: sticky; left: 0; z-index: 1;
+      width: 300px; min-width: 260px; max-width: 340px; padding: var(--space-2) var(--space-3); text-align: left;
+      background: var(--bg-surface); box-shadow: inset -1px 0 0 var(--border-subtle);
     }
-    table.matrika thead th.vprasanje { background: var(--bg-sub); z-index: 4; }
-    table.matrika tbody td { padding: 6px; text-align: center; font-size: 12px; }
-    table.matrika tbody tr:hover td { background: #fbfcfd; }
-    table.matrika tbody tr:hover td.vprasanje { background: #fbfcfd; }
-    table.matrika td.vprasanje b { display: block; font-weight: 500; font-size: 12.5px; color: var(--ink);
-                                   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    table.matrika td.vprasanje small { color: var(--muted); font-size: 10.5px; }
-    tr.skupina td {
-      background: var(--bg-sub) !important; height: 28px; text-align: left !important;
-      font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-      color: var(--ink-2); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline);
+    table.matrika thead th.vprasanje { z-index: 3; background: var(--bg-subtle); font-size: var(--text-sm); }
+    table.matrika tbody td { padding: 6px; text-align: center; color: var(--text-secondary); }
+    table.matrika tbody tr:not(.skupina):hover td { background: var(--bg-hover); }
+    table.matrika td.vprasanje b { display: block; font-weight: var(--weight-medium); color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    table.matrika td.vprasanje small { display: block; font: var(--text-xs)/1.4 var(--font-mono); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .obv { color: var(--text-muted); font-weight: var(--weight-regular); }
+    table.matrika .c-odg { min-width: 112px; }
+    table.matrika .c-odg .meter { justify-content: center; }
+    table.matrika .c-odg .progress { max-width: 48px; }
+    table.matrika tr.skupina td {
+      height: 32px; padding: 0 var(--space-3); text-align: left;
+      background: var(--bg-canvas); border-top: 1px solid var(--border-subtle);
+      font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-secondary);
     }
-    /* Tri stanja celice so namenoma razlicna: odgovorjeno, prazno in
-       "tega vprasanja ta seja sploh nima" niso ista stvar. */
-    .kljuka { color: var(--acenta-teal); font-weight: 700; }
-    .prazno { color: var(--muted-2); }
-    .ni-vprasanja { color: var(--muted-2); font-size: 10px; letter-spacing: .1em; }
-    /* Na telefonu bi lepljiv stolpec z imenom vprasanja pojedel skoraj celo
-       sirino in od matrike ne bi ostalo nic vidnega. */
-    @media (max-width: 640px) {
-      table.matrika th.vprasanje, table.matrika tbody td.vprasanje { min-width: 150px; max-width: 168px; }
-    }
-    th.seja a { display: block; max-width: 104px; overflow: hidden; text-overflow: ellipsis;
-                white-space: nowrap; color: var(--ink); text-decoration: none; }
-    th.seja a:hover { color: var(--acenta-teal); text-decoration: underline; }
-    th.seja small { display: block; font-weight: 600; color: var(--muted); font-size: 10px; margin-top: 2px; }
+    /* The group label stays in view while the matrix scrolls sideways */
+    table.matrika tr.skupina td > span { position: sticky; left: var(--space-3); display: inline-block; }
+    th.seja { min-width: 88px; }
+    th.seja a { display: block; max-width: 116px; margin: 0 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: var(--text-sm); font-weight: var(--weight-medium); border-radius: var(--radius-xs); }
+    th.seja a:hover { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+    th.seja small { display: block; margin-top: 2px; font-size: var(--text-xs); font-weight: var(--weight-regular); color: var(--text-muted); }
+    /* Three cell states are deliberately different: answered, empty, and
+       "this session does not have this question" are not the same thing. */
+    .kljuka { display: inline-grid; place-items: center; color: var(--accent); vertical-align: middle; }
+    .kljuka .icon { width: 15px; height: 15px; stroke-width: 2.25; }
+    .prazno { display: inline-block; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--text-faint); vertical-align: middle; }
+    .ni-vprasanja, .an-nv { font-size: var(--text-xs); color: var(--text-muted); letter-spacing: 0.04em; }
 
-    /* ── Porazdelitve ─────────────────────────────────────────────── */
-    .vrsta-moznosti { display: grid; grid-template-columns: minmax(150px, 240px) 1fr auto; gap: 10px;
-                      align-items: center; padding: 5px 0; }
-    .vrsta-moznosti .ime { font-size: 12.5px; color: var(--ink); }
-    .vrsta-moznosti.nic .ime { color: var(--muted); }
-    .stolpic { height: 8px; border-radius: 999px; background: #eef1f4; overflow: hidden; min-width: 40px; }
-    .stolpic i { display: block; height: 100%; border-radius: 999px;
-                 background: linear-gradient(90deg, var(--acenta-teal-2), var(--acenta-teal)); }
-    /* Stevilo sej in delez sta LOCENA. Zapis "1 · 17 %" v eni vrsti se je pri
-       branju zlil v "1,17 %"; zdaj je stevilo krepko, delez pa siv za njim. */
-    .vrsta-moznosti .st { display: flex; align-items: baseline; gap: 8px; justify-content: flex-end;
-                          white-space: nowrap; font-variant-numeric: tabular-nums; min-width: 76px; }
-    .vrsta-moznosti .st b { font-size: 13px; font-weight: 700; color: var(--ink); }
-    .vrsta-moznosti .st .pc { font-size: 11.5px; font-weight: 500; color: var(--muted); min-width: 34px; text-align: right; }
-    .vrsta-moznosti.nic .st b { color: var(--muted-2); font-weight: 500; }
-    .kdo { display: flex; flex-wrap: wrap; gap: 4px; grid-column: 2 / -1; padding-bottom: 6px; }
-    .kdo a { font-size: 10.5px; color: var(--ink-2); background: var(--bg-sub);
-             border: 1px solid var(--hairline); border-radius: 5px; padding: 1px 6px; text-decoration: none; }
-    .kdo a:hover { border-color: var(--acenta-teal-line); color: var(--acenta-teal); }
+    /* ── Distributions ────────────────────────────────────────────────── */
+    .an-por .panel__title, .an-kaz .panel__title { white-space: normal; }
+    .an-opomba { font-size: var(--text-sm); color: var(--text-muted); margin-bottom: var(--space-3); max-width: 72ch; }
+    .moznost + .moznost { margin-top: var(--space-2); }
+    .vrsta-moznosti { display: grid; grid-template-columns: minmax(150px, 260px) minmax(120px, 520px) auto; justify-content: start; gap: var(--space-2) var(--space-3); align-items: center; }
+    .vrsta-moznosti .ime { font-size: var(--text-base); color: var(--text); overflow-wrap: anywhere; }
+    .vrsta-moznosti .ime .chip { margin-left: 6px; vertical-align: 1px; }
+    .vrsta-moznosti.nic .ime { color: var(--text-muted); }
+    .stolpic { height: 6px; min-width: 40px; border-radius: var(--radius-full); background: var(--bg-hover); overflow: hidden; }
+    .stolpic i { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+    /* Session count and share are SEPARATE: "1 · 17 %" on one line read as "1,17 %". */
+    .vrsta-moznosti .st { display: flex; align-items: baseline; justify-content: flex-end; gap: var(--space-2); min-width: 76px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .vrsta-moznosti .st b { font-size: var(--text-base); font-weight: var(--weight-semibold); color: var(--text); }
+    .vrsta-moznosti .st .pc { min-width: 36px; text-align: right; font-size: var(--text-sm); color: var(--text-muted); }
+    .vrsta-moznosti.nic .st b { color: var(--text-muted); font-weight: var(--weight-regular); }
+    .kdo { grid-column: 2 / -1; display: flex; flex-wrap: wrap; gap: 4px; margin-top: -4px; }
+    .kdo a { display: inline-flex; align-items: center; height: 22px; padding: 0 var(--space-2); border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-surface); font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap; }
+    .kdo a:hover { border-color: var(--accent-border); background: var(--accent-subtle); color: var(--accent-text); }
+    .an-drugo { margin-top: var(--space-4); padding-top: var(--space-3); border-top: 1px solid var(--border-subtle); }
+    .an-drugo__naslov { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-secondary); margin-bottom: var(--space-1); }
 
-    /* ── Odgovori drug ob drugem ──────────────────────────────────── */
-    details.vprasanje-blok { border-bottom: 1px solid var(--row-line); }
-    details.vprasanje-blok:last-child { border-bottom: 0; }
-    details.vprasanje-blok > summary {
-      cursor: pointer; list-style: none; padding: 9px 12px;
-      display: flex; align-items: center; gap: 9px;
-    }
+    /* ── Answers side by side ─────────────────────────────────────────── */
+    .an-iskanje { height: var(--control-h-sm); width: 260px; flex: 0 1 260px; }
+    .skupina-naslov { padding: 6px var(--space-4); background: var(--bg-canvas); border-top: 1px solid var(--border-subtle); border-bottom: 1px solid var(--border-subtle); font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-secondary); }
+    #odgovori > :first-child { border-top: 0; }
+    details.vprasanje-blok { border-bottom: 1px solid var(--border-subtle); }
+    details.vprasanje-blok:last-child { border-bottom: 0; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    details.vprasanje-blok > summary { display: flex; align-items: center; gap: 10px; padding: 10px var(--space-4); cursor: pointer; list-style: none; transition: background var(--dur-fast) var(--ease-out); }
     details.vprasanje-blok > summary::-webkit-details-marker { display: none; }
-    details.vprasanje-blok > summary:hover { background: #fbfcfd; }
-    details.vprasanje-blok > summary b { font-weight: 600; font-size: 12.5px; }
-    details.vprasanje-blok > summary .puscica { color: var(--muted-2); transition: transform .15s var(--ease); }
-    details.vprasanje-blok[open] > summary .puscica { transform: rotate(90deg); }
-    .odgovor { display: grid; grid-template-columns: 190px 1fr; gap: 12px; padding: 7px 12px 7px 30px;
-               border-top: 1px dashed var(--row-line); }
-    .odgovor .kdo-ime a { font-weight: 600; font-size: 12px; color: var(--ink); text-decoration: none; }
-    .odgovor .kdo-ime a:hover { color: var(--acenta-teal); }
-    /* Proces in datum sta LOCENI vrstici. Zdruzena sta se lomila sredi datuma
-       ("26. 8." v eni vrsti, "2026" v naslednji), kar je videti kot napaka. */
-    .odgovor .kdo-ime small { display: block; color: var(--muted); font-size: 10.5px; line-height: 1.35; }
-    .odgovor .kdo-ime small.datum { color: var(--muted-2); white-space: nowrap; }
-    /* Odgovori so cela poved, ne podatek v celici: cez celo sirino zaslona bi
-       vrstica merila 950 px in bi se pri branju izgubljala. */
-    .odgovor .vsebina { font-size: 12.5px; color: var(--ink-2); white-space: pre-wrap; line-height: 1.55;
-                        max-width: 78ch; }
-    @media (max-width: 720px) { .odgovor { grid-template-columns: 1fr; padding-left: 12px; } }
+    details.vprasanje-blok > summary:hover { background: var(--bg-hover); }
+    details.vprasanje-blok > summary b { flex: 1; min-width: 0; font-weight: var(--weight-medium); color: var(--text); }
+    details.vprasanje-blok > summary .icon { color: var(--text-muted); transition: transform var(--dur) var(--ease-out); }
+    details.vprasanje-blok[open] > summary .icon { transform: rotate(90deg); }
+    .odgovor { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: var(--space-4); padding: 10px var(--space-4) 10px 42px; border-top: 1px solid var(--border-subtle); }
+    .kdo-ime a { font-weight: var(--weight-medium); color: var(--text); border-radius: var(--radius-xs); }
+    .kdo-ime a:hover { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+    /* Process and date are separate lines: joined, they broke mid-date. */
+    .kdo-ime small { display: block; font-size: var(--text-xs); line-height: 1.4; color: var(--text-muted); }
+    .kdo-ime small.datum { white-space: nowrap; }
+    /* Answers are sentences, not cell data: keep the line readable. */
+    .vsebina { max-width: 78ch; font-size: var(--text-base); line-height: 1.55; color: var(--text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; }
+    .vsebina .chip { margin-left: 6px; }
+    .an-drugo .odgovor { padding: var(--space-2) 0; border-top: 0; }
 
-    /* ── Kazalniki ────────────────────────────────────────────────── */
-    table.kaz { width: 100%; border-collapse: collapse; }
-    table.kaz th { text-align: left; font-size: 10px; font-weight: 700; letter-spacing: .06em;
-                   text-transform: uppercase; color: var(--muted); padding: 5px 8px;
-                   border-bottom: 1px solid var(--hairline); }
-    table.kaz td { padding: 6px 8px; font-size: 12.5px; color: var(--ink-2);
-                   border-bottom: 1px solid var(--row-line); vertical-align: top; }
+    /* ── Indicator tables ─────────────────────────────────────────────── */
+    .an-kaz > .table-scroll { border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    table.kaz td { white-space: normal; }
 
-    /* Tailwindov .flex (display:flex) je mocnejsi od privzetega [hidden],
-       zato bi bili paneli vidni vsi hkrati, ne glede na izbran zavihek. */
-    [data-panel][hidden] { display: none !important; }
-
-    .opozorilo { background: var(--warn-soft); border: 1px solid var(--warn-line); color: var(--warn);
-                 border-radius: var(--r); padding: 10px 13px; font-size: 12.5px; }
-    .opozorilo ul { margin: 0; padding-left: 16px; }
-    .opozorilo li + li { margin-top: 3px; }
-    .prazno-stanje { text-align: center; color: var(--muted); padding: 40px 16px; font-size: 13px; }
+    @media (max-width: 760px) {
+      .an-filtri #bPocisti { flex: 1 1 100%; }
+      #kpi .metric__label, #kpi .metric__note { white-space: normal; }
+      /* No nested vertical scroll on a phone: the page scrolls, the matrix only sideways */
+      #matrika { max-height: none; }
+      table.matrika .vprasanje { width: 150px; min-width: 150px; max-width: 150px; }
+      table.matrika .c-odg { min-width: 84px; }
+      table.matrika .c-odg .progress { max-width: 28px; }
+      th.seja a { max-width: 96px; }
+      .an-legenda { gap: var(--space-1) var(--space-3); font-size: var(--text-xs); }
+      .vrsta-moznosti { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; }
+      .vrsta-moznosti .stolpic { grid-column: 1 / -1; grid-row: 2; }
+      .kdo { grid-column: 1 / -1; margin-top: 0; }
+      .an-iskanje { flex: 1 1 100%; width: auto; height: var(--field-h); }
+      .an-head .btn { flex: 1 1 auto; }
+      .odgovor { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); padding-left: var(--space-4); }
+    }
   </style>
 </head>
 <body>
-  <div class="flex min-h-screen">
-    <aside id="sidebar" class="w-52 app-sidebar p-3 flex flex-col"></aside>
-
-    <main class="flex-1 min-w-0 flex flex-col">
-
-      <!-- ── Glava ── -->
-      <header class="page-head">
-        <h1 class="display">Primerjava vprašalnikov</h1>
-        <span class="sub" id="stevec">&mdash;</span>
-        <div class="spacer"></div>
-        <a class="btn-secondary" href="/admin/procesi.html">Seznam sej</a>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar__title">
+          <h1>Primerjava vprašalnikov</h1>
+          <span class="topbar__meta" id="stevec">nalagam …</span>
+        </div>
+        <span class="spacer"></span>
+        <div class="topbar__actions">
+          <a class="btn btn--secondary" href="/admin/procesi.html"><svg class="icon" aria-hidden="true"><use href="#i-check-square"/></svg><span>Seznam sej</span></a>
+        </div>
       </header>
 
-      <div class="p-4 flex flex-col gap-4">
-
-        <!-- ── Filtri ── -->
-        <section class="card">
-          <div class="orodna">
-            <label class="polje" style="min-width:180px">
-              <span>Status</span>
-              <select id="fStatus" class="select">
-                <option value="">Vse razen arhiva</option>
-                <option value="zakljucen,poslan">Zaključene in poslane</option>
-                <option value="zakljucen">Samo zaključene</option>
-                <option value="poslan">Samo poslane</option>
-                <option value="osnutek">Samo osnutki</option>
-                <option value="vse">Vse, tudi arhiv</option>
-              </select>
-            </label>
-            <label class="polje" style="min-width:200px">
-              <span>Vprašalnik</span>
-              <select id="fPredloga" class="select"><option value="">Vsi</option></select>
-            </label>
-            <label class="polje" style="min-width:130px">
-              <span>Sestanki od</span>
-              <input id="fOd" type="date" class="input">
-            </label>
-            <label class="polje" style="min-width:130px">
-              <span>do</span>
-              <input id="fDo" type="date" class="input">
-            </label>
-            <label class="polje">
-              <span>Svetovalec</span>
-              <input id="fSvetovalec" type="text" class="input" placeholder="ime">
-            </label>
-            <label class="polje">
-              <span>Stranka</span>
-              <input id="fStranka" type="text" class="input" placeholder="naziv">
-            </label>
-            <button id="bPocisti" class="btn-secondary" style="height:30px">Počisti</button>
+      <div class="page an">
+        <!-- Filters -->
+        <section class="panel an-filtri" aria-label="Filtri">
+          <div class="panel__body">
+            <div class="filters">
+              <div class="field">
+                <label class="field__label" for="fStatus">Status</label>
+                <span class="select-wrap"><select id="fStatus" class="select select--sm">
+                  <option value="">Vse razen arhiva</option>
+                  <option value="zakljucen,poslan">Zaključene in poslane</option>
+                  <option value="zakljucen">Samo zaključene</option>
+                  <option value="poslan">Samo poslane</option>
+                  <option value="osnutek">Samo osnutki</option>
+                  <option value="vse">Vse, tudi arhiv</option>
+                </select></span>
+              </div>
+              <div class="field">
+                <label class="field__label" for="fPredloga">Vprašalnik</label>
+                <span class="select-wrap"><select id="fPredloga" class="select select--sm"><option value="">Vsi</option></select></span>
+              </div>
+              <div class="field">
+                <label class="field__label" for="fOd">Sestanki od</label>
+                <input id="fOd" type="date" class="input input--sm">
+              </div>
+              <div class="field">
+                <label class="field__label" for="fDo">do</label>
+                <input id="fDo" type="date" class="input input--sm">
+              </div>
+              <div class="field">
+                <label class="field__label" for="fSvetovalec">Svetovalec</label>
+                <input id="fSvetovalec" type="text" class="input input--sm" placeholder="ime" autocomplete="off">
+              </div>
+              <div class="field">
+                <label class="field__label" for="fStranka">Stranka</label>
+                <input id="fStranka" type="text" class="input input--sm" placeholder="naziv" autocomplete="off">
+              </div>
+              <button type="button" id="bPocisti" class="btn btn--secondary btn--sm">Počisti</button>
+            </div>
+            <div class="filter-chips" id="znacke" aria-live="polite"></div>
           </div>
-          <div class="znacke" id="znacke"></div>
         </section>
 
-        <!-- ── Opozorila o naboru ── -->
+        <!-- Warnings about the data set -->
         <div id="opozorila"></div>
 
-        <!-- ── Števila nabora ── -->
-        <section class="kpis" id="kpi"></section>
+        <div class="an-rezultati" id="rezultati">
+          <!-- Data set numbers -->
+          <section class="metrics" id="kpi" style="--metrics-cols:4" aria-label="Številke nabora">
+            <div class="metric kpi"><span class="metric__label">Sej v naboru</span><span class="metric__value v muted">—</span><span class="metric__note">&nbsp;</span></div>
+            <div class="metric kpi"><span class="metric__label">Strank</span><span class="metric__value v muted">—</span><span class="metric__note">&nbsp;</span></div>
+            <div class="metric kpi"><span class="metric__label">Povprečna izpolnjenost</span><span class="metric__value v muted">—</span><span class="metric__note">&nbsp;</span></div>
+            <div class="metric kpi"><span class="metric__label">Vprašanj v naboru</span><span class="metric__value v muted">—</span><span class="metric__note">&nbsp;</span></div>
+          </section>
 
-        <!-- ── Zavihki ── -->
-        <nav class="tabs" id="zavihki">
-          <button type="button" class="tab active" data-zavihek="pokritost">
-            Pokritost <span class="num" id="n-pokritost"></span>
-          </button>
-          <button type="button" class="tab" data-zavihek="porazdelitve">
-            Porazdelitve <span class="num" id="n-porazdelitve"></span>
-          </button>
-          <button type="button" class="tab" data-zavihek="odgovori">
-            Odgovori <span class="num" id="n-odgovori"></span>
-          </button>
-          <button type="button" class="tab" data-zavihek="kazalniki">
-            Kazalniki <span class="num" id="n-kazalniki"></span>
-          </button>
-        </nav>
+          <!-- Tabs -->
+          <nav class="tabs" id="zavihki" role="tablist" aria-label="Pogledi primerjave">
+            <button type="button" class="tab active" role="tab" aria-selected="true" aria-controls="panel-pokritost" data-zavihek="pokritost">Pokritost <span class="count" id="n-pokritost">0</span></button>
+            <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="panel-porazdelitve" data-zavihek="porazdelitve">Porazdelitve <span class="count" id="n-porazdelitve">0</span></button>
+            <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="panel-odgovori" data-zavihek="odgovori">Odgovori <span class="count" id="n-odgovori">0</span></button>
+            <button type="button" class="tab" role="tab" aria-selected="false" aria-controls="panel-kazalniki" data-zavihek="kazalniki">Kazalniki <span class="count" id="n-kazalniki">0</span></button>
+          </nav>
 
-        <!-- ── Panel: pokritost ── -->
-        <section class="card" data-panel="pokritost">
-          <div class="card-head">
-            <h2>Kdo je na katero vprašanje odgovoril</h2>
-            <div class="spacer" style="flex:1"></div>
-            <span class="text-muted" style="font-size:11.5px">
-              <span class="kljuka">&#10003;</span> odgovorjeno &nbsp;·&nbsp;
-              <span class="prazno">&bull;</span> vprašanje je, odgovora ni &nbsp;·&nbsp;
-              <span class="ni-vprasanja">n/v</span> tega vprašanja ta seja nima &nbsp;·&nbsp;
-              <span class="text-muted">*</span> obvezno
-            </span>
-          </div>
-          <div class="scroll-x" id="matrika" style="max-height:70vh; overflow-y:auto"></div>
-        </section>
+          <!-- Panel: coverage -->
+          <section class="panel" id="panel-pokritost" role="tabpanel" data-panel="pokritost">
+            <div class="panel__head an-head">
+              <h2 class="panel__title">Kdo je na katero vprašanje odgovoril</h2>
+              <span class="spacer"></span>
+              <ul class="an-legenda" aria-label="Legenda">
+                <li><span class="kljuka"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg></span>odgovorjeno</li>
+                <li><span class="prazno" aria-hidden="true"></span>vprašanje je, odgovora ni</li>
+                <li><span class="an-nv">n/v</span>tega vprašanja seja nima</li>
+                <li><span class="obv">*</span>obvezno</li>
+              </ul>
+            </div>
+            <div id="matrika"></div>
+          </section>
 
-        <!-- ── Panel: porazdelitve ── -->
-        <section data-panel="porazdelitve" hidden class="flex flex-col gap-3">
-          <div id="porazdelitve"></div>
-        </section>
+          <!-- Panel: distributions -->
+          <section id="panel-porazdelitve" role="tabpanel" data-panel="porazdelitve" hidden>
+            <div id="porazdelitve"></div>
+          </section>
 
-        <!-- ── Panel: odgovori ── -->
-        <section data-panel="odgovori" hidden class="card">
-          <div class="card-head">
-            <h2>Odgovori drug ob drugem</h2>
-            <div class="spacer" style="flex:1"></div>
-            <input id="iskanjeOdgovori" class="input" style="height:28px; max-width:240px; font-size:12.5px"
-                   placeholder="filtriraj po vprašanju ali besedilu">
-            <button id="bRazpri" class="btn-mini">Razpri vse</button>
-            <button id="bStrni" class="btn-mini">Strni vse</button>
-          </div>
-          <div id="odgovori"></div>
-        </section>
+          <!-- Panel: answers -->
+          <section class="panel" id="panel-odgovori" role="tabpanel" data-panel="odgovori" hidden>
+            <div class="panel__head an-head">
+              <h2 class="panel__title">Odgovori drug ob drugem</h2>
+              <span class="spacer"></span>
+              <label class="search an-iskanje">
+                <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+                <input id="iskanjeOdgovori" type="search" placeholder="Išči po vprašanju ali odgovoru" aria-label="Filtriraj odgovore po vprašanju ali besedilu">
+              </label>
+              <button type="button" id="bRazpri" class="btn btn--secondary btn--sm">Razpri vse</button>
+              <button type="button" id="bStrni" class="btn btn--secondary btn--sm">Strni vse</button>
+            </div>
+            <div id="odgovori"></div>
+          </section>
 
-        <!-- ── Panel: kazalniki ── -->
-        <section data-panel="kazalniki" hidden class="flex flex-col gap-3">
-          <div id="kazalniki"></div>
-        </section>
-
+          <!-- Panel: indicators -->
+          <section id="panel-kazalniki" role="tabpanel" data-panel="kazalniki" hidden>
+            <div id="kazalniki"></div>
+          </section>
+        </div>
       </div>
     </main>
   </div>
 
   <script src="/admin/app.js"></script>
   <script>
-  // ── Stanje strani ───────────────────────────────────────────────────
-  // Filtri gredo v URL, da je pogled deljiv in prezivi osvezitev. Filtriranje
-  // se zgodi na strezniku (glej /api/procesi/analiza) — odziv nosi cele
-  // snapshote in odgovore, zato je nabor treba zoziti pred prenosom.
+  renderSidebar('analiza');
+
+  // ── Page state ─────────────────────────────────────────────────────────
+  // Filters live in the URL so a view can be shared and survives a reload.
+  // Filtering happens on the server (see /api/procesi/analiza): the answer
+  // carries whole snapshots and answers, so the set is narrowed before transfer.
   let podatki = null;
   let aktiven = 'pokritost';
+  let zahteva = 0;   // only the newest response is drawn
 
   const POLJA = {
     fStatus: 'status', fPredloga: 'predloga', fOd: 'od', fDo: 'do',
@@ -275,6 +286,11 @@
     return f;
   }
 
+  // »Počisti« only makes sense while a filter is set.
+  function osveziPocisti() {
+    document.getElementById('bPocisti').disabled = Object.keys(beriFiltre()).length === 0;
+  }
+
   function zapisiFiltreVUrl(f) {
     const p = new URLSearchParams(f);
     if (aktiven !== 'pokritost') p.set('zavihek', aktiven);
@@ -292,18 +308,23 @@
     if (z && document.querySelector(`[data-panel="${z}"]`)) aktiven = z;
   }
 
-  // ── Nalaganje ───────────────────────────────────────────────────────
+  // ── Loading ────────────────────────────────────────────────────────────
   async function nalozi() {
     const f = beriFiltre();
     zapisiFiltreVUrl(f);
+    osveziPocisti();
     const qsNiz = new URLSearchParams(f).toString();
+    const moja = ++zahteva;
 
     document.getElementById('stevec').textContent = 'nalagam …';
+    document.getElementById('rezultati').classList.add('is-busy');
+    if (!podatki) showLoading('matrika', 'Nalagam primerjavo …');
     const r = await apiFetch('/api/procesi/analiza' + (qsNiz ? `?${qsNiz}` : ''));
+    if (moja !== zahteva) return;   // a newer filter is already loading
+    document.getElementById('rezultati').classList.remove('is-busy');
     if (!r) {
       document.getElementById('stevec').textContent = 'napaka';
-      document.getElementById('matrika').innerHTML =
-        '<div class="prazno-stanje">Analize ni bilo mogoče naložiti. Poglej konzolo.</div>';
+      showError('opozorila', 'Primerjave ni bilo mogoče naložiti. Preverite povezavo in osvežite stran.');
       return;
     }
     podatki = r;
@@ -320,7 +341,7 @@
     sel.value = izbrano;
   }
 
-  // ── Izris ───────────────────────────────────────────────────────────
+  // ── Drawing ────────────────────────────────────────────────────────────
   function izrisi() {
     const o = podatki.obseg;
     document.getElementById('stevec').textContent =
@@ -343,8 +364,8 @@
     preklopi(aktiven);
   }
 
-  // Sklanjanje je v app.js (sklon + SKLONI), ker ga potrebuje vsaka stran.
-  // Za zvezo "od N ..." velja rodilnik: od 1 seje, od 2 sej, od 6 sej.
+  // Declension lives in app.js (sklon + SKLONI). "od N …" takes the
+  // genitive: od 1 seje, od 2 sej, od 6 sej.
   const rodilnikSej = (n) => (n === 1 ? 'seje' : 'sej');
 
   function izrisiZnacke() {
@@ -359,12 +380,12 @@
         const p = podatki.obseg.predloge.find(x => String(x.id) === String(v));
         prikaz = p ? p.naziv_prikaz : v;
       }
-      znacke.push(`<span class="chip active" data-odstrani="${kljuc}">${esc(opis)}: ${esc(prikaz)}
-        <i class="x">&times;</i></span>`);
+      // The whole chip removes the filter; the × is the visible affordance.
+      znacke.push(`<span class="chip chip--filter active" data-odstrani="${kljuc}" title="Odstrani filter">${esc(opis)}: ${esc(prikaz)}<button type="button" class="chip__x" aria-label="Odstrani filter ${esc(opis)}">${ikona('x')}</button></span>`);
     }
     el.innerHTML = znacke.length
-      ? znacke.join('') + '<button class="chip" id="znackePocisti">Počisti vse</button>'
-      : '<span class="text-muted" style="font-size:11.5px">Brez filtrov: vse seje razen arhiviranih.</span>';
+      ? znacke.join('') + '<button type="button" class="link" id="znackePocisti">Počisti vse</button>'
+      : 'Brez filtrov: vse seje razen arhiviranih.';
 
     el.querySelectorAll('[data-odstrani]').forEach(c => c.onclick = () => {
       const kljuc = c.getAttribute('data-odstrani');
@@ -380,12 +401,15 @@
     const el = document.getElementById('opozorila');
     const seznam = [...podatki.obseg.opozorila];
     if (podatki.neskladja.length) {
-      seznam.push(`Zaznanih ${podatki.neskladja.length} neskladij med snapshoti (isti id vprašanja, drugo besedilo ali tip). Glej spodaj.`);
+      seznam.push(`Zaznanih ${podatki.neskladja.length} neskladij med snapshoti (isti id vprašanja, drugo besedilo ali tip). Glejte spodaj.`);
     }
     if (!seznam.length) { el.innerHTML = ''; return; }
-    el.innerHTML = `<div class="opozorilo">
-      <b>Kaj to pomeni za trditve iz teh številk</b>
-      <ul>${seznam.map(o => `<li>${esc(o)}</li>`).join('')}</ul>
+    el.innerHTML = `<div class="callout callout--warning" role="status">
+      ${ikona('alert')}
+      <div>
+        <b>Kaj to pomeni za trditve iz teh številk</b>
+        <ul>${seznam.map(o => `<li>${esc(o)}</li>`).join('')}</ul>
+      </div>
     </div>`;
   }
 
@@ -393,67 +417,69 @@
     const o = podatki.obseg;
     const zakljucenih = o.po_statusu.zakljucen + o.po_statusu.poslan;
     const polnoOdgovorjenih = podatki.pokritost.filter(p => p.odgovorjeno_v === p.od_skupno && p.od_skupno > 0).length;
+    const nizka = o.sej > 0 && o.povprecna_izpolnjenost < 60;
 
     document.getElementById('kpi').innerHTML = `
-      <div class="kpi">
-        <div class="k">Sej v naboru</div>
-        <div class="row"><div class="v">${o.sej}</div></div>
-        <div class="d">${zakljucenih} od ${o.sej} je zaključenih ali poslanih</div>
+      <div class="metric kpi">
+        <span class="metric__label">Sej v naboru</span>
+        <span class="metric__value v">${o.sej}</span>
+        <span class="metric__note">${zakljucenih} od ${o.sej} je zaključenih ali poslanih</span>
       </div>
-      <div class="kpi">
-        <div class="k">Strank</div>
-        <div class="row"><div class="v">${o.strank}</div></div>
-        <div class="d">${sklon(o.svetovalcev, SKLONI.svetovalec)} · ${sklon(o.predloge.length, SKLONI.vprasalnik)}</div>
+      <div class="metric kpi">
+        <span class="metric__label">Strank</span>
+        <span class="metric__value v">${o.strank}</span>
+        <span class="metric__note">${sklon(o.svetovalcev, SKLONI.svetovalec)} · ${sklon(o.predloge.length, SKLONI.vprasalnik)}</span>
       </div>
-      <div class="kpi${o.povprecna_izpolnjenost < 60 ? ' attn' : ''}">
-        <div class="k">Povprečna izpolnjenost</div>
-        <div class="row"><div class="v">${o.povprecna_izpolnjenost}%</div></div>
-        <div class="d${o.povprecna_izpolnjenost < 60 ? ' warn' : ''}">delež izpolnjenih polj na sejo</div>
+      <div class="metric kpi">
+        <span class="metric__label">${nizka ? '<span class="dot dot--warning" aria-hidden="true"></span>' : ''}Povprečna izpolnjenost</span>
+        <span class="metric__value v">${o.povprecna_izpolnjenost}%</span>
+        <span class="metric__note">delež izpolnjenih polj na sejo</span>
       </div>
-      <div class="kpi">
-        <div class="k">Vprašanj v naboru</div>
-        <div class="row"><div class="v">${podatki.pokritost.length}</div></div>
-        <div class="d">${polnoOdgovorjenih} od ${podatki.pokritost.length} jih ima odgovor povsod</div>
+      <div class="metric kpi">
+        <span class="metric__label">Vprašanj v naboru</span>
+        <span class="metric__value v">${podatki.pokritost.length}</span>
+        <span class="metric__note">${polnoOdgovorjenih} od ${podatki.pokritost.length} jih ima odgovor povsod</span>
       </div>`;
   }
 
-  // ── Matrika pokritosti ─────────────────────────────────────────────
+  // ── Coverage matrix ────────────────────────────────────────────────────
   function izrisiMatriko() {
     const el = document.getElementById('matrika');
     if (!podatki.seje.length) { el.innerHTML = praznoStanje(); return; }
 
     const glave = podatki.seje.map(s => `
-      <th class="seja">
-        <a href="/admin/proces-seja.html?id=${s.id}" title="${esc(s.stranka_naziv)}${s.proces ? ' — ' + esc(s.proces) : ''}">${esc(s.stranka_naziv)}</a>
+      <th class="seja" scope="col">
+        <a href="/admin/proces-seja.html?id=${s.id}" title="${esc(s.stranka_naziv)}${s.proces ? ': ' + esc(s.proces) : ''}">${esc(s.stranka_naziv)}</a>
         <small>${s.napredek.odstotek}% · ${esc(s.status)}</small>
       </th>`).join('');
 
+    const kljuka = `<span class="kljuka" role="img" aria-label="odgovorjeno">${ikona('check')}</span>`;
     let zadnjiSklop = null;
     const vrstice = [];
     for (const p of podatki.pokritost) {
       if (p.sklop !== zadnjiSklop) {
         zadnjiSklop = p.sklop;
-        vrstice.push(`<tr class="skupina"><td colspan="${podatki.seje.length + 2}">${esc(p.sklop || 'Brez sklopa')}</td></tr>`);
+        vrstice.push(`<tr class="skupina"><td colspan="${podatki.seje.length + 2}"><span>${esc(p.sklop || 'Brez sklopa')}</span></td></tr>`);
       }
       const celice = podatki.seje.map(s => {
         if (!p.seje_z_odgovorom.includes(s.id) && !p.seje_brez_odgovora.includes(s.id)) {
           return '<td><span class="ni-vprasanja" title="Tega vprašanja snapshot te seje nima">n/v</span></td>';
         }
         return p.seje_z_odgovorom.includes(s.id)
-          ? '<td><span class="kljuka">&#10003;</span></td>'
-          : '<td><span class="prazno" title="Vprašanje obstaja, odgovora ni">&bull;</span></td>';
+          ? `<td>${kljuka}</td>`
+          : '<td><span class="prazno" role="img" aria-label="ni odgovora" title="Vprašanje obstaja, odgovora ni"></span></td>';
       }).join('');
 
       vrstice.push(`
         <tr>
           <td class="vprasanje">
-            <b title="${esc(p.label)}">${esc(p.label)}${p.obvezno ? ' <span class="text-muted">*</span>' : ''}</b>
+            <b title="${esc(p.label)}">${esc(p.label)}${p.obvezno ? ' <span class="obv">*</span>' : ''}</b>
             <small>${esc(p.id)} · ${esc(p.tip)}</small>
           </td>
-          <td style="min-width:104px">
-            <div class="meter" style="justify-content:center">
-              <span class="track"><i class="fill${p.odstotek < 60 ? ' low' : ''}" style="display:block;height:100%;width:${p.odstotek}%"></i></span>
-              <span>${p.odgovorjeno_v}/${p.od_skupno}</span>
+          <td class="c-odg">
+            <div class="meter">
+              <span class="progress"><span class="progress__fill${p.odstotek < 60 ? ' progress__fill--low' : ''}" style="width:${p.odstotek}%"></span></span>
+              <span class="meter__val">${p.odgovorjeno_v}/${p.od_skupno}</span>
             </div>
           </td>
           ${celice}
@@ -463,15 +489,15 @@
     el.innerHTML = `
       <table class="matrika">
         <thead><tr>
-          <th class="vprasanje">Vprašanje</th>
-          <th style="min-width:104px">Odgovorjeno</th>
+          <th class="vprasanje" scope="col">Vprašanje</th>
+          <th class="c-odg" scope="col">Odgovorjeno</th>
           ${glave}
         </tr></thead>
         <tbody>${vrstice.join('')}</tbody>
       </table>`;
   }
 
-  // ── Porazdelitve ───────────────────────────────────────────────────
+  // ── Distributions ──────────────────────────────────────────────────────
   function imeSeje(id) {
     const s = podatki.seje.find(x => x.id === id);
     return s ? s.stranka_naziv : `seja ${id}`;
@@ -485,66 +511,64 @@
 
   function izrisiPorazdelitve() {
     const el = document.getElementById('porazdelitve');
-    // Prazen nabor in nabor brez takih vprasanj nista isto — vsak zavihek zato
-    // pove isto zgodbo, ne svoje. Prej je pri 0 sejah pisalo "ni besedilnih
-    // odgovorov", kar zveni, kot da seje so, pa so prazne.
-    if (!podatki.seje.length) { el.innerHTML = `<div class="card">${praznoStanje()}</div>`; return; }
+    // An empty set and a set without such questions are not the same: every
+    // tab tells the same story for an empty set.
+    if (!podatki.seje.length) { el.innerHTML = `<div class="panel">${praznoStanje()}</div>`; return; }
     if (!podatki.porazdelitve.length) {
-      el.innerHTML = `<div class="card"><div class="prazno-stanje">V tem naboru ni vprašanj z izbirami.</div></div>`;
+      el.innerHTML = '<div class="panel"><p class="empty-line">V tem naboru ni vprašanj z izbirami.</p></div>';
       return;
     }
 
     el.innerHTML = podatki.porazdelitve.map(d => {
-      // Sirina stolpica je DELEZ, ne delez najvecje vrednosti. Ce bi
-      // najpogostejsa moznost vedno merila cez cel prostor, bi 3 od 6 sej
-      // izgledalo enako kot 6 od 6, izpisana stevilka pa bi govorila drugace.
+      // Bar width is the SHARE, not the share of the largest value: otherwise
+      // 3 of 6 sessions would look the same as 6 of 6.
       const vrstice = d.moznosti.map(m => `
-        <div class="vrsta-moznosti${m.sej ? '' : ' nic'}">
-          <div class="ime">${esc(m.vrednost)}${m.izven_seznama ? ' <span class="tag warn">ni v vprašalniku</span>' : ''}</div>
-          <div class="stolpic"><i style="width:${m.odstotek}%"></i></div>
-          <div class="st"><b>${m.sej}</b><span class="pc">${m.odstotek}%</span></div>
-        </div>
-        ${povezaveSej(m.seje)}`).join('');
+        <div class="moznost">
+          <div class="vrsta-moznosti${m.sej ? '' : ' nic'}">
+            <div class="ime">${esc(m.vrednost)}${m.izven_seznama ? '<span class="chip chip--warning">ni v vprašalniku</span>' : ''}</div>
+            <div class="stolpic" role="img" aria-label="${m.odstotek} odstotkov"><i style="width:${m.odstotek}%"></i></div>
+            <div class="st"><b>${m.sej}</b><span class="pc">${m.odstotek}%</span></div>
+            ${povezaveSej(m.seje)}
+          </div>
+        </div>`).join('');
 
       const drugo = d.drugo.length ? `
-        <div style="margin-top:8px; padding-top:8px; border-top:1px dashed var(--row-line)">
-          <div class="text-muted" style="font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; margin-bottom:5px">
-            Vpisano pod „drugo"
-          </div>
-          ${d.drugo.map(x => `<div class="odgovor" style="padding-left:0">
+        <div class="an-drugo">
+          <p class="an-drugo__naslov">Vpisano pod »drugo«</p>
+          ${d.drugo.map(x => `<div class="odgovor">
             <div class="kdo-ime"><a href="/admin/proces-seja.html?id=${x.seja_id}">${esc(x.stranka)}</a></div>
             <div class="vsebina">${esc(x.vrednost)}</div>
           </div>`).join('')}
         </div>` : '';
 
       return `
-        <div class="card" style="margin-bottom:12px">
-          <div class="card-head">
-            <h3>${esc(d.label)}</h3>
-            <span class="tag">${esc(d.sklop)}</span>
-            ${d.vec_izbir ? '<span class="tag info">več izbir</span>' : ''}
-            <div class="spacer" style="flex:1"></div>
-            <span class="count">odgovorjeno v ${d.odgovorjeno_v} od ${d.od_skupno} ${rodilnikSej(d.od_skupno)}</span>
+        <section class="panel an-por">
+          <div class="panel__head an-head">
+            <div class="an-head__txt">
+              <h3 class="panel__title">${esc(d.label)}</h3>
+              ${d.sklop ? `<p class="panel__desc">${esc(d.sklop)}</p>` : ''}
+            </div>
+            ${d.vec_izbir ? '<span class="chip chip--info">več izbir</span>' : ''}
+            <span class="spacer"></span>
+            <span class="an-meta">odgovorjeno v ${d.odgovorjeno_v} od ${d.od_skupno} ${rodilnikSej(d.od_skupno)}</span>
           </div>
-          <div style="padding:10px 13px 12px">
-            ${d.vec_izbir ? `<div class="text-muted" style="font-size:11.5px; margin-bottom:6px">
-              Seja lahko izbere več možnosti, zato je vsota deležev lahko večja od 100 %.
-              Odstotek je delež sej z odgovorom (${d.odgovorjeno_v}), ne delež izbir.
-            </div>` : ''}
+          <div class="panel__body">
+            ${d.vec_izbir ? `<p class="an-opomba">Seja lahko izbere več možnosti, zato je vsota deležev lahko večja od 100 %.
+              Odstotek je delež sej z odgovorom (${d.odgovorjeno_v}), ne delež izbir.</p>` : ''}
             ${vrstice}
             ${drugo}
           </div>
-        </div>`;
+        </section>`;
     }).join('');
   }
 
-  // ── Odgovori drug ob drugem ────────────────────────────────────────
+  // ── Answers side by side ───────────────────────────────────────────────
   function izrisiOdgovore() {
     const el = document.getElementById('odgovori');
     const zOdgovori = podatki.besedilna.filter(b => b.odgovorjeno_v > 0);
     if (!podatki.seje.length) { el.innerHTML = praznoStanje(); return; }
     if (!zOdgovori.length) {
-      el.innerHTML = `<div class="prazno-stanje">Seje v naboru so, besedilnih odgovorov v njih pa ni.</div>`;
+      el.innerHTML = '<p class="empty-line">Seje v naboru so, besedilnih odgovorov v njih pa ni.</p>';
       return;
     }
 
@@ -553,10 +577,7 @@
     for (const b of zOdgovori) {
       if (b.sklop !== zadnjiSklop) {
         zadnjiSklop = b.sklop;
-        kosi.push(`<div class="skupina-naslov" style="background:var(--bg-sub); padding:6px 12px;
-          font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
-          color:var(--ink-2); border-top:1px solid var(--hairline); border-bottom:1px solid var(--hairline)">
-          ${esc(b.sklop || 'Brez sklopa')}</div>`);
+        kosi.push(`<div class="skupina-naslov">${esc(b.sklop || 'Brez sklopa')}</div>`);
       }
       const odgovori = b.odgovori.map(o => `
         <div class="odgovor">
@@ -565,19 +586,17 @@
             ${o.proces || o.oddelek ? `<small>${esc(o.proces || o.oddelek)}</small>` : ''}
             ${o.datum_sestanka ? `<small class="datum">${formatDan(o.datum_sestanka)}</small>` : ''}
           </div>
-          <div class="vsebina">${esc(o.vrednost)}${o.skrajsano ? ' <span class="tag">skrajšano</span>' : ''}</div>
+          <div class="vsebina">${esc(o.vrednost)}${o.skrajsano ? '<span class="chip">skrajšano</span>' : ''}</div>
         </div>`).join('');
 
-      // Privzeto STRNJENO: 33 razprtih vprasanj je deset tisoc slikovnih tock
-      // dolg dokument, v katerem ni mogoce nicesar najti. Strnjen seznam je
-      // kazalo, "Razpri vse" pa naredi iz njega dokument, kadar ga kdo hoce.
+      // Collapsed by default: 33 open questions are a document nobody can
+      // search. The collapsed list is an index; »Razpri vse« makes it a document.
       kosi.push(`
         <details class="vprasanje-blok" data-iskanje="${esc((b.label + ' ' + b.odgovori.map(o => o.stranka + ' ' + o.vrednost).join(' ')).toLowerCase())}">
           <summary>
-            <span class="puscica">&#9656;</span>
+            ${ikona('chev-right')}
             <b>${esc(b.label)}</b>
-            <div class="spacer" style="flex:1"></div>
-            <span class="text-muted" style="font-size:11.5px">${b.odgovorjeno_v} od ${b.od_skupno}</span>
+            <span class="an-meta">${b.odgovorjeno_v} od ${b.od_skupno}</span>
           </summary>
           ${odgovori}
         </details>`);
@@ -585,8 +604,8 @@
     el.innerHTML = kosi.join('');
   }
 
-  // Filter po vprašanju ali besedilu odgovora. Skupinski naslov skrijemo,
-  // kadar pod njim ni vec nobenega vidnega vprasanja.
+  // Filter by question or answer text. A group heading hides when no
+  // question under it is visible any more.
   function filtrirajOdgovore() {
     const iskano = document.getElementById('iskanjeOdgovori').value.trim().toLowerCase();
     const otroci = [...document.getElementById('odgovori').children];
@@ -600,10 +619,11 @@
         vidnihPodNaslovom = 0;
         continue;
       }
+      if (!el.matches('details')) continue;
       const ujema = !iskano || (el.dataset.iskanje || '').includes(iskano);
       el.hidden = !ujema;
-      // Iskanje po besedilu odgovora mora zadetek tudi POKAZATI; ob praznem
-      // iskalniku se seznam vrne v kazalo.
+      // A hit in the answer text must also be SHOWN; an empty search returns
+      // the list to an index.
       if (iskano) el.open = ujema;
       else el.open = false;
       if (ujema) vidnihPodNaslovom++;
@@ -611,48 +631,51 @@
     if (zadnjiNaslov) zadnjiNaslov.hidden = vidnihPodNaslovom === 0;
   }
 
-  // ── Kazalniki ──────────────────────────────────────────────────────
+  // ── Indicators ─────────────────────────────────────────────────────────
   function izrisiKazalnike() {
     const el = document.getElementById('kazalniki');
     const vnosi = podatki.tabele.flatMap(t => t.seje.map(s => ({ ...s, naslov: t.label })));
-    if (!podatki.seje.length) { el.innerHTML = `<div class="card">${praznoStanje()}</div>`; return; }
+    if (!podatki.seje.length) { el.innerHTML = `<div class="panel">${praznoStanje()}</div>`; return; }
     if (!vnosi.length) {
-      el.innerHTML = `<div class="card"><div class="prazno-stanje">
-        Nobena seja v naboru nima izpolnjene tabele kazalnikov.</div></div>`;
+      el.innerHTML = '<div class="panel"><p class="empty-line">Nobena seja v naboru nima izpolnjene tabele kazalnikov.</p></div>';
       return;
     }
 
     el.innerHTML = vnosi.map(v => `
-      <div class="card" style="margin-bottom:12px">
-        <div class="card-head">
-          <h3><a href="/admin/proces-seja.html?id=${v.seja_id}">${esc(v.stranka)}</a></h3>
-          ${v.proces ? `<span class="tag">${esc(v.proces)}</span>` : ''}
-          <div class="spacer" style="flex:1"></div>
-          <span class="count">${esc(v.naslov)}</span>
+      <section class="panel an-kaz">
+        <div class="panel__head an-head">
+          <h3 class="panel__title"><a class="link" href="/admin/proces-seja.html?id=${v.seja_id}">${esc(v.stranka)}</a></h3>
+          ${v.proces ? `<span class="chip">${esc(v.proces)}</span>` : ''}
+          <span class="spacer"></span>
+          <span class="an-meta">${esc(v.naslov)}</span>
         </div>
-        <div class="scroll-x" style="padding:4px 8px 8px">
-          <table class="kaz">
-            <thead><tr>${v.stolpci.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+        <div class="table-scroll">
+          <table class="table table--compact kaz">
+            <thead><tr>${v.stolpci.map(c => `<th scope="col">${esc(c)}</th>`).join('')}</tr></thead>
             <tbody>${v.vrstice.map(r => `<tr>${v.stolpci.map((_, i) =>
-              `<td>${esc(r[i] || '—')}</td>`).join('')}</tr>`).join('')}</tbody>
+              r[i] ? `<td>${esc(r[i])}</td>` : '<td class="muted">—</td>').join('')}</tr>`).join('')}</tbody>
           </table>
         </div>
-      </div>`).join('');
+      </section>`).join('');
   }
 
   function praznoStanje() {
-    return `<div class="prazno-stanje">
-      Nobena seja ne ustreza filtrom.<br>
-      <span style="font-size:12px">Prazen izpis pomeni prazen nabor, ne praznih vprašalnikov.</span><br>
-      <button class="btn-secondary" style="margin-top:10px" onclick="pocisti()">Počisti filtre</button>
+    return `<div class="empty empty--center">
+      <span class="empty__icon" aria-hidden="true">${ikona('search', 'icon--lg')}</span>
+      <p class="empty__title">Nobena seja ne ustreza filtrom</p>
+      <p class="empty__text">Prazen izpis pomeni prazen nabor, ne praznih vprašalnikov.</p>
+      <button type="button" class="btn btn--secondary" onclick="pocisti()">Počisti filtre</button>
     </div>`;
   }
 
-  // ── Zavihki ────────────────────────────────────────────────────────
+  // ── Tabs ───────────────────────────────────────────────────────────────
   function preklopi(kljuc) {
     aktiven = kljuc;
-    document.querySelectorAll('#zavihki .tab').forEach(b =>
-      b.classList.toggle('active', b.dataset.zavihek === kljuc));
+    document.querySelectorAll('#zavihki .tab').forEach(b => {
+      const on = b.dataset.zavihek === kljuc;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-selected', String(on));
+    });
     document.querySelectorAll('[data-panel]').forEach(p =>
       p.hidden = p.dataset.panel !== kljuc);
     zapisiFiltreVUrl(beriFiltre());
@@ -663,16 +686,17 @@
     nalozi();
   }
 
-  // ── Zagon ──────────────────────────────────────────────────────────
-  renderSidebar('analiza');
+  // ── Start ──────────────────────────────────────────────────────────────
   nastaviFiltreIzUrl();
+  osveziPocisti();
 
   document.querySelectorAll('#zavihki .tab').forEach(b =>
     b.onclick = () => preklopi(b.dataset.zavihek));
   for (const elId of Object.keys(POLJA)) {
     const el = document.getElementById(elId);
-    el.addEventListener(el.tagName === 'SELECT' || el.type === 'date' ? 'change' : 'input',
-      el.tagName === 'SELECT' || el.type === 'date' ? nalozi : debounce(nalozi, 400));
+    const takoj = el.tagName === 'SELECT' || el.type === 'date';
+    el.addEventListener(takoj ? 'change' : 'input', takoj ? nalozi : debounce(nalozi, 400));
+    if (!takoj) el.addEventListener('input', osveziPocisti);
   }
   document.getElementById('bPocisti').onclick = pocisti;
   document.getElementById('iskanjeOdgovori').addEventListener('input', debounce(filtrirajOdgovore, 200));

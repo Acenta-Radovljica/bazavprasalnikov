@@ -2,91 +2,108 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Vpogledi</title>
-  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vpogledi · Acenta baza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
+  <link rel="stylesheet" href="/admin/admin.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
-    .prose table { font-size: 0.875rem; }
-    .prose th { background: #f6f7f9; }
-    .prose h2 { color: #16262e; border-bottom: 2px solid #0b7a6c; padding-bottom: 0.3rem; }
-    .prose h3 { color: #16262e; }
-    .prose strong { color: #16262e; }
-    .prose blockquote { border-left-color: #0b7a6c; }
+    /* Cross-client insights: one document panel (closest: podjetje.html .docp). */
+    .docp__head .spacer { flex: 1 1 auto; }
+    @media print {
+      .panel { border: 0; }
+      .docp__head, .docp__body { padding-left: 0; padding-right: 0; }
+    }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <header id="nav"></header>
+<body>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar__title">
+          <h1>Vpogledi čez kliente</h1>
+          <span class="topbar__meta">AI analiza vzorcev čez vse kliente</span>
+        </div>
+        <span class="spacer"></span>
+        <div class="topbar__actions">
+          <button class="btn btn--secondary" type="button" id="btn-generiraj"><svg class="icon" aria-hidden="true"><use href="#i-sparkles"/></svg><span>Generiraj nove (Opus, ~$0,30)</span></button>
+        </div>
+      </header>
 
-  <main class="max-w-5xl mx-auto px-6 py-8">
-    <div class="flex items-start justify-between mb-6">
-      <div>
-        <h1 class="text-2xl font-bold text-[#16262e]">Vpogledi čez kliente</h1>
-        <p class="text-sm text-gray-500 mt-1">AI analiza vzorcev čez vse kliente (Faza 5).</p>
+      <div class="page">
+        <div id="content"></div>
       </div>
-      <div class="flex gap-2">
-        <button onclick="regenerirajInsights()" class="px-4 py-2 bg-[#0b7a6c] text-white rounded text-sm hover:bg-[#0b7a6c]">
-          Generiraj nove (Opus, ~$0.30)
-        </button>
-      </div>
-    </div>
-
-    <div id="content"></div>
-  </main>
+    </main>
+  </div>
 
   <script src="/admin/app.js"></script>
   <script>
     renderNav('insights');
 
+    function ura(iso) {
+      const d = new Date(iso);
+      return Number.isNaN(d.getTime()) ? '' : `${d.getHours()}.${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
     function renderEmpty() {
       document.getElementById('content').innerHTML = `
-        <div class="bg-yellow-50 border border-yellow-200 rounded p-6 text-sm text-yellow-800">
-          Vpogledi še niso generirani. Klikni <b>"Generiraj nove (Opus)"</b> zgoraj.
-        </div>
-      `;
+        <section class="panel">
+          <div class="empty">
+            <span class="empty__icon" aria-hidden="true">${ikona('book-open', 'icon--lg')}</span>
+            <p class="empty__title">Vpogledi še niso generirani</p>
+            <p class="empty__text">AI pregleda odgovore vseh klientov in poišče skupne vzorce: najpogostejše težave, razlike med panogami in ponavljajoče se želje. Za prvo analizo kliknite »Generiraj nove« v glavi strani; traja 60 do 90 sekund.</p>
+          </div>
+        </section>`;
     }
 
     function renderInsight(i) {
       const meta = i.vsebina && typeof i.vsebina === 'object' ? i.vsebina : {};
       const content = meta.content ?? (typeof i.vsebina === 'string' ? i.vsebina : JSON.stringify(i.vsebina, null, 2));
       const isMarkdown = meta.format === 'markdown' || (typeof content === 'string' && content.includes('##'));
-      const html = isMarkdown ? marked.parse(content) : `<pre class="whitespace-pre-wrap text-sm">${esc(content)}</pre>`;
+      const telo = isMarkdown ? `<article class="doc">${md(content)}</article>` : `<pre class="ans-code">${esc(content)}</pre>`;
 
       const metaLine = [
-        meta.st_klientov ? `${meta.st_klientov} klientov` : null,
-        meta.st_respondentov ? `${meta.st_respondentov} respondentov` : null,
+        meta.st_klientov ? sklon(meta.st_klientov, ['klient', 'klienta', 'klienti', 'klientov']) : null,
+        meta.st_respondentov ? sklon(meta.st_respondentov, ['respondent', 'respondenta', 'respondenti', 'respondentov']) : null,
         meta.dni_obdobja ? `zadnjih ${meta.dni_obdobja} dni` : null,
-        meta.source === 'manual_import' ? 'rocni uvoz' : null,
+        meta.source === 'manual_import' ? 'ročni uvoz' : null,
       ].filter(Boolean).join(' · ');
 
       document.getElementById('content').innerHTML = `
-        <div class="bg-white rounded shadow p-6">
-          <div class="flex items-center justify-between mb-4 pb-3 border-b">
-            <div>
-              <div class="text-xs text-gray-500">Generirano: ${formatDatum(i.generated_at)}</div>
-              ${metaLine ? `<div class="text-xs text-gray-400 mt-1">${metaLine}</div>` : ''}
+        <section class="panel" aria-labelledby="vpNaslov">
+          <header class="docp__head">
+            <div class="docp__title">
+              <h2 id="vpNaslov">Generirano ${formatDan(i.generated_at)} ob ${ura(i.generated_at)}</h2>
+              ${metaLine ? `<p>${esc(metaLine)}</p>` : ''}
             </div>
-            <a href="javascript:window.print()" class="text-sm text-gray-600 hover:underline">Natisni</a>
-          </div>
-          <div class="prose prose-sm max-w-none">${html}</div>
-        </div>
-      `;
+            <span class="spacer"></span>
+            <button class="btn btn--ghost btn--sm no-print" type="button" id="btn-natisni">${ikona('printer')}<span>Natisni</span></button>
+          </header>
+          <div class="docp__body">${telo}</div>
+        </section>`;
+      document.getElementById('btn-natisni').addEventListener('click', () => window.print());
     }
 
-    async function regenerirajInsights() {
-      if (!confirm('Zagnati Opus generacijo cross-client insights? (~$0.30, traja ~60-90s)')) return;
+    async function regenerirajInsights(gumb) {
+      if (!confirm('Zagnati generacijo vpogledov čez kliente (Opus)? Stane približno 0,30 $ in traja 60 do 90 sekund.')) return;
+      gumb.disabled = true;
+      gumb.classList.add('is-loading');
       const r = await apiFetch('/api/insights/regenerate', { method: 'POST', body: JSON.stringify({}) });
-      if (r?.ok) alert('Sproženo. Osveži stran čez ~90s.');
+      gumb.disabled = false;
+      gumb.classList.remove('is-loading');
+      if (r?.ok) alert('Sproženo. Osvežite stran čez približno 90 sekund.');
       else alert('Napaka pri sproženju.');
     }
+    document.getElementById('btn-generiraj').addEventListener('click', (e) => regenerirajInsights(e.currentTarget));
 
     (async () => {
-      showLoading('content');
+      showLoading('content', 'Nalagam vpoglede …');
       const data = await apiFetch('/api/insights');
-      if (!data || !data.insights) {
-        renderEmpty();
-        return;
-      }
+      if (!data) { showError('content', 'Vpogledov ni bilo mogoče naložiti. Osvežite stran.'); return; }
+      if (!data.insights) { renderEmpty(); return; }
       renderInsight(data.insights);
     })();
   </script>

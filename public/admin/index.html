@@ -2,200 +2,245 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Danes</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Danes · Acenta baza</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
-    /* Per-page: tri vedra dela. Skupni gradniki (kpi, card, tag) so v admin.css. */
-    .vedra { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; align-items: start; }
-    @media (max-width: 1100px) { .vedra { grid-template-columns: 1fr; } }
+    /* Page-only styles, ported 1:1 from design-prototype/danes.html.
+       Semantic variables only; .metrics and .rows live in admin.css. */
 
-    /* Naloga: barvni trak je psevdoelement, da se ob prehodu miške ne
-       premakne vsebina (border-left bi jo premaknil za 3px). */
-    .naloga { padding: 11px 13px; border-bottom: 1px solid var(--row-line); position: relative; transition: background .14s var(--ease); }
-    .naloga:last-child { border-bottom: 0; }
-    .naloga:hover { background: var(--bg); }
-    .naloga::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: transparent; }
-    .naloga.nujno::before { background: linear-gradient(180deg, #f04438, #d92d20); }
-    .naloga.opozorilo::before { background: linear-gradient(180deg, #fdb022, #f79009); }
-    .naloga.mirno::before { background: linear-gradient(180deg, #9fd6cc, var(--acenta-teal-2)); }
-    .naloga b { display: block; font-size: 13px; font-weight: 600; color: var(--ink); letter-spacing: -.012em; }
-    .naloga p { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
-    .naloga .noga { display: flex; align-items: center; gap: 6px; margin-top: 9px; }
-    .naloga .kdaj { margin-left: auto; font-size: 10.5px; color: var(--muted); white-space: nowrap; }
-    .prazno { padding: 24px 13px; text-align: center; font-size: 12px; color: var(--muted); }
+    /* Day focus: the one number that stands out on the screen */
+    .focus {
+      display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap;
+      padding: var(--space-5) var(--space-6);
+      background: var(--accent-subtle); border: 1px solid var(--accent-border); border-radius: var(--radius-lg);
+    }
+    .focus__main { display: flex; align-items: center; gap: var(--space-4); min-width: 0; flex: 1 1 320px; }
+    .focus__num { font-size: 2.5rem; line-height: 1; font-weight: var(--weight-semibold); letter-spacing: -0.03em; color: var(--accent-text); font-variant-numeric: tabular-nums; }
+    .focus__num--ok { color: var(--success-text); }
+    .focus__num--attn { color: var(--warning-text); }
+    .focus h2 { font-size: var(--text-md); }
+    .focus p { font-size: var(--text-sm); color: var(--text-secondary); margin-top: 2px; }
+    .focus__stats { display: flex; gap: var(--space-6); margin: 0; }
+    .focus__stats div { display: flex; flex-direction: column-reverse; gap: 2px; padding-left: var(--space-6); border-left: 1px solid var(--accent-border); }
+    .focus__stats dt { font-size: var(--text-xs); color: var(--text-secondary); white-space: nowrap; }
+    .focus__stats dd { font-size: var(--text-lg); font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; line-height: 1.1; }
+
+    /* Metrics strip under the focus */
+    #kpi-vrh { margin-top: var(--space-4); }
+
+    /* Three work buckets */
+    .buckets { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-6); align-items: start; }
+    .bucket__hint { margin-left: auto; font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; }
+    .tasks { list-style: none; margin: 0; padding: 0; }
+    .task { display: grid; grid-template-columns: 8px minmax(0, 1fr); gap: var(--space-3); padding: 14px var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+    .task:last-child { border-bottom: 0; }
+    .task .dot { margin-top: 6px; }
+    .task__top { display: flex; align-items: baseline; gap: var(--space-3); }
+    .task__title { font-weight: var(--weight-medium); color: var(--text); min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .task__when { margin-left: auto; font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .task__desc { font-size: var(--text-sm); color: var(--text-muted); margin-top: 2px; }
+    .task__actions { display: flex; align-items: center; gap: var(--space-2); margin-top: 10px; flex-wrap: wrap; }
+    .tasks > .task-msg { padding: var(--space-4); }
+
+    /* Statistics (hidden; the top bar button opens it) */
+    .stats { margin-top: var(--space-6); display: grid; gap: var(--space-4); scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+    .stats .metrics { --metrics-cols: 4; margin: 0; border: 0; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .stats .panel__head .select-wrap { max-width: 280px; min-width: 0; }
+    .chart { padding: var(--space-3) var(--space-4) var(--space-4); }
+    .chart svg { width: 100%; height: 190px; overflow: visible; }
+    .chart .grid line { stroke: var(--border-subtle); stroke-dasharray: 3 3; }
+    .chart .axis text { fill: var(--text-muted); font-size: 11px; font-family: var(--font-sans); }
+    .chart .area { fill: var(--accent); fill-opacity: 0.08; }
+    .chart .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+    .chart .pt { fill: var(--accent-text); }
+    .chart .skeleton { height: 190px; }
+
+    /* Company activity: ul.rows > li > a.row (admin.css styles .rows > .row) */
+    .rows > li > a.row { display: flex; align-items: center; gap: var(--space-3); padding: 10px var(--space-4); border-bottom: 1px solid var(--border-subtle); transition: background var(--dur-fast) var(--ease-out); }
+    .rows > li:last-child > a.row { border-bottom: 0; }
+    .rows > li > a.row:hover { background: var(--bg-hover); }
+
+    @media (max-width: 1100px) {
+      #kpi-vrh { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      #kpi-vrh > .metric:nth-child(-n+2) { grid-column: span 3; }
+      #kpi-vrh > .metric:nth-child(n+3) { grid-column: span 2; }
+      .buckets { grid-template-columns: minmax(0, 1fr); }
+    }
+    @media (max-width: 760px) {
+      .focus { padding: var(--space-4); gap: var(--space-4); }
+      .focus__num { font-size: 2.25rem; }
+      .focus__stats { width: 100%; gap: 0; padding-top: var(--space-3); border-top: 1px solid var(--accent-border); }
+      .focus__stats div { flex: 1; border-left: 0; padding-left: 0; }
+      .focus__stats div + div { padding-left: var(--space-4); border-left: 1px solid var(--accent-border); }
+      #kpi-vrh { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      #kpi-vrh > .metric:nth-child(n) { grid-column: span 1; }
+      #kpi-vrh > .metric:nth-child(2) { grid-column: 1 / -1; order: -1; }
+      .task { padding: 14px; }
+      .metric__note { white-space: normal; }
+      .task__actions .btn { flex: 1; }
+      .stats .panel__head .select-wrap { flex: 1; max-width: none; }
+    }
   </style>
 </head>
 <body>
-  <div class="flex min-h-screen">
-
-    <!-- ── SIDEBAR ── (vsebino izrise renderSidebar() v /admin/app.js) -->
-    <aside id="sidebar" class="w-52 app-sidebar p-3 flex flex-col shrink-0"></aside>
-
-    <!-- ── MAIN ── -->
-    <main class="flex-1 min-w-0 flex flex-col">
-
-      <header class="page-head">
-        <h1 class="display">Danes</h1>
-        <span class="sep"></span>
-        <span class="sub" id="datum">—</span>
-        <span class="sub" id="osvezeno">·</span>
-        <div class="spacer"></div>
-        <button class="btn-secondary" id="btn-statistika" onclick="preklopiStatistiko()">Statistika</button>
-        <a class="btn-dark" href="/admin/procesi.html#nov">+ Nov sestanek</a>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar__title">
+          <h1>Danes</h1>
+          <span class="topbar__meta"><span id="datum">Nalagam …</span><span id="osvezeno"></span></span>
+        </div>
+        <span class="spacer"></span>
+        <div class="topbar__actions">
+          <button class="btn btn--secondary" type="button" id="btn-statistika" aria-expanded="false" aria-controls="statistika" onclick="preklopiStatistiko()"><svg class="icon" aria-hidden="true"><use href="#i-bars"/></svg><span>Statistika</span></button>
+          <a class="btn btn--primary" href="/admin/procesi.html#nov"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>Nov sestanek</a>
+        </div>
       </header>
 
-      <div class="p-4 flex flex-col gap-4">
-
-        <section class="hero" id="hero">
-          <div class="hero-main">
-            <div class="hero-num" id="h-num">—</div>
-            <div class="hero-txt">
+      <div class="page">
+        <section class="focus" id="hero" aria-label="Stanje dneva">
+          <div class="focus__main">
+            <span class="focus__num" id="h-num">—</span>
+            <div>
               <h2 id="h-naslov">Nalagam …</h2>
               <p id="h-opis">&nbsp;</p>
             </div>
           </div>
-          <div class="hero-side">
-            <div class="stat"><b id="h-caka">—</b><span>Čaka druge</span></div>
-            <div class="vline"></div>
-            <div class="stat"><b id="h-zakljuceno">—</b><span>Zaključeno ta teden</span></div>
+          <dl class="focus__stats">
+            <div><dt>Čaka druge</dt><dd id="h-caka">—</dd></div>
+            <div><dt>Zaključeno ta teden</dt><dd id="h-zakljuceno">—</dd></div>
+          </dl>
+        </section>
+
+        <section class="metrics" id="kpi-vrh" style="--metrics-cols:5" aria-label="Kazalniki">
+          <div class="metric">
+            <span class="metric__label">Podjetja</span>
+            <span class="metric__value" id="s-podjetja">—</span>
+            <span class="metric__note" id="d-podjetja">&nbsp;</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Odgovori (7 dni)</span>
+            <span class="metric__row">
+              <span class="metric__value" id="s-odgovori">—</span>
+              <!-- Real data only (stats.timeline); no series, no line. -->
+              <svg class="spark" id="spark-odgovori" viewBox="0 0 120 24" preserveAspectRatio="none" aria-hidden="true"></svg>
+            </span>
+            <span class="metric__note" id="d-odgovori">&nbsp;</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label">Procesne seje</span>
+            <span class="metric__value" id="s-seje">—</span>
+            <span class="metric__note" id="d-seje">&nbsp;</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Brez priporočil</span>
+            <span class="metric__value" id="s-brez">—</span>
+            <span class="metric__note">imajo odgovore, AI ni tekel</span>
+          </div>
+          <div class="metric">
+            <span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Zastarela priporočila</span>
+            <span class="metric__value" id="s-zastarela">—</span>
+            <span class="metric__note">novejši odgovor po generaciji</span>
           </div>
         </section>
 
-        <section class="kpis" id="kpi-vrh">
-          <div class="kpi">
-            <div class="k">Podjetja</div>
-            <div class="row"><div class="v" id="s-podjetja">—</div></div>
-            <div class="d" id="d-podjetja">—</div>
-          </div>
-          <div class="kpi">
-            <div class="k">Odgovori (7 dni)</div>
-            <div class="row">
-              <div class="v" id="s-odgovori">—</div>
-              <!-- Mikro trend je iz PRAVIH podatkov (stats.timeline). Kjer
-                   dnevne serije ni (npr. podjetja), crte ne rise nobena. -->
-              <svg class="spark" id="spark-odgovori" viewBox="0 0 120 26" preserveAspectRatio="none" aria-hidden="true"></svg>
-            </div>
-            <div class="d" id="d-odgovori">—</div>
-          </div>
-          <div class="kpi">
-            <div class="k">Procesne seje</div>
-            <div class="row"><div class="v" id="s-seje">—</div></div>
-            <div class="d" id="d-seje">—</div>
-          </div>
-          <div class="kpi attn">
-            <div class="k">Brez priporočil</div>
-            <div class="row"><div class="v" id="s-brez">—</div></div>
-            <div class="d warn">imajo odgovore, AI ni tekel</div>
-          </div>
-          <div class="kpi attn">
-            <div class="k">Zastarela priporočila</div>
-            <div class="row"><div class="v" id="s-zastarela">—</div></div>
-            <div class="d warn">novejši odgovor po generaciji</div>
-          </div>
-        </section>
-
-        <section class="vedra">
-          <article class="card">
-            <div class="card-head">
-              <span class="pip red"></span>
-              <h2>Ukrepaj</h2><span class="count" id="c-ukrepaj">—</span>
-              <span style="margin-left:auto;font-size:10.5px;color:var(--muted)">na tebi</span>
-            </div>
-            <div id="v-ukrepaj"><div class="prazno">Nalagam …</div></div>
+        <section class="buckets" aria-label="Naloge">
+          <article class="panel">
+            <header class="panel__head">
+              <span class="dot dot--danger" aria-hidden="true"></span>
+              <h2 class="panel__title">Ukrepaj</h2><span class="count" id="c-ukrepaj">—</span>
+              <span class="bucket__hint">na tebi</span>
+            </header>
+            <ul class="tasks" id="v-ukrepaj"><li class="empty-line">Nalagam …</li></ul>
           </article>
 
-          <article class="card">
-            <div class="card-head">
-              <span class="pip warn"></span>
-              <h2>Čaka druge</h2><span class="count" id="c-caka">—</span>
-              <span style="margin-left:auto;font-size:10.5px;color:var(--muted)">ne blokira tebe</span>
-            </div>
-            <div id="v-caka"><div class="prazno">Nalagam …</div></div>
+          <article class="panel">
+            <header class="panel__head">
+              <span class="dot dot--warning" aria-hidden="true"></span>
+              <h2 class="panel__title">Čaka druge</h2><span class="count" id="c-caka">—</span>
+              <span class="bucket__hint">ne blokira tebe</span>
+            </header>
+            <ul class="tasks" id="v-caka"><li class="empty-line">Nalagam …</li></ul>
           </article>
 
-          <article class="card">
-            <div class="card-head">
-              <span class="pip ok"></span>
-              <h2>Zaključeno ta teden</h2><span class="count" id="c-zakljuceno">—</span>
-              <span style="margin-left:auto;font-size:10.5px;color:var(--muted)">brez ukrepa</span>
-            </div>
-            <div id="v-zakljuceno"><div class="prazno">Nalagam …</div></div>
+          <article class="panel">
+            <header class="panel__head">
+              <span class="dot dot--accent" aria-hidden="true"></span>
+              <h2 class="panel__title">Zaključeno ta teden</h2><span class="count" id="c-zakljuceno">—</span>
+              <span class="bucket__hint">brez ukrepa</span>
+            </header>
+            <ul class="tasks" id="v-zakljuceno"><li class="empty-line">Nalagam …</li></ul>
           </article>
         </section>
 
-        <!-- ── Statistika (skrita, odpre jo gumb v glavi) ── -->
-        <section id="statistika" class="hidden flex flex-col gap-4">
-          <article class="card">
-            <div class="card-head">
-              <h2>Glavni podatki</h2>
-              <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-                <label for="filter-q" style="font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)">Vprašalnik</label>
-                <select id="filter-q" class="select" style="width:auto" onchange="spremeniFilter()">
+        <!-- Statistics: hidden, the top bar button opens it (tests read the class) -->
+        <section class="stats hidden" id="statistika" aria-label="Statistika">
+          <article class="panel">
+            <header class="panel__head">
+              <h2 class="panel__title">Glavni podatki</h2>
+              <span class="spacer"></span>
+              <label class="sr-only" for="filter-q">Vprašalnik</label>
+              <span class="select-wrap select-wrap--inline">
+                <select class="select select--sm" id="filter-q" onchange="spremeniFilter()">
                   <option value="">Vsi vprašalniki</option>
                 </select>
-              </div>
-            </div>
-            <div class="kpis" style="padding:12px">
-              <div class="kpi"><div class="k">Podjetja skupaj</div><div class="row"><div class="v" id="stat-podjetja">—</div></div><div class="d" id="delta-podjetja">—</div></div>
-              <div class="kpi"><div class="k">Odgovori skupaj</div><div class="row"><div class="v" id="stat-odgovori">—</div></div><div class="d" id="delta-odgovori">—</div></div>
-              <div class="kpi attn"><div class="k">Zastarela priporočila</div><div class="row"><div class="v" id="stat-zastarela">—</div></div><div class="d warn">regeneriraj v podjetju</div></div>
-              <div class="kpi attn"><div class="k">Brez priporočil</div><div class="row"><div class="v" id="stat-brez">—</div></div><div class="d warn">še nikoli generirana</div></div>
+              </span>
+            </header>
+            <div class="metrics">
+              <div class="metric"><span class="metric__label">Podjetja skupaj</span><span class="metric__value" id="stat-podjetja">—</span><span class="metric__note" id="delta-podjetja">&nbsp;</span></div>
+              <div class="metric"><span class="metric__label">Odgovori skupaj</span><span class="metric__value" id="stat-odgovori">—</span><span class="metric__note" id="delta-odgovori">&nbsp;</span></div>
+              <div class="metric"><span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Zastarela priporočila</span><span class="metric__value" id="stat-zastarela">—</span><span class="metric__note">regeneriraj v podjetju</span></div>
+              <div class="metric"><span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Brez priporočil</span><span class="metric__value" id="stat-brez">—</span><span class="metric__note">še nikoli generirana</span></div>
             </div>
           </article>
 
-          <article class="card">
-            <div class="card-head">
-              <h2>Odgovori — zadnjih 30 dni</h2>
+          <article class="panel">
+            <header class="panel__head">
+              <h2 class="panel__title">Odgovori, zadnjih 30 dni</h2>
               <span class="count" id="timeline-meta">—</span>
-            </div>
-            <div id="timeline-chart" class="p-3" style="height:190px">
-              <div class="skeleton w-full h-full"></div>
-            </div>
+            </header>
+            <div class="chart" id="timeline-chart"><div class="skeleton"></div></div>
           </article>
 
-          <article class="card">
-            <div class="card-head">
-              <h2>Aktivnost podjetij</h2>
-              <a href="/admin/podjetja.html">Odpri seznam →</a>
-            </div>
-            <div id="aktivnost">
-              <div class="p-3 flex flex-col gap-2">
-                <div class="skeleton h-9"></div><div class="skeleton h-9"></div><div class="skeleton h-9"></div>
-              </div>
-            </div>
+          <article class="panel">
+            <header class="panel__head">
+              <h2 class="panel__title">Aktivnost podjetij</h2>
+              <span class="spacer"></span>
+              <a class="link" href="/admin/podjetja.html">Odpri seznam<svg class="icon icon--sm" aria-hidden="true"><use href="#i-arrow-right"/></svg></a>
+            </header>
+            <ul class="rows" id="aktivnost"><li class="empty-line">Nalagam …</li></ul>
           </article>
         </section>
-
       </div>
     </main>
   </div>
 
   <script src="/admin/app.js"></script>
   <script>
-    // Navigacija je skupna komponenta (public/admin/app.js). Izrisati jo je
-    // treba pred vsem ostalim, ker renderiraj_seznam() pise v #sub iz nje.
-    renderSidebar('pregled');
+    // Shared navigation (public/admin/app.js) first: icons exist only after it.
+    renderNav('pregled');
 
-    function toggleSub() {
-      const sub = document.getElementById('sub');
-      const chev = document.getElementById('chev');
-      const hidden = sub.style.display === 'none';
-      sub.style.display = hidden ? 'block' : 'none';
-      chev.style.transform = hidden ? '' : 'rotate(-90deg)';
-    }
-
-    function preklopiStatistiko() {
+    // Opens/closes the statistics section. `odpri` forces a state (used by
+    // #q= and #statistika in the address); without it the click toggles.
+    function preklopiStatistiko(odpri) {
       const el = document.getElementById('statistika');
-      const skrito = el.classList.toggle('hidden');
-      document.getElementById('btn-statistika').textContent = skrito ? 'Statistika' : 'Skrij statistiko';
-      if (!skrito) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      const gumb = document.getElementById('btn-statistika');
+      const pokazi = typeof odpri === 'boolean' ? odpri : el.classList.contains('hidden');
+      el.classList.toggle('hidden', !pokazi);
+      gumb.setAttribute('aria-expanded', String(pokazi));
+      gumb.querySelector('span').textContent = pokazi ? 'Skrij statistiko' : 'Statistika';
+      if (pokazi) {
+        narisiGraf();   // the chart needs the real width, which exists only when visible
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
 
+    // "pred 5 min", "pred 3 h", "pred 1 dnem", "pred 2 dnevoma", "pred 4 dnevi".
     function relativnoTime(iso) {
       if (!iso) return 'nikoli';
       const ms = Date.now() - new Date(iso).getTime();
@@ -205,13 +250,15 @@
       const h = Math.floor(min / 60);
       if (h < 24) return `pred ${h} h`;
       const d = Math.floor(h / 24);
-      if (d < 30) return `pred ${d} d`;
-      return formatDatum(iso);
+      if (d >= 30) return formatDan(iso);
+      if (d === 1) return 'pred 1 dnem';
+      if (d % 100 === 2) return `pred ${d} dnevoma`;
+      return `pred ${d} dnevi`;
     }
 
-    // Kratka oblika za desni rob vrstice: "2 dni", "5 h".
+    // Short form for the right edge of a task: "2 dni", "5 h".
     function starost(iso) {
-      if (!iso) return '—';
+      if (!iso) return '';
       const ms = Date.now() - new Date(iso).getTime();
       const h = Math.floor(ms / 3600000);
       if (h < 1) return 'zdaj';
@@ -220,29 +267,30 @@
       return `${d} ${d === 1 ? 'dan' : 'dni'}`;
     }
 
-    // Delta v vrstici pod stevilko. `pripis` je besedilo za odstotkom, da
-    // stevilka nikoli ne stoji brez konteksta ("50 %" cesa?).
-    function deltaBadge(elId, current, previous, pripis = 'vs prejšnji teden') {
+    // Change against last week, written into a .metric__note. `pripis` follows
+    // the number so a percentage never stands without context.
+    function deltaBadge(elId, current, previous, pripis = 'glede na prejšnji teden') {
       const el = document.getElementById(elId);
       if (!el) return;
-      const zapisi = (razred, znak, besedilo) => {
-        el.className = 'd' + (razred ? ' ' + razred : '');
-        el.innerHTML = `<span class="${razred === 'up' ? 'delta-up' : razred === 'down' ? 'delta-down' : 'delta-flat'}">${znak}</span> ${besedilo}`;
+      const zapisi = (razred, znak) => {
+        el.innerHTML = razred
+          ? `<span class="${razred}">${znak}</span> ${esc(pripis)}`
+          : `${znak} ${esc(pripis)}`;
       };
-      if (previous === 0 && current === 0) return zapisi('', '—', pripis);
-      if (previous === 0) return zapisi('up', `↑ ${current}`, pripis);
+      if (previous === 0 && current === 0) return zapisi('', '0 %');
+      if (previous === 0) return zapisi('delta-up', `↑ ${current}`);
       const pct = Math.round(((current - previous) / previous) * 100);
-      if (pct > 0) return zapisi('up', `↑ ${pct} %`, pripis);
-      if (pct < 0) return zapisi('down', `↓ ${Math.abs(pct)} %`, pripis);
-      return zapisi('', '0 %', pripis);
+      if (pct > 0) return zapisi('delta-up', `↑ ${pct} %`);
+      if (pct < 0) return zapisi('delta-down', `↓ ${Math.abs(pct)} %`);
+      return zapisi('', '0 %');
     }
 
-    // Mikro trend v KPI ploscici. Riseva ga SAMO, kadar imamo pravo dnevno
-    // serijo; izmisljena crta bi bila lepsa in lazniva.
+    // Micro trend in a metric. Drawn ONLY from a real daily series; an
+    // invented line would look nicer and lie.
     function renderSparkline(svgId, vrednosti) {
       const svg = document.getElementById(svgId);
       if (!svg || !vrednosti.length) return;
-      const W = 120, H = 26, pad = 3;
+      const W = 120, H = 24, pad = 3;
       const max = Math.max(1, ...vrednosti);
       const min = Math.min(...vrednosti);
       const razpon = max - min || 1;
@@ -251,12 +299,10 @@
         const y = H - pad - ((v - min) / razpon) * (H - 2 * pad);
         return `${x.toFixed(1)} ${y.toFixed(1)}`;
       });
-      svg.innerHTML = `<path d="M ${tocke.join(' L ')}" fill="none" stroke="#0b7a6c"
-        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+      svg.innerHTML = `<path d="M ${tocke.join(' L ')}"/>`;
     }
 
-    // Slovenska dvojina za naloge: 1 naloga, 2 nalogi, 3-4 naloge, 5+ nalog.
-    // Brez tega bi na dashboardu pisalo "2 nalog", kar zbode vsakega bralca.
+    // Slovenian dual for tasks: 1 naloga, 2 nalogi, 3-4 naloge, 5+ nalog.
     function sklonNalog(n) {
       const z = n % 100;
       if (z === 1) return { stevnik: 'naloga', glagol: 'je' };
@@ -273,49 +319,50 @@
 
       if (n === 0) {
         num.textContent = '0';
-        num.className = 'hero-num ok';
+        num.className = 'focus__num focus__num--ok';
         naslov.textContent = 'Nič ni na tebi';
         opis.textContent = 'Prazen seznam je dober seznam. Preveri, kaj čaka druge.';
       } else {
         const { stevnik, glagol } = sklonNalog(n);
         num.textContent = n;
-        num.className = 'hero-num' + (n >= 5 ? ' attn' : '');
+        num.className = 'focus__num' + (n >= 5 ? ' focus__num--attn' : '');
         naslov.textContent = `${stevnik} ${glagol} na tebi`;
-        opis.textContent = 'Začni na vrhu vedra „Ukrepaj" — razvrščeno je po nujnosti.';
+        opis.textContent = 'Začni na vrhu seznama Ukrepaj. Razvrščeno je po nujnosti.';
       }
 
       document.getElementById('h-caka').textContent = skupno?.caka ?? 0;
       document.getElementById('h-zakljuceno').textContent = skupno?.zakljuceno ?? 0;
     }
 
-    // ── Naloge ────────────────────────────────────────────────────────────
-    // Besedila in gumbi so TU, ne v SQL-u. Vsak gumb vodi na obstojeco stran
-    // — nobenega gumba, ki ne naredi nicesar.
+    // ── Tasks ─────────────────────────────────────────────────────────────
+    // Texts and buttons live HERE, not in SQL. Every button leads to an
+    // existing page; no button that does nothing.
+    const PROCENT = (o) => `${o} %`;
     function opisNaloge(n) {
       const proces = n.proces ? ` · ${esc(n.proces)}` : '';
       const odst = n.napredek?.odstotek;
       switch (n.tip) {
         case 'posiljanje_padlo':
-          return { ton: 'nujno', naslov: esc(n.stranka_naziv), opis: 'Pošiljanje stranki ni uspelo — dopisa ni prejela',
+          return { ton: 'nujno', naslov: esc(n.stranka_naziv), opis: 'Pošiljanje stranki ni uspelo, dopisa ni prejela',
                    gumbi: [['Odpri sejo', `/admin/proces-seja.html?id=${n.session_id}`, true]], kdaj: starost(n.updated_at) };
         case 'za_poslati':
           return { ton: 'nujno', naslov: esc(n.stranka_naziv), opis: `Zaključeno${proces} · stranki še ni poslano`,
                    gumbi: [['Odpri in pošlji', `/admin/proces-seja.html?id=${n.session_id}#kartaPosiljanje`, true]], kdaj: starost(n.zakljucen_at) };
         case 'brez_transkripta':
-          return { ton: 'nujno', naslov: esc(n.stranka_naziv), opis: `Brez transkripta${proces}${odst != null ? ` · izpolnjeno ${odst} %` : ''}`,
+          return { ton: 'nujno', naslov: esc(n.stranka_naziv), opis: `Brez transkripta${proces}${odst != null ? ` · izpolnjeno ${PROCENT(odst)}` : ''}`,
                    gumbi: [['Dodaj transkript', `/admin/proces-seja.html?id=${n.session_id}#kartaTranskript`, true],
                            ['Odpri', `/admin/proces-seja.html?id=${n.session_id}`, false]], kdaj: starost(n.updated_at) };
         case 'za_zakljucit':
-          return { ton: 'opozorilo', naslov: esc(n.stranka_naziv), opis: `Osnutek${proces}${odst != null ? ` · izpolnjeno ${odst} %` : ''}`,
+          return { ton: 'opozorilo', naslov: esc(n.stranka_naziv), opis: `Osnutek${proces}${odst != null ? ` · izpolnjeno ${PROCENT(odst)}` : ''}`,
                    gumbi: [['Nadaljuj', `/admin/proces-seja.html?id=${n.session_id}`, true]], kdaj: starost(n.updated_at) };
         case 'brez_priporocil':
-          return { ton: 'opozorilo', naslov: `${n.stevilo} ${n.stevilo === 1 ? 'podjetje' : 'podjetij'} brez priporočil`,
+          return { ton: 'opozorilo', naslov: `${sklon(n.stevilo, ['podjetje', 'podjetji', 'podjetja', 'podjetij'])} brez priporočil`,
                    opis: 'Imajo odgovore, AI priporočila še niso bila generirana',
-                   gumbi: [['Odpri seznam', '/admin/podjetja.html', true]], kdaj: '—' };
+                   gumbi: [['Odpri seznam', '/admin/podjetja.html', true]], kdaj: '' };
         case 'zastarela_priporocila':
-          return { ton: 'opozorilo', naslov: `${n.stevilo} ${n.stevilo === 1 ? 'zastarelo priporočilo' : 'zastarelih priporočil'}`,
+          return { ton: 'opozorilo', naslov: sklon(n.stevilo, ['zastarelo priporočilo', 'zastareli priporočili', 'zastarela priporočila', 'zastarelih priporočil']),
                    opis: 'Po zadnji generaciji je prišel novejši odgovor',
-                   gumbi: [['Odpri seznam', '/admin/podjetja.html', true]], kdaj: '—' };
+                   gumbi: [['Odpri seznam', '/admin/podjetja.html', true]], kdaj: '' };
         case 'neocenjen_odgovor':
           return { ton: 'opozorilo', naslov: esc(n.naziv_prikaz), opis: 'Nov odgovor, brez kvalifikacije',
                    gumbi: [['Oceni', `/admin/company.html?id=${n.company_id}`, true]], kdaj: starost(n.zadnji_odgovor) };
@@ -327,85 +374,99 @@
           return { ton: 'opozorilo', naslov: esc(n.stranka_naziv), opis: 'Poslano stranki, brez odziva',
                    gumbi: [['Odpri', `/admin/proces-seja.html?id=${n.session_id}`, false]], kdaj: starost(n.poslan_at) };
         case 'poslano':
-          return { ton: 'mirno', naslov: esc(n.stranka_naziv), opis: 'Poslano stranki', znacka: '<span class="tag info">Poslano</span>',
+          return { ton: 'mirno', naslov: esc(n.stranka_naziv), opis: 'Poslano stranki', znacka: '<span class="chip chip--accent">Poslano</span>',
                    gumbi: [], kdaj: starost(n.poslan_at) };
         case 'zakljuceno':
-          return { ton: 'mirno', naslov: esc(n.stranka_naziv), opis: `Seja zaključena${odst != null ? ` · ${odst} %` : ''}`,
-                   znacka: '<span class="tag ok">Zaključeno</span>', gumbi: [], kdaj: starost(n.zakljucen_at) };
+          return { ton: 'mirno', naslov: esc(n.stranka_naziv), opis: `Seja zaključena${odst != null ? ` · ${PROCENT(odst)}` : ''}`,
+                   znacka: '<span class="chip chip--success">Zaključeno</span>', gumbi: [], kdaj: starost(n.zakljucen_at) };
         default:
-          return { ton: '', naslov: esc(n.stranka_naziv || n.naziv_prikaz || n.tip), opis: '', gumbi: [], kdaj: '—' };
+          return { ton: '', naslov: esc(n.stranka_naziv || n.naziv_prikaz || n.tip), opis: '', gumbi: [], kdaj: '' };
       }
     }
 
+    // Tone → dot color and the screen-reader word for it.
+    const TON = {
+      nujno:     ['dot--danger', 'Nujno'],
+      opozorilo: ['dot--warning', 'Opozorilo'],
+      mirno:     ['dot--accent', 'V redu'],
+    };
+
     function izrisiVedro(elId, naloge, praznoBesedilo) {
       const el = document.getElementById(elId);
-      if (!naloge.length) { el.innerHTML = `<div class="prazno">${praznoBesedilo}</div>`; return; }
+      if (!naloge.length) { el.innerHTML = `<li class="empty-line">${praznoBesedilo}</li>`; return; }
       el.innerHTML = naloge.map(n => {
         const v = opisNaloge(n);
+        const [pika, beseda] = TON[v.ton] || ['', 'Naloga'];
         const gumbi = v.gumbi.map(([besedilo, href, glavni]) =>
-          `<a class="btn-mini${glavni ? ' dark' : ''}" href="${href}">${besedilo}</a>`).join('');
-        const noga = (gumbi || v.znacka)
-          ? `<div class="noga">${gumbi}${v.znacka ?? ''}<span class="kdaj">${v.kdaj}</span></div>`
-          : '';
-        return `<div class="naloga ${v.ton}"><b>${v.naslov}</b><p>${v.opis}</p>${noga}</div>`;
+          `<a class="btn ${glavni ? 'btn--soft' : 'btn--secondary'} btn--sm" href="${href}">${besedilo}</a>`).join('');
+        const dejanja = (gumbi || v.znacka) ? `<div class="task__actions">${gumbi}${v.znacka ?? ''}</div>` : '';
+        const kdaj = v.kdaj ? `<span class="task__when">${v.kdaj}</span>` : '';
+        const opis = v.opis ? `<p class="task__desc">${v.opis}</p>` : '';
+        return `
+          <li class="task naloga">
+            <span class="dot ${pika}"><span class="sr-only">${beseda}</span></span>
+            <div>
+              <div class="task__top"><b class="task__title" title="${v.naslov}">${v.naslov}</b>${kdaj}</div>
+              ${opis}${dejanja}
+            </div>
+          </li>`;
       }).join('');
     }
 
-    // Glavni line chart za 30 dni
+    // ── 30-day chart ──────────────────────────────────────────────────────
+    // Drawn at the container's real width, so text and dots keep their shape
+    // (a stretched viewBox squeezes the axis labels on a phone). Colors come
+    // from CSS classes, not from code.
+    let timeline = [];
+
     function renderTimelineChart(rows) {
-      const el = document.getElementById('timeline-chart');
-      if (!rows.length) { el.innerHTML = '<div class="prazno">Ni podatkov.</div>'; return; }
-      const values = rows.map(r => r.st);
-      const W = 1100, H = 190, padL = 34, padR = 12, padT = 12, padB = 26;
-      const innerW = W - padL - padR;
-      const innerH = H - padT - padB;
-      const max = Math.max(3, ...values);
-      const yTicks = [0, Math.round(max / 2), max];
-      const xStep = innerW / (rows.length - 1 || 1);
-
-      const points = values.map((v, i) => ({
-        x: padL + i * xStep,
-        y: padT + innerH - (v / max) * innerH,
-        v, dan: rows[i].dan,
-      }));
-
-      const pathD = 'M ' + points.map(p => `${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' L ');
-      const areaD = pathD + ` L ${points[points.length - 1].x.toFixed(1)} ${padT + innerH} L ${padL} ${padT + innerH} Z`;
-
-      const gridLines = yTicks.map(t => {
-        const y = padT + innerH - (t / max) * innerH;
-        return `<line x1="${padL}" y1="${y}" x2="${padL + innerW}" y2="${y}" stroke="#e4e7ec" stroke-dasharray="3,3"/>
-                <text x="${padL - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="#98a2b3">${t}</text>`;
-      }).join('');
-
-      const xLabels = points.map((p, i) => {
-        if (i % 5 !== 0 && i !== points.length - 1) return '';
-        const d = new Date(p.dan);
-        return `<text x="${p.x}" y="${padT + innerH + 17}" text-anchor="middle" font-size="11" fill="#98a2b3">${d.getDate()}. ${d.getMonth() + 1}.</text>`;
-      }).join('');
-
-      const dots = points.map(p => p.v > 0 ? `<circle cx="${p.x}" cy="${p.y}" r="2.5" fill="#0b6457"/>` : '').join('');
-
-      el.innerHTML = `
-        <svg viewBox="0 0 ${W} ${H}" class="w-full h-full" preserveAspectRatio="xMidYMid meet">
-          <defs>
-            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#0b6457" stop-opacity="0.16"/>
-              <stop offset="100%" stop-color="#0b6457" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          ${gridLines}
-          <path d="${areaD}" fill="url(#areaGrad)"/>
-          <path d="${pathD}" stroke="#0b6457" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          ${dots}
-          ${xLabels}
-        </svg>`;
+      timeline = rows;
+      narisiGraf();
     }
 
-    // ── Stanje filtra ─────────────────────────────────────────────────
-    // Filter velja samo za seznam podjetij (sidebar + Aktivnost).
-    // Stats in timeline ostaneta globalna — pokrivata vse vprasalnike.
-    let aktivniFilter = '';     // '' = vsi, sicer questionnaire_id kot string
+    function narisiGraf() {
+      const el = document.getElementById('timeline-chart');
+      if (!timeline.length) { el.innerHTML = '<p class="empty-line">Ni podatkov.</p>'; return; }
+      const cs = getComputedStyle(el);
+      const sirina = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const W = sirina > 0 ? Math.round(sirina) : 1000;
+      const H = 190, L = 28, R = 8, T = 10, B = 26;
+      const vrednosti = timeline.map(r => r.st);
+      const max = Math.max(3, ...vrednosti);
+      const iw = W - L - R, ih = H - T - B;
+      const korak = iw / (vrednosti.length - 1 || 1);
+      const tocke = vrednosti.map((v, i) => [L + i * korak, T + ih - (v / max) * ih, v]);
+      const pot = 'M ' + tocke.map(([x, y]) => `${x.toFixed(1)} ${y.toFixed(1)}`).join(' L ');
+      const oznake = [0, Math.round(max / 2), max];
+      const mreza = oznake.map(t => {
+        const y = T + ih - (t / max) * ih;
+        return `<line x1="${L}" y1="${y}" x2="${W - R}" y2="${y}"/>`;
+      }).join('');
+      const osY = oznake.map(t => `<text x="${L - 8}" y="${T + ih - (t / max) * ih + 4}" text-anchor="end">${t}</text>`).join('');
+      const vsak = W < 520 ? 10 : 5;
+      const osX = tocke.map(([x], i) => {
+        if (i % vsak !== 0 && i !== tocke.length - 1) return '';
+        const d = new Date(timeline[i].dan);
+        const sidro = i === 0 ? 'start' : i === tocke.length - 1 ? 'end' : 'middle';
+        return `<text x="${x.toFixed(1)}" y="${H - 6}" text-anchor="${sidro}">${d.getDate()}. ${d.getMonth() + 1}.</text>`;
+      }).join('');
+      const pike = tocke.map(([x, y, v]) => v > 0 ? `<circle class="pt" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.5"/>` : '').join('');
+      el.innerHTML =
+        `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Število odgovorov po dnevih">` +
+        `<g class="grid">${mreza}</g><g class="axis">${osY}${osX}</g>` +
+        `<path class="area" d="${pot} L ${(W - R).toFixed(1)} ${T + ih} L ${L} ${T + ih} Z"/>` +
+        `<path class="line" d="${pot}"/>${pike}</svg>`;
+    }
+
+    // Redraw at the new width; only while the chart is visible.
+    window.addEventListener('resize', debounce(() => {
+      if (!document.getElementById('statistika').classList.contains('hidden')) narisiGraf();
+    }, 150));
+
+    // ── Questionnaire filter ──────────────────────────────────────────────
+    // The filter applies to the company activity list only. Stats and the
+    // timeline stay global, they cover every questionnaire.
+    let aktivniFilter = '';     // '' = all, otherwise questionnaire_id as string
     let vprasalniki = [];       // [{id, slug, naziv_prikaz, aktivna}]
 
     function spremeniFilter() {
@@ -416,63 +477,71 @@
     }
 
     async function nalozipodjetja() {
+      const el = document.getElementById('aktivnost');
+      el.innerHTML = '<li class="empty-line">Nalagam …</li>';
       const url = aktivniFilter
         ? `/api/companies?questionnaire_id=${encodeURIComponent(aktivniFilter)}`
         : '/api/companies';
       const r = await apiFetch(url);
-      renderiraj_seznam(r?.companies ?? []);
+      if (!r) {
+        el.innerHTML = `<li class="task-msg"><div class="callout callout--danger" role="alert">${ikona('alert')}<div>Podjetij ni bilo mogoče naložiti.</div></div></li>`;
+        return;
+      }
+      renderiraj_seznam(r.companies ?? []);
     }
 
-    function renderiraj_seznam(podjetja) {
-      // Sidebar — seznam podjetij, razvrscen po zadnji aktivnosti.
-      const chevOvoj = document.getElementById('chev-ovoj');
-      if (chevOvoj) chevOvoj.classList.remove('hidden');
-      const sub = document.getElementById('sub');
-      const razvrscena = [...podjetja].sort((a, b) => {
-        const ta = a.zadnji_odgovor ? new Date(a.zadnji_odgovor).getTime() : 0;
-        const tb = b.zadnji_odgovor ? new Date(b.zadnji_odgovor).getTime() : 0;
-        return tb - ta;
-      });
-      sub.innerHTML = razvrscena.map(p => {
-        const isZastarela = p.has_priporocila && p.priporocila_updated_at && p.zadnji_odgovor
-          && new Date(p.zadnji_odgovor) > new Date(p.priporocila_updated_at);
-        let badge;
-        if (!p.has_priporocila)  badge = '<span class="badge-warning" title="Brez priporočil">—</span>';
-        else if (isZastarela)    badge = '<span class="badge-warning" title="Zastarela priporočila">⚠</span>';
-        else                     badge = '<span class="badge-success" title="Posodobljeno">✓</span>';
-        return `
-          <a href="/admin/company.html?id=${p.id}" class="sidebar-sub" title="${esc(p.naziv_prikaz)}">
-            <span class="ellipsis" style="max-width: 150px;">${esc(p.naziv_prikaz)}</span>
-            ${badge}
-          </a>`;
-      }).join('') || '<div class="sidebar-sub">Brez podjetij</div>';
+    // Initials for the avatar: first and last word, legal forms skipped
+    // ("Mizarstvo Kovač d.o.o." → MK).
+    function zacetnice(naziv) {
+      const besede = String(naziv || '').split(/\s+/)
+        .filter(b => b && !/^(d\.?o\.?o\.?|s\.?p\.?|d\.?d\.?|d\.?n\.?o\.?|k\.?d\.?)$/i.test(b));
+      if (!besede.length) return '?';
+      const prva = besede[0][0];
+      const zadnja = besede.length > 1 ? besede[besede.length - 1][0] : '';
+      return (prva + zadnja).toUpperCase();
+    }
 
-      // Aktivnost — zadnjih 6 odgovorov
+    // Company activity: the 6 most recent answers.
+    function renderiraj_seznam(podjetja) {
       const aktivni = [...podjetja]
         .filter(p => p.zadnji_odgovor)
         .sort((a, b) => new Date(b.zadnji_odgovor) - new Date(a.zadnji_odgovor))
         .slice(0, 6);
 
       const el = document.getElementById('aktivnost');
-      if (!aktivni.length) { el.innerHTML = '<div class="prazno">Še ni aktivnosti.</div>'; return; }
+      if (!aktivni.length) {
+        el.innerHTML = `<li class="empty-line">${aktivniFilter ? 'Za ta vprašalnik še ni aktivnosti.' : 'Še ni aktivnosti.'}</li>`;
+        return;
+      }
 
       el.innerHTML = aktivni.map(p => {
-        const isZastarela = p.has_priporocila && p.priporocila_updated_at && p.zadnji_odgovor
+        const zastarela = p.has_priporocila && p.priporocila_updated_at && p.zadnji_odgovor
           && new Date(p.zadnji_odgovor) > new Date(p.priporocila_updated_at);
-        let badge;
-        if (!p.has_priporocila)  badge = '<span class="badge-neutral">AI —</span>';
-        else if (isZastarela)    badge = '<span class="badge-warning">AI zastarela</span>';
-        else                     badge = '<span class="badge-success">AI ✓</span>';
+        let znacka;
+        if (!p.has_priporocila) znacka = '<span class="chip">AI ni pripravljeno</span>';
+        else if (zastarela)     znacka = '<span class="chip chip--warning">AI zastarela</span>';
+        else                    znacka = '<span class="chip chip--success">AI pripravljeno</span>';
         return `
-          <a href="/admin/company.html?id=${p.id}" class="list-row row-lift" style="text-decoration:none;color:inherit">
-            <div class="avatar">${esc((p.naziv_prikaz || '?')[0].toUpperCase())}</div>
-            <div class="txt">
-              <b>${esc(p.naziv_prikaz)}</b>
-              <span>${p.st_odgovorov} odgovor${p.st_odgovorov === 1 ? '' : 'ov'} · ${relativnoTime(p.zadnji_odgovor)}</span>
-            </div>
-            ${badge}
-          </a>`;
+          <li><a class="row" href="/admin/company.html?id=${p.id}">
+            <span class="avatar" aria-hidden="true">${esc(zacetnice(p.naziv_prikaz))}</span>
+            <span class="row__txt"><b>${esc(p.naziv_prikaz)}</b><span>${sklon(p.st_odgovorov, ['odgovor', 'odgovora', 'odgovori', 'odgovorov'])} · ${relativnoTime(p.zadnji_odgovor)}</span></span>
+            ${znacka}
+          </a></li>`;
       }).join('');
+    }
+
+    // "3 aktivni vprašalniki", "1 aktiven vprašalnik", "5 aktivnih vprašalnikov".
+    function aktivniVprasalniki(n) {
+      return sklon(n, ['aktiven vprašalnik', 'aktivna vprašalnika', 'aktivni vprašalniki', 'aktivnih vprašalnikov']);
+    }
+
+    function napakaNalaganja() {
+      const sporocilo = `<li class="task-msg"><div class="callout callout--danger" role="alert">${ikona('alert')}<div>Napaka pri nalaganju. Osvežite stran.</div></div></li>`;
+      document.getElementById('v-ukrepaj').innerHTML = sporocilo;
+      document.getElementById('v-caka').innerHTML = '<li class="empty-line">Ni podatkov.</li>';
+      document.getElementById('v-zakljuceno').innerHTML = '<li class="empty-line">Ni podatkov.</li>';
+      document.getElementById('h-naslov').textContent = 'Podatkov ni bilo mogoče naložiti';
+      document.getElementById('h-opis').textContent = 'Osvežite stran. Če se ponovi, preverite povezavo s strežnikom.';
     }
 
     (async () => {
@@ -491,33 +560,37 @@
         apiFetch('/api/procesi/seje'),
       ]);
 
-      if (!stats || !companies || !naloge) {
-        document.getElementById('v-ukrepaj').innerHTML =
-          '<div class="prazno" style="color:var(--danger)">Napaka pri nalaganju.</div>';
-        return;
-      }
+      if (!stats || !companies || !naloge) { napakaNalaganja(); return; }
 
       const t = stats.totals;
       const vseSeje = seje?.seje ?? [];
       const vTeku = vseSeje.filter(s => s.status === 'osnutek').length;
 
-      // KPI ploscice na vrhu
+      // Metrics strip
       document.getElementById('s-podjetja').textContent = t.podjetja_total;
       document.getElementById('s-odgovori').textContent = t.odgovori_7d;
       document.getElementById('s-seje').textContent = vseSeje.length;
       document.getElementById('s-brez').textContent = t.brez_priporocil;
       document.getElementById('s-zastarela').textContent = stats.zastarela;
-      deltaBadge('d-podjetja', t.podjetja_7d, t.podjetja_prej_7d, 'novih ta teden');
-      deltaBadge('d-odgovori', t.odgovori_7d, t.odgovori_prej_7d, 'vs prejšnji teden');
-      document.getElementById('d-seje').textContent =
-        `${vTeku} v teku · ${t.vprasalniki_aktivni} aktivnih vprašalnikov`;
+      // Companies: how many are new this week (count, as in the prototype).
+      const novih = t.podjetja_7d ?? 0;
+      document.getElementById('d-podjetja').innerHTML = novih > 0
+        ? `<span class="delta-up">↑ ${novih}</span> ${sklon(novih, ['novo', 'novi', 'nova', 'novih']).replace(/^\d+ /, '')} ta teden`
+        : 'ta teden brez novih';
+      deltaBadge('d-odgovori', t.odgovori_7d, t.odgovori_prej_7d);
+      document.getElementById('d-seje').textContent = `${vTeku} v teku · ${aktivniVprasalniki(t.vprasalniki_aktivni)}`;
       renderSparkline('spark-odgovori', stats.timeline.slice(-14).map(r => r.st));
-      document.getElementById('osvezeno').textContent = '· osveženo ' + relativnoTime(new Date().toISOString());
 
-      // Naslovna vrstica — ena velika stevilka pove stanje dneva
+      // "refreshed N min ago" ages with the page
+      const nalozeno = new Date().toISOString();
+      const osvezi = () => { document.getElementById('osvezeno').textContent = ` · osveženo ${relativnoTime(nalozeno)}`; };
+      osvezi();
+      setInterval(osvezi, 60000);
+
+      // Day focus: one big number tells the state of the day
       izrisiHero(naloge.skupno);
 
-      // Tri vedra
+      // Three buckets
       izrisiVedro('v-ukrepaj', naloge.ukrepaj, 'Nič ni na tebi. Prazen seznam je dober seznam.');
       izrisiVedro('v-caka', naloge.caka, 'Nič ne čaka drugih.');
       izrisiVedro('v-zakljuceno', naloge.zakljuceno, 'Ta teden še ni zaključenih sej.');
@@ -525,7 +598,7 @@
       document.getElementById('c-caka').textContent = naloge.skupno.caka;
       document.getElementById('c-zakljuceno').textContent = naloge.skupno.zakljuceno;
 
-      // Statistika
+      // Statistics
       vprasalniki = qList?.questionnaires ?? [];
       const sel = document.getElementById('filter-q');
       sel.innerHTML = '<option value="">Vsi vprašalniki</option>' + vprasalniki
@@ -545,6 +618,26 @@
       document.getElementById('timeline-meta').textContent = `${skupaj30} skupaj`;
 
       renderiraj_seznam(companies.companies ?? []);
+
+      // A filtered link (#q=ID, e.g. "N odgovorov →" on Vprašalniki) or
+      // #statistika opens the statistics, where the filtered activity lives.
+      if (aktivniFilter || window.location.hash === '#statistika') preklopiStatistiko(true);
+
+      // A #q= / #statistika link followed while already on this page changes
+      // only the hash (no reload); apply it here. spremeniFilter() writes the
+      // same hash itself, so an unchanged filter is skipped.
+      window.addEventListener('hashchange', () => {
+        const q = window.location.hash.match(/q=(\d+)/)?.[1] ?? '';
+        if (q && q === aktivniFilter) return;   // written by spremeniFilter()
+        if (q) {
+          aktivniFilter = q;
+          const izbira = document.getElementById('filter-q');
+          if ([...izbira.options].some(o => o.value === q)) izbira.value = q;
+          nalozipodjetja();
+        }
+        const skrita = document.getElementById('statistika').classList.contains('hidden');
+        if (skrita && (q || window.location.hash === '#statistika')) preklopiStatistiko(true);
+      });
     })();
   </script>
 </body>

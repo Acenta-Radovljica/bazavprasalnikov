@@ -2,56 +2,100 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Podjetja</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Podjetja · Acenta baza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
   <link rel="stylesheet" href="/admin/admin.css">
+  <style>
+    /* Page-only styles, ported from design-prototype/podjetja.html.
+       .toolbar and .table--stack live in admin.css. */
+
+    /* Company table: fixed columns, the name takes the rest */
+    .ctable col.c-name { width: auto; }
+    .ctable col.c-ocena { width: 120px; }
+    .ctable col.c-status { width: 160px; }
+    .ctable col.c-odg { width: 96px; }
+    .ctable col.c-pp { width: 152px; }
+    .ctable col.c-prip { width: 148px; }
+    .ctable col.c-zadnji { width: 128px; }
+    .ctable col.c-go { width: 44px; }
+    .ctable td.c-name { white-space: normal; }
+    .ctable .select-wrap { width: 100%; }
+    .ctable td.c-go { color: var(--text-faint); text-align: right; }
+    .ctable tr.is-link:hover td.c-go { color: var(--accent); }
+    .ni { color: var(--text-muted); }
+    .prip-ok { color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; }
+    #content > .callout { margin: var(--space-4); }
+    /* .table__sub (display:block) comes after .only-m in admin.css and wins */
+    .ctable .only-m { display: none; }
+
+    /* Phone: rows become cards (admin.css .table--stack); this sets the order:
+       name + arrow, status across, then score, proposal, recommendations. */
+    @media (max-width: 760px) {
+      .ctable td.c-name { order: 0; flex: 1 1 0; min-width: 0; }
+      .ctable td.c-go { order: 1; flex: none; }
+      .ctable td.c-status { order: 2; flex: 1 1 100%; }
+      .ctable td.c-ocena { order: 3; }
+      .ctable td.c-pp { order: 4; }
+      .ctable td.c-prip { order: 5; }
+      .ctable td.c-odg, .ctable td.c-zadnji, .ctable td.c-prip.is-ok { display: none; }
+      .ctable .only-m { display: block; }
+    }
+  </style>
 </head>
-<body class="min-h-screen">
-  <header id="nav"></header>
-
-  <main class="flex-1 min-w-0 flex flex-col">
-    <div class="e-wrap">
-      <div class="e-crumb">Baza vprašalnikov / <strong>Podjetja</strong></div>
-
-      <div class="e-title">
-        <div>
-          <div class="e-eyebrow"><i></i>Delo</div>
-          <h1>Podjetja.</h1>
-          <p id="meta">—</p>
+<body>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <div class="topbar__title">
+          <h1>Podjetja</h1>
+          <span class="topbar__meta" id="meta">Nalagam …</span>
         </div>
-        <a class="e-btn-soft" href="/admin/kanban.html">Kanban pogled <span class="e-go">→</span></a>
+        <span class="spacer"></span>
+        <div class="topbar__actions">
+          <a class="btn btn--secondary" href="/admin/kanban.html"><svg class="icon" aria-hidden="true"><use href="#i-columns"/></svg>Kanban pogled</a>
+        </div>
+      </header>
+
+      <div class="page">
+        <div class="toolbar" role="search">
+          <label class="search">
+            <svg class="icon" aria-hidden="true"><use href="#i-search"/></svg>
+            <input id="filter" type="search" placeholder="Filtriraj po nazivu …" aria-label="Filtriraj po nazivu" autocomplete="off">
+          </label>
+          <div class="toolbar__group">
+            <span class="toolbar__lbl" id="ocenaLbl">Ocena</span>
+            <div class="seg" role="group" aria-labelledby="ocenaLbl" id="filterKval">
+              <button class="seg__item active" type="button" aria-pressed="true" data-kval="">Vse</button>
+              <button class="seg__item" type="button" aria-pressed="false" data-kval="hot">Hot</button>
+              <button class="seg__item" type="button" aria-pressed="false" data-kval="warm">Warm</button>
+              <button class="seg__item" type="button" aria-pressed="false" data-kval="cold">Cold</button>
+              <button class="seg__item" type="button" aria-pressed="false" data-kval="neocenjeno">Neocenjeno</button>
+            </div>
+          </div>
+          <span class="spacer"></span>
+          <div class="toolbar__group">
+            <label class="toolbar__lbl" for="filterStatus">Status</label>
+            <span class="select-wrap"><select class="select" id="filterStatus">
+              <option value="">Vsi statusi</option>
+            </select></span>
+          </div>
+        </div>
+
+        <section class="panel" aria-label="Seznam podjetij">
+          <div class="table-scroll" id="content"></div>
+          <footer class="panel__foot">
+            <span id="foot-count"></span>
+            <span class="spacer"></span>
+            <span class="hide-m">Klik na vrstico odpre podjetje · status spremenite kar v tabeli</span>
+          </footer>
+        </section>
       </div>
-
-      <div class="e-toolbar">
-        <label class="e-search">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-          <input id="filter" type="text" placeholder="Filtriraj po nazivu …" aria-label="Filtriraj po nazivu">
-        </label>
-        <span class="e-lbl">Ocena</span>
-        <div class="e-periods" id="filterKval" role="group" aria-label="Filter po oceni">
-          <button type="button" data-kval="" class="active">Vse</button>
-          <button type="button" data-kval="hot">Hot</button>
-          <button type="button" data-kval="warm">Warm</button>
-          <button type="button" data-kval="cold">Cold</button>
-          <button type="button" data-kval="neocenjeno">Neocenjeno</button>
-        </div>
-        <div class="spacer"></div>
-        <span class="e-lbl">Status</span>
-        <select id="filterStatus" class="e-select" aria-label="Filter po statusu">
-          <option value="">Vsi statusi</option>
-        </select>
-      </div>
-
-      <section class="e-panel">
-        <div id="content" class="e-table-scroll"></div>
-        <div class="e-panel-foot">
-          <span id="foot-count"></span>
-          <span>Klik na vrstico odpre podjetje · status spremenite kar v tabeli</span>
-        </div>
-      </section>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script src="/admin/app.js"></script>
   <script>
@@ -60,7 +104,7 @@
     let vsaPodjetja = [];
     let fKval = '';
 
-    // Lijak — ista resnica kot STATUSI v src/routes/api.js in CHECK v migraciji 005.
+    // Funnel: the same truth as STATUSI in src/routes/api.js and the CHECK in migration 005.
     const STATUSI = ['nov', 'kvalificiran', 'kontaktiran', 'sestanek', 'ponudba', 'dobljen', 'izgubljen'];
     const STATUS_NAZIV = {
       nov: 'Nov', kvalificiran: 'Kvalificiran', kontaktiran: 'Kontaktiran', sestanek: 'Sestanek',
@@ -68,32 +112,40 @@
     };
 
     function kvalChip(k) {
-      if (k === 'hot')  return '<span class="e-chip bad">Hot</span>';
-      if (k === 'warm') return '<span class="e-chip warn">Warm</span>';
-      if (k === 'cold') return '<span class="e-chip cold">Cold</span>';
-      return '<span class="e-chip layer" title="Še ni AI ocene">Neocenjeno</span>';
+      if (k === 'hot')  return '<span class="chip chip--hot">Hot</span>';
+      if (k === 'warm') return '<span class="chip chip--warm">Warm</span>';
+      if (k === 'cold') return '<span class="chip chip--cold">Cold</span>';
+      return '<span class="chip" title="Še ni AI ocene">Neocenjeno</span>';
     }
 
-    // Tri stanja priporocil: brez / pripravljeno / zastarelo (nov odgovor po generaciji).
-    function aiChip(p) {
-      if (!p.has_priporocila) return '<span class="e-chip warn" title="Priporočila še niso generirana">Brez priporočil</span>';
-      const zastarela = p.priporocila_updated_at && p.zadnji_odgovor
-        && new Date(p.zadnji_odgovor) > new Date(p.priporocila_updated_at);
-      return zastarela
-        ? '<span class="e-chip warn" title="Nov odgovor po zadnji generaciji">Zastarelo</span>'
-        : '<span class="e-chip ok" title="Priporočila so posodobljena">Pripravljeno</span>';
+    // Sales proposal: ready / being prepared / none.
+    function predlogChip(p) {
+      if (p.prodajni_predlog_tece) return '<span class="chip chip--accent"><span class="pulse" aria-hidden="true"></span>Pripravlja se</span>';
+      if (p.ima_prodajni_predlog) return `<span class="chip chip--success">${ikona('check')}Pripravljen</span>`;
+      return '<span class="ni">ni</span>';
     }
 
-    // Dropdown za status. stopPropagation prepreci, da klik odpre podjetje.
+    // Workshop recommendations: color only when action is needed
+    // (none yet, or a newer answer arrived after the last generation).
+    function jeZastarelo(p) {
+      return !!(p.has_priporocila && p.priporocila_updated_at && p.zadnji_odgovor
+        && new Date(p.zadnji_odgovor) > new Date(p.priporocila_updated_at));
+    }
+    function priporocilaChip(p) {
+      if (!p.has_priporocila) return '<span class="chip chip--warning" title="Priporočila še niso generirana">Brez priporočil</span>';
+      if (jeZastarelo(p)) return '<span class="chip chip--warning" title="Nov odgovor po zadnji generaciji">Zastarelo</span>';
+      return '<span class="prip-ok" title="Priporočila so posodobljena">pripravljeno</span>';
+    }
+
+    // Status select inside the row. Clicking it does not open the company.
     function statusSelect(p) {
       const opts = STATUSI.map(s =>
         `<option value="${s}" ${s === p.status ? 'selected' : ''}>${STATUS_NAZIV[s]}</option>`
       ).join('');
-      return `<select class="e-select" onclick="event.stopPropagation()"
-                onchange="spremeniStatus(${p.id}, this.value, this)" aria-label="Status">${opts}</select>`;
+      return `<span class="select-wrap"><select class="select select--sm" data-id="${p.id}" aria-label="Status: ${esc(p.naziv_prikaz)}">${opts}</select></span>`;
     }
 
-    // PATCH status na backend. Ob napaki vrne select na staro vrednost.
+    // PATCH the status. On error the select returns to the previous value.
     async function spremeniStatus(id, status, el) {
       const p = vsaPodjetja.find(x => x.id === id);
       const prej = p ? p.status : null;
@@ -108,46 +160,69 @@
         if (prej) el.value = prej;
         return;
       }
-      if (p) p.status = status;  // posodobi lokalni cache, da filter ostane skladen
+      if (p) p.status = status;  // keep the local cache in step with the filter
     }
+
+    const odgovorov = (n) => sklon(n, ['odgovor', 'odgovora', 'odgovori', 'odgovorov']);
 
     function renderSeznam(podjetja) {
       const el = document.getElementById('content');
       document.getElementById('foot-count').textContent =
         `Prikazanih ${podjetja.length} od ${vsaPodjetja.length}`;
+
+      if (!vsaPodjetja.length) {
+        el.innerHTML = `
+          <div class="empty empty--center">
+            <b class="empty__title">Še ni podjetij</b>
+            <p class="empty__text">Podjetje nastane samo, ko stranka odda vprašalnik.</p>
+            <a class="btn btn--secondary" href="/admin/questionnaires.html">Odpri vprašalnike</a>
+          </div>`;
+        return;
+      }
       if (!podjetja.length) {
-        el.innerHTML = `<div class="e-empty">${vsaPodjetja.length ? 'Nobeno podjetje ne ustreza filtrom.' : 'Ni podjetij.'}</div>`;
+        el.innerHTML = `
+          <div class="empty empty--center">
+            <b class="empty__title">Nobeno podjetje ne ustreza filtrom</b>
+            <p class="empty__text">Spremenite iskanje ali počistite filtre.</p>
+            <button class="btn btn--secondary" type="button" id="pocisti">Počisti filtre</button>
+          </div>`;
         return;
       }
 
-      const vrstice = podjetja.map((p, i) => `
-        <tr class="row-link" onclick="window.location.href='/admin/company.html?id=${p.id}'">
-          <td class="rk">${i + 1}</td>
-          <td class="name">${esc(p.naziv_prikaz)}<span class="sub">${esc(p.vprasalniki || 'brez odgovorov')}</span></td>
-          <td>${kvalChip(p.kvalifikacija)}</td>
-          <td>${statusSelect(p)}</td>
-          <td class="r">${p.st_odgovorov}</td>
-          <td>${aiChip(p)}</td>
-          <td class="r">${p.zadnji_odgovor ? formatDan(p.zadnji_odgovor) : '—'}</td>
-          <td class="r"><span class="e-go">→</span></td>
-        </tr>
-      `).join('');
+      const vrstice = podjetja.map(p => {
+        const zadnji = p.zadnji_odgovor ? formatDan(p.zadnji_odgovor) : '';
+        const podMob = `${odgovorov(p.st_odgovorov)}${zadnji ? ` · zadnji ${zadnji}` : ''}`;
+        const zastarelo = !p.has_priporocila || jeZastarelo(p);
+        return `
+          <tr class="is-link" data-href="/admin/company.html?id=${p.id}" tabindex="0">
+            <td class="c-name">
+              <span class="table__name" title="${esc(p.naziv_prikaz)}">${esc(p.naziv_prikaz)}</span>
+              <span class="table__sub" title="${esc(p.vprasalniki || '')}">${esc(p.vprasalniki || 'brez odgovorov')}</span>
+              <span class="table__sub only-m">${podMob}</span>
+            </td>
+            <td class="c-ocena">${kvalChip(p.kvalifikacija)}</td>
+            <td class="c-status">${statusSelect(p)}</td>
+            <td class="c-odg is-num" data-label="Odgovori:">${p.st_odgovorov}</td>
+            <td class="c-pp" data-label="Predlog:">${predlogChip(p)}</td>
+            <td class="c-prip${zastarelo ? '' : ' is-ok'}">${priporocilaChip(p)}</td>
+            <td class="c-zadnji is-num" data-label="Zadnji:">${zadnji || '<span class="ni">—</span>'}</td>
+            <td class="c-go">${ikona('chev-right')}</td>
+          </tr>`;
+      }).join('');
 
       el.innerHTML = `
-        <table class="e-table">
-          <thead>
-            <tr>
-              <th>#</th><th>Podjetje</th><th>Ocena</th><th>Status</th>
-              <th class="r">Odgovori</th><th>AI</th><th class="r">Zadnji odgovor</th><th></th>
-            </tr>
-          </thead>
+        <table class="table table--fixed table--stack ctable">
+          <colgroup><col class="c-name"><col class="c-ocena"><col class="c-status"><col class="c-odg"><col class="c-pp"><col class="c-prip"><col class="c-zadnji"><col class="c-go"></colgroup>
+          <thead><tr>
+            <th>Podjetje</th><th>Ocena</th><th>Status</th><th class="is-num">Odgovori</th>
+            <th>Prodajni predlog</th><th>Priporočila</th><th class="is-num">Zadnji odgovor</th><th><span class="sr-only">Odpri</span></th>
+          </tr></thead>
           <tbody>${vrstice}</tbody>
-        </table>
-      `;
+        </table>`;
     }
 
-    // Kombiniran filter: besedilo (naziv) + status + ocena.
-    // Ocena 'neocenjeno' ujame podjetja brez ocene (NULL).
+    // Combined filter: text (name) + status + score.
+    // Score 'neocenjeno' matches companies without a score (NULL).
     function applyFilters() {
       const q = document.getElementById('filter').value.toLowerCase().trim();
       const fStatus = document.getElementById('filterStatus').value;
@@ -164,14 +239,49 @@
       renderSeznam(filtrirana);
     }
 
+    function oznaciKval(gumb) {
+      document.querySelectorAll('#filterKval .seg__item').forEach(x => {
+        const on = x === gumb;
+        x.classList.toggle('active', on);
+        x.setAttribute('aria-pressed', String(on));
+      });
+    }
+
+    // "Počisti filtre" in the empty state resets all three filters.
+    function pocistiFiltre() {
+      document.getElementById('filter').value = '';
+      document.getElementById('filterStatus').value = '';
+      fKval = '';
+      oznaciKval(document.querySelector('#filterKval [data-kval=""]'));
+      applyFilters();
+    }
+
     document.getElementById('filter').addEventListener('input', applyFilters);
     document.getElementById('filterStatus').addEventListener('change', applyFilters);
     document.getElementById('filterKval').addEventListener('click', (e) => {
       const b = e.target.closest('button[data-kval]');
       if (!b) return;
       fKval = b.dataset.kval;
-      document.querySelectorAll('#filterKval button').forEach(x => x.classList.toggle('active', x === b));
+      oznaciKval(b);
       applyFilters();
+    });
+
+    // Row opens the company (click or Enter); the status select does not.
+    const vsebina = document.getElementById('content');
+    vsebina.addEventListener('click', (e) => {
+      if (e.target.closest('#pocisti')) { pocistiFiltre(); return; }
+      if (e.target.closest('select')) return;
+      const tr = e.target.closest('tr[data-href]');
+      if (tr) window.location.href = tr.dataset.href;
+    });
+    vsebina.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' || e.target.closest('select')) return;
+      const tr = e.target.closest('tr[data-href]');
+      if (tr) window.location.href = tr.dataset.href;
+    });
+    vsebina.addEventListener('change', (e) => {
+      const s = e.target.closest('select[data-id]');
+      if (s) spremeniStatus(Number(s.dataset.id), s.value, s);
     });
 
     (async () => {
@@ -182,17 +292,18 @@
         selS.appendChild(o);
       }
 
-      showLoading('content');
+      showLoading('content', 'Nalagam podjetja …');
       const data = await apiFetch('/api/companies');
       if (!data) {
-        showError('content', 'Napaka pri nalaganju podjetij.');
+        document.getElementById('meta').textContent = '';
+        showError('content', 'Napaka pri nalaganju podjetij. Osvežite stran.');
         return;
       }
       vsaPodjetja = data.companies ?? [];
       const odg = vsaPodjetja.reduce((s, p) => s + (p.st_odgovorov || 0), 0);
       document.getElementById('meta').textContent =
-        `${sklon(vsaPodjetja.length, ['podjetje', 'podjetji', 'podjetja', 'podjetij'])} · ${sklon(odg, ['odgovor', 'odgovora', 'odgovori', 'odgovorov'])} · razvrščeno po zadnjem odgovoru`;
-      renderSeznam(vsaPodjetja);
+        `${sklon(vsaPodjetja.length, ['podjetje', 'podjetji', 'podjetja', 'podjetij'])} · ${odgovorov(odg)} · razvrščeno po zadnjem odgovoru`;
+      applyFilters();
     })();
   </script>
 </body>

@@ -184,7 +184,7 @@ let s = await page.evaluate(() => {
   const tab = (d) => p.querySelector(`[data-dok="${d}"]`);
   const box = (el) => el?.getBoundingClientRect();
   return {
-    glava: [...document.querySelectorAll('#header .e-actions > *')].map(e => `${e.className}:${e.textContent.trim()}`),
+    glava: [...document.querySelectorAll('.topbar__actions > *')].map(e => e.textContent.trim()).concat(document.querySelector('.crumbs a[href="/admin/podjetja.html"]') ? ['Podjetja'] : []),
     oznaka: p.querySelector('.lbl')?.textContent,
     pod: p.querySelector('.e-feature-sub')?.textContent.trim(),
     zavihki: [tab('direktor')?.textContent, tab('matjaz')?.textContent],
@@ -201,8 +201,8 @@ let s = await page.evaluate(() => {
     opombe: !!document.querySelector('.pp-stran #opombe'),
   };
 });
-t('glava: Prodajni predlog (glavni), ZIP (mehki), nazaj',
-  JSON.stringify(s.glava) === JSON.stringify(['e-btn:Prodajni predlog', 'e-btn-soft:Izvoz za Claude (ZIP)', 'e-btn-soft:← Vsa podjetja']), JSON.stringify(s.glava));
+t('glava: Izvoz za Claude (ZIP) in pot nazaj na Podjetja',
+  JSON.stringify(s.glava) === JSON.stringify(['Izvoz za Claude (ZIP)', 'Podjetja']), JSON.stringify(s.glava));
 t('kartica Prodajni predlog s podnaslovom iz cesa je nastal',
   s.oznaka === 'Prodajni predlog' && /^Pripravljeno \d+\. \d+\. \d{4} iz 1 odgovora in 0 zapisov sestankov$/.test(s.pod), s.pod);
 t('zavihka Za direktorja / Za Matjaža, aktiven direktor', s.zavihki.join('|') === 'Za direktorja|Za Matjaža' && s.aktiven === 'direktor');

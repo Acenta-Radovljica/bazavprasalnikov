@@ -55,6 +55,7 @@ node test/score-v2.test.mjs          # 85 trditev (v2: vprasanja iz Matjazevega 
 # score-api rabi streznik z lazno MailerLite (test sam odpre mock na :3397):
 #   MAILERLITE_API_URL=http://127.0.0.1:3397 MAILERLITE_API_KEY=test-ml MAILERLITE_GROUP_ID=999
 #   SCORE_OUTBOX_MS=500 SCORE_MAX_V_OKNU=100 ANTHROPIC_API_KEY=
+# Test sam bere bazo iz DATABASE_URL (NE TEST_DB_URL; privzeto :5455). Nastavi ga na isto testno bazo.
 node test/score-api.test.mjs         # 58 trditev (oddaja v1 iz starega zavihka + oddaja v2, porocilo z vzvodi, outbox, kvalifikacija, CSV)
 ```
 

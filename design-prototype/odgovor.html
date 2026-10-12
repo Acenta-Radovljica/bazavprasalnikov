@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mojca Zupan · Hotel Smrekov gaj · Acenta baza</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    /* Glava: kdo je odgovoril, kdaj, na kaj */
+    .ident { display: flex; align-items: center; gap: var(--space-4); margin-bottom: var(--space-6); min-width: 0; }
+    .ident__av { width: 48px; height: 48px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--accent-subtle); color: var(--accent-text); border: 1px solid var(--accent-border); font-size: var(--text-md); font-weight: var(--weight-semibold); }
+    .ident__txt { min-width: 0; }
+    .ident h1 { font-size: var(--text-xl); letter-spacing: -0.015em; }
+    .ident__who { font-size: var(--text-base); color: var(--text-secondary); margin-top: 2px; }
+    .ident__who a { color: var(--accent-text); }
+    .ident__who a:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .ident__meta { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); font-size: var(--text-sm); color: var(--text-muted); }
+    .qlink { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-secondary); font-size: var(--text-sm); white-space: nowrap; transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out); }
+    a.qlink:hover { border-color: var(--border-strong); background: var(--bg-hover); color: var(--text); }
+    .pager-mini { display: inline-flex; align-items: center; gap: 2px; }
+    .pager-mini span { font-size: var(--text-sm); color: var(--text-muted); padding: 0 6px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+    /* Zapis odgovora: vsebina + lepljiv stolpec s podatki oddaje */
+    .record { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--space-6); grid-template-areas: "sum side" "qs side"; align-items: start; }
+    .a-sum { grid-area: sum; } .a-qs { grid-area: qs; min-width: 0; } .a-side { grid-area: side; align-self: stretch; }
+    .side { position: sticky; top: calc(var(--topbar-h) + var(--space-4)); display: grid; gap: var(--space-4); }
+
+    .sum__head { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-4) var(--space-6) 0; }
+    .sum__head h2 { font-size: var(--text-md); }
+    .sum__head p { font-size: var(--text-sm); color: var(--text-muted); }
+    .sum__body { padding: var(--space-4) var(--space-6) var(--space-6); }
+    .sum__body .doc ol { padding-left: 1.4em; margin: 0; }
+    .sum__body .doc li { margin-bottom: var(--space-3); }
+    .sum__body .doc li:last-child { margin-bottom: 0; }
+
+    .stat__val { font-size: 1.375rem; font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; letter-spacing: -0.01em; line-height: 1.1; }
+    .stat__val small { font-size: var(--text-base); color: var(--text-muted); font-weight: var(--weight-regular); margin-left: 2px; }
+    .stat__note { font-size: var(--text-sm); color: var(--text-muted); margin-top: var(--space-2); }
+    .kv { display: grid; gap: 0; margin: 0; }
+    .kv > div { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 9px 0; border-bottom: 1px solid var(--border-subtle); font-size: var(--text-sm); }
+    .kv > div:last-child { border-bottom: 0; }
+    .kv dt { color: var(--text-muted); white-space: nowrap; }
+    .kv dd { color: var(--text); text-align: right; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .kv dd a { color: var(--accent-text); }
+    .kv dd a:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+    /* Vprasanja in odgovori po sklopih */
+    .qs__title { display: flex; align-items: baseline; gap: var(--space-3); margin: var(--space-8) 0 var(--space-3); }
+    .qs__title h2 { font-size: var(--text-md); }
+    .qs__title span { font-size: var(--text-sm); color: var(--text-muted); }
+    .qsec { margin-bottom: var(--space-4); }
+    .qsec__head { display: flex; align-items: baseline; gap: var(--space-3); padding: var(--space-4) var(--space-5) var(--space-2); }
+    .qsec__head h3 { font-size: var(--text-base); }
+    .qsec__head span { margin-left: auto; font-size: var(--text-sm); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .qa { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--space-3); padding: 14px var(--space-5); border-top: 1px solid var(--border-subtle); }
+    .qa__n { font-size: var(--text-sm); color: var(--text-muted); font-variant-numeric: tabular-nums; padding-top: 1px; }
+    .qa__label { font-size: var(--text-base); font-weight: var(--weight-medium); color: var(--text); line-height: 1.45; }
+    .qa__label .field__req { margin-left: 2px; }
+    .qa__key { display: none; font: var(--text-xs)/1.4 var(--font-mono); color: var(--text-muted); margin-top: 2px; }
+    .show-keys .qa__key { display: block; }
+    .qa__ans { margin-top: var(--space-2); }
+    .ans-short { font-size: var(--text-md); color: var(--text); overflow-wrap: anywhere; }
+    .ans-short a { color: var(--accent-text); }
+    .ans-long { font-size: var(--text-md); line-height: 1.65; color: var(--text); max-width: var(--prose-max); white-space: pre-line; text-wrap: pretty; }
+    .opts { display: flex; flex-wrap: wrap; gap: 6px; }
+    .opt { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 3px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); color: var(--text-muted); font-size: var(--text-sm); line-height: 1.35; }
+    .opt.is-on { background: var(--accent-subtle); border-color: var(--accent-border); color: var(--accent-text); font-weight: var(--weight-medium); }
+    .opt .icon { width: 13px; height: 13px; }
+    .scale { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .scale span { width: 36px; height: 32px; border-radius: var(--radius-sm); display: grid; place-items: center; font-size: var(--text-sm); font-weight: var(--weight-medium); background: var(--bg-subtle); color: var(--text-muted); font-variant-numeric: tabular-nums; }
+    .scale span.is-on { background: var(--accent); color: var(--text-on-accent); }
+    .scale small { font-size: var(--text-sm); color: var(--text-muted); margin-left: var(--space-2); }
+    .qa--empty .qa__label { color: var(--text-secondary); font-weight: var(--weight-regular); }
+    .ans-none { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); font-size: var(--text-xs); color: var(--text-muted); }
+
+    /* Prejsnji / naslednji odgovor istega podjetja */
+    .pager { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); margin-top: var(--space-6); }
+    .pager__item { display: flex; flex-direction: column; gap: 2px; padding: var(--space-3) var(--space-4); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-surface); min-width: 0; transition: border-color var(--dur-fast) var(--ease-out); }
+    a.pager__item:hover { border-color: var(--accent-muted); }
+    .pager__item small { font-size: var(--text-xs); color: var(--text-muted); display: flex; align-items: center; gap: 4px; }
+    .pager__item b { font-weight: var(--weight-medium); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pager__item--next { text-align: right; align-items: flex-end; }
+    .pager__item--off { background: transparent; border-style: dashed; color: var(--text-muted); justify-content: center; }
+
+    .form-copy { margin-top: var(--space-6); }
+    .form-copy summary h2 { font-size: var(--text-base); }
+    .form-copy summary p { font-size: var(--text-sm); color: var(--text-muted); }
+    .form-copy summary > div { flex: 1; min-width: 0; }
+    .form-copy iframe { display: block; width: 100%; height: 60vh; min-height: 360px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-surface); }
+
+    .frames { margin-top: var(--space-16); padding-top: var(--space-8); border-top: 1px dashed var(--border-strong); }
+    .frames > h2 { font-size: var(--text-md); }
+    .frames > p { font-size: var(--text-sm); color: var(--text-muted); margin-top: 4px; }
+    .frames__list { display: grid; gap: var(--space-8); margin-top: var(--space-6); max-width: calc(100% - 300px - var(--space-6)); }
+    .frame__label { font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-muted); margin-bottom: var(--space-2); }
+
+    @media (max-width: 1099px) {
+      .record { grid-template-columns: minmax(0, 1fr); grid-template-areas: "sum" "side" "qs"; }
+      .side { position: static; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .frames__list { max-width: none; }
+    }
+    @media (max-width: 899px) {
+      .ident { align-items: flex-start; gap: var(--space-3); margin-bottom: var(--space-4); }
+      .ident__av { width: 40px; height: 40px; font-size: var(--text-base); }
+      .ident h1 { font-size: var(--text-lg); }
+      .topbar__actions { justify-content: space-between; }
+      .topbar__actions .btn:not(.btn--icon) { flex: 0 1 auto; }
+      .side { grid-template-columns: minmax(0, 1fr); }
+      .sum__head { padding: var(--space-4) var(--space-4) 0; }
+      .sum__body { padding: var(--space-3) var(--space-4) var(--space-5); }
+      .qsec__head { padding: var(--space-4) var(--space-4) var(--space-2); }
+      .qa { grid-template-columns: 22px minmax(0, 1fr); gap: var(--space-2); padding: 14px var(--space-4); }
+      .pager { grid-template-columns: minmax(0, 1fr); }
+    }
+  </style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="i-check-square" viewBox="0 0 24 24"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2zM9 7h7M9 11h5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-chev-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-chev-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="mobilebar">
+    <button class="btn btn--ghost btn--icon" type="button" data-nav-open-btn aria-label="Odpri meni" aria-controls="sidebar" aria-expanded="false"><svg class="icon icon--lg"><use href="#i-menu"/></svg></button>
+    <span class="mobilebar__brand"><span class="brand-mark" aria-hidden="true">a</span>Acenta baza</span>
+    <span class="spacer"></span>
+    <a class="btn btn--ghost btn--icon" href="#" aria-label="Iskanje"><svg class="icon icon--lg"><use href="#i-search"/></svg></a>
+  </header>
+
+  <aside class="sidebar" id="sidebar" aria-label="Glavna navigacija">
+    <div class="sidebar__brand">
+      <span class="brand-mark" aria-hidden="true">a</span>
+      <span class="sidebar__brand-text"><b>Acenta baza</b><small>Interna konzola</small></span>
+      <button class="btn btn--ghost btn--icon sidebar__close" type="button" data-nav-close aria-label="Zapri meni"><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="danes.html"><svg class="icon"><use href="#i-inbox"/></svg><span class="nav-item__label">Danes</span><span class="nav-item__count" aria-label="6 nalog na tebi">6</span></a>
+      <div class="nav-group">Delo</div>
+      <a class="nav-item" href="seja.html"><svg class="icon"><use href="#i-check-square"/></svg><span class="nav-item__label">Procesi</span></a>
+      <a class="nav-item is-active" href="podjetja.html" aria-current="page"><svg class="icon"><use href="#i-building"/></svg><span class="nav-item__label">Podjetja</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-file"/></svg><span class="nav-item__label">Vprašalniki</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-book"/></svg><span class="nav-item__label">Katalog</span></a>
+      <div class="nav-group">Analiza</div>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-chart"/></svg><span class="nav-item__label">Primerjava</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-search"/></svg><span class="nav-item__label">Iskanje</span><span class="nav-item__kbd">Ctrl K</span></a>
+      <button class="nav-item" type="button" id="naprednoToggle" aria-expanded="false" aria-controls="naprednoSeznam" style="margin-top:var(--space-3)"><svg class="icon nav-item__chev"><use href="#i-chev-down"/></svg><span class="nav-item__label">Napredno</span></button>
+      <div class="nav-sub" id="naprednoSeznam" hidden>
+        <a class="nav-item" href="#"><svg class="icon"><use href="#i-book-open"/></svg><span class="nav-item__label">Vpogledi</span></a>
+      </div>
+    </nav>
+    <div class="sidebar__foot">
+      <span class="avatar" aria-hidden="true">MZ</span>
+      <div class="ellipsis"><b class="ellipsis">ai@acenta.si</b><span>Admin</span></div>
+    </div>
+  </aside>
+  <div class="scrim" data-nav-close></div>
+
+  <main class="main">
+    <header class="topbar">
+      <nav class="crumbs" aria-label="Pot">
+        <a href="podjetja.html">Podjetja</a>
+        <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chev-right"/></svg>
+        <a href="podjetje.html">Hotel Smrekov gaj</a>
+        <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chev-right"/></svg>
+        <span aria-current="page">Mojca Zupan</span>
+      </nav>
+      <span class="spacer"></span>
+      <div class="topbar__actions">
+        <div class="pager-mini" aria-label="Odgovori tega podjetja">
+          <button class="btn btn--ghost btn--icon" type="button" disabled aria-label="Prejšnji odgovor" title="To je prvi odgovor"><svg class="icon"><use href="#i-chev-left"/></svg></button>
+          <span>1 od 12</span>
+          <a class="btn btn--ghost btn--icon" href="#" aria-label="Naslednji odgovor: Eva Kralj" title="Naslednji: Eva Kralj, receptorka"><svg class="icon"><use href="#i-chev-right"/></svg></a>
+        </div>
+        <button class="btn btn--secondary" type="button" id="btnCsv"><svg class="icon"><use href="#i-download"/></svg>Prenesi CSV</button>
+      </div>
+    </header>
+
+    <div class="page">
+      <header class="ident">
+        <span class="ident__av" aria-hidden="true">MZ</span>
+        <div class="ident__txt">
+          <h1 class="r-ime">Mojca Zupan</h1>
+          <p class="ident__who">vodja prodaje · <a href="mailto:mojca.zupan@smrekovgaj.si">mojca.zupan@smrekovgaj.si</a></p>
+          <div class="ident__meta">
+            <a class="qlink" href="podjetje.html"><svg class="icon icon--sm" aria-hidden="true"><use href="#i-building"/></svg>Hotel Smrekov gaj</a>
+            <span class="qlink">Ocena poslovnega potenciala za AI</span>
+            <span>Oddano 6. 10. 2026 ob 14.05</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="record">
+        <!-- AI povzetek odgovora -->
+        <section class="panel a-sum" aria-labelledby="sumNaslov">
+          <div class="sum__head">
+            <h2 id="sumNaslov">AI povzetek odgovora</h2>
+            <p>pripravljeno 6. 10. 2026 ob 14.07</p>
+          </div>
+          <div class="sum__body">
+            <div class="doc">
+              <ol>
+                <li><strong>Kdo</strong>: Mojca Zupan, vodja prodaje v Hotelu Smrekov gaj; sama pokriva skupine, poroke in poslovne goste.</li>
+                <li><strong>Kaj počne</strong>: največ časa porabi za ponudbe skupinam, ki jih sestavlja ročno iz cenika in preteklih ponudb, 5 do 10 ur na teden.</li>
+                <li><strong>Kje vidi AI</strong>: pri osnutkih ponudb, pisanju e-pošte in odgovorih na pogosta vprašanja gostov.</li>
+                <li><strong>Ovire</strong>: skrbi jo, da bi AI napačno obračunal popuste; za učenje ima največ eno uro na teden.</li>
+                <li><strong>Prioriteta</strong>: odgovor na povpraševanje skupine isti dan. Želi sodelovati pri preizkusu.</li>
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <!-- Lepljiv stolpec: izpolnjenost in podatki oddaje -->
+        <div class="a-side">
+          <div class="side">
+            <section class="panel panel__body" aria-label="Izpolnjenost">
+              <p class="prop-label" style="font-size:var(--text-sm);font-weight:var(--weight-semibold);margin-bottom:var(--space-2)">Izpolnjenost</p>
+              <p class="stat__val"><span id="odstotek">88</span><small>%</small></p>
+              <div class="progress" style="margin-top:var(--space-3)" aria-hidden="true"><span class="progress__fill" id="odstotekBar" style="width:88%"></span></div>
+              <p class="stat__note" id="izpNote">15 od 17 vprašanj odgovorjenih</p>
+            </section>
+            <section class="panel panel__body" aria-label="Podatki oddaje">
+              <p style="font-size:var(--text-sm);font-weight:var(--weight-semibold);margin-bottom:var(--space-1)">Podatki oddaje</p>
+              <dl class="kv">
+                <div><dt>Oddano</dt><dd>6. 10. 2026, 14.05</dd></div>
+                <div><dt>Soglasje GDPR</dt><dd><span class="chip chip--success">Da</span></dd></div>
+                <div><dt>Vprašanja</dt><dd>kopija ob oddaji</dd></div>
+                <div><dt>Podjetje</dt><dd><a href="podjetje.html">Hotel Smrekov gaj</a></dd></div>
+              </dl>
+              <label class="check" style="margin-top:var(--space-3);font-size:var(--text-sm)"><input type="checkbox" id="kljuci">Pokaži ključe polj</label>
+            </section>
+          </div>
+        </div>
+
+        <!-- Vprasalnik po sklopih -->
+        <div class="a-qs">
+          <div class="qs__title"><h2>Vprašalnik</h2><span id="stVprasanj">17 vprašanj</span></div>
+          <div id="vprasalnik"></div>
+
+          <nav class="pager" aria-label="Odgovori tega podjetja">
+            <span class="pager__item pager__item--off"><small>Prejšnji odgovor</small>To je prvi odgovor</span>
+            <a class="pager__item pager__item--next" href="#"><small>Naslednji odgovor<svg class="icon icon--sm" aria-hidden="true"><use href="#i-chev-right"/></svg></small><b>Eva Kralj, receptorka</b></a>
+          </nav>
+
+          <details class="disclosure form-copy" id="obrazecOvoj">
+            <summary>
+              <svg class="icon disclosure__chev" aria-hidden="true"><use href="#i-chev-right"/></svg>
+              <div><h2>Obrazec, kot ga je videla stranka</h2><p>Shranjena kopija obrazca ob oddaji (18.432 znakov), samo za branje.</p></div>
+            </summary>
+            <div class="panel__body"><iframe id="obrazec" sandbox="" title="Kopija obrazca ob oddaji"></iframe></div>
+          </details>
+        </div>
+      </div>
+
+      <!-- ═══ Druga stanja: ločeni okvirji ═══ -->
+      <section class="frames" aria-label="Druga stanja">
+        <h2>Druga stanja odgovora</h2>
+        <p>Ločeni okvirji v realni širini stolpca; niso del strani zgoraj.</p>
+        <div class="frames__list">
+          <div>
+            <p class="frame__label">Stanje: AI povzetek še ni generiran</p>
+            <section class="panel">
+              <div class="sum__head"><h2>AI povzetek odgovora</h2></div>
+              <div class="empty" style="padding:var(--space-4) var(--space-6) var(--space-6)">
+                <span class="empty__icon" aria-hidden="true"><svg class="icon icon--lg"><use href="#i-sparkles"/></svg></span>
+                <p class="empty__title">AI povzetek še ni generiran</p>
+                <p class="empty__text">Povzetek pripravi AI po oddaji. Če ga ni, ga pripravite na strani podjetja z »Regeneriraj vse« v Pripravi na delavnico. Odgovori spodaj so popolni tudi brez povzetka.</p>
+                <a class="btn btn--secondary" href="podjetje.html#delavnica">Odpri pripravo na delavnico<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>
+              </div>
+            </section>
+          </div>
+          <div>
+            <p class="frame__label">Stanje: vprašalnik je bil urejen po oddaji (kopije vprašanj ni)</p>
+            <div class="callout callout--danger">
+              <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+              <div>Ta odgovor je bil oddan, <b>preden je bil vprašalnik nazadnje urejen</b>. Kopija vprašanj iz časa oddaje ne obstaja, zato so spodaj današnja vprašanja; nekatera se lahko razlikujejo od tistih, ki jih je videla stranka.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ── Navigacija (skupno vsem zaslonom) ──
+  const telo = document.body;
+  const odpriGumb = document.querySelector('[data-nav-open-btn]');
+  function zapriMeni() { telo.removeAttribute('data-nav-open'); odpriGumb?.setAttribute('aria-expanded', 'false'); }
+  odpriGumb?.addEventListener('click', () => { telo.setAttribute('data-nav-open', ''); odpriGumb.setAttribute('aria-expanded', 'true'); document.querySelector('.sidebar__close')?.focus(); });
+  document.querySelectorAll('[data-nav-close]').forEach(el => el.addEventListener('click', zapriMeni));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') zapriMeni(); });
+  const napredno = document.getElementById('naprednoToggle');
+  napredno.addEventListener('click', () => {
+    const odpri = napredno.getAttribute('aria-expanded') !== 'true';
+    napredno.setAttribute('aria-expanded', String(odpri));
+    document.getElementById('naprednoSeznam').hidden = !odpri;
+  });
+  const $ = (s, r = document) => r.querySelector(s);
+  const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const IKONA = '<svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>';
+
+  // ── Vprasanja (kopija ob oddaji) in odgovori ──
+  const S = (label) => ({ tip: 'section', label });
+  const Q = (tip, id, label, extra = {}) => ({ tip, id, label, ...extra });
+  const vprasanja = [
+    S('Osnovni podatki'),
+    Q('text', 'ime', 'Ime in priimek', { obvezno: true }),
+    Q('text', 'delovno_mesto', 'Delovno mesto'),
+    Q('email', 'email', 'E-naslov', { obvezno: true }),
+    Q('radio', 'oddelek', 'Oddelek', { options: ['recepcija', 'prodaja', 'kuhinja', 'strežba', 'vzdrževanje', 'uprava'] }),
+    S('Vaše delo danes'),
+    Q('textarea', 'opravila', 'Katera opravila vam vzamejo največ časa?', { obvezno: true }),
+    Q('radio', 'ponavljajoce', 'Koliko časa na teden porabite za ponavljajoča se opravila?', { options: ['manj kot 2 uri', '2 do 5 ur', '5 do 10 ur', 'več kot 10 ur'] }),
+    Q('checkbox_multi', 'orodja', 'Katera orodja uporabljate vsak dan?', { options: ['e-pošta', 'rezervacijski sistem', 'Excel', 'CRM', 'papir in zvezek'] }),
+    Q('textarea', 'napake', 'Kje najpogosteje prihaja do napak?'),
+    S('Umetna inteligenca'),
+    Q('radio', 'ai_uporaba', 'Ali umetno inteligenco že uporabljate pri delu?', { options: ['ne', 'občasno', 'redno'] }),
+    Q('radio', 'ai_znanje', 'Kako bi ocenili svoje znanje o AI? (1 = nič, 5 = zelo dobro)', { options: ['1', '2', '3', '4', '5'] }),
+    Q('checkbox_multi', 'ai_pomoc', 'Pri katerih opravilih bi vam AI najbolj pomagal?', { options: ['pisanje e-pošte', 'priprava ponudb', 'odgovori gostom', 'povzetki sestankov', 'analiza podatkov', 'prevodi'] }),
+    Q('textarea', 'skrbi', 'Kaj vas pri uvedbi AI skrbi?'),
+    S('Pripravljenost na spremembe'),
+    Q('radio', 'cas_ucenje', 'Koliko časa bi lahko namenili učenju novega orodja?', { options: ['nič', 'do 1 ure na teden', '1 do 3 ure na teden', 'več'] }),
+    Q('text', 'odloca', 'Kdo naj bi pri vas odločal o uvedbi?'),
+    Q('textarea', 'uspeh', 'Kaj bi moralo biti res, da bi rekli, da je uvedba uspela?'),
+    Q('radio', 'preizkus', 'Želite sodelovati pri preizkusu?', { options: ['da', 'morda', 'ne'] }),
+    Q('textarea', 'komentar', 'Dodatni komentar'),
+  ];
+  const odgovor = {
+    ime: 'Mojca Zupan',
+    delovno_mesto: 'vodja prodaje',
+    email: 'mojca.zupan@smrekovgaj.si',
+    oddelek: 'prodaja',
+    opravila: 'Ponudbe za skupine in poroke. Vsako sestavim ročno: odprem cenik, poiščem podobno ponudbo od lani, prilagodim datume, sobe in popuste ter jo pošljem. Za eno ponudbo porabim od 30 minut do ene ure, v sezoni jih je tudi deset na teden.',
+    ponavljajoce: '5 do 10 ur',
+    orodja: ['e-pošta', 'Excel', 'CRM'],
+    napake: 'Pri popustih za poroke in pri datumih, ko gost piše »prvi vikend v juniju«. Enkrat sem poslala ponudbo z lansko ceno za dvorano.',
+    ai_uporaba: 'občasno',
+    ai_znanje: '3',
+    ai_pomoc: ['pisanje e-pošte', 'priprava ponudb', 'odgovori gostom'],
+    skrbi: 'Da bi AI napačno obračunal popuste in bi to opazila šele stranka. Končno ceno moram vedno potrditi jaz.',
+    cas_ucenje: 'do 1 ure na teden',
+    uspeh: 'Da na povpraševanje skupine odgovorimo isti dan in da mi ostane petek popoldne za stalne stranke.',
+    preizkus: 'da',
+    gdpr_consent: true,
+  };
+
+  const prazno = (v) => v == null || v === '' || (Array.isArray(v) && v.length === 0);
+  const jeLestvica = (o) => o.length >= 3 && o.length <= 11 && o.every((x, i) => Number.isInteger(+x) && (i === 0 || +x === +o[i - 1] + 1));
+  const razlaga = (label) => { const m = String(label).match(/\(\s*\d+\s*=\s*([^,)]+),\s*\d+\s*=\s*([^)]+)\)/); return m ? `${m[1].trim()} → ${m[2].trim()}` : ''; };
+  const brezRazlage = (label) => String(label).replace(/\s*\(\s*\d+\s*=.*\)\s*$/, '');
+
+  // En odgovor: izbire kot značke (vse možnosti, izbrane poudarjene), lestvica kot ploščice,
+  // dolgo besedilo kot berljiv odstavek, prazno kot tiha oznaka.
+  function izris(q, v) {
+    if (prazno(v)) return '<span class="ans-none">Ni odgovora</span>';
+    if (q.options) {
+      const izbrane = (Array.isArray(v) ? v : [v]).map(String);
+      if (q.tip === 'radio' && jeLestvica(q.options)) {
+        const r = razlaga(q.label);
+        return `<div class="scale">${q.options.map(o => `<span class="${izbrane.includes(o) ? 'is-on' : ''}">${esc(o)}</span>`).join('')}${r ? `<small>${esc(r)}</small>` : ''}</div>`;
+      }
+      return `<div class="opts">${q.options.map(o => izbrane.includes(o)
+        ? `<span class="opt is-on">${IKONA}${esc(o)}</span>`
+        : `<span class="opt">${esc(o)}</span>`).join('')}</div>`;
+    }
+    if (q.tip === 'email') return `<p class="ans-short"><a href="mailto:${esc(v)}">${esc(v)}</a></p>`;
+    const t = String(v);
+    return t.length > 70 || t.includes('\n') ? `<p class="ans-long">${esc(t)}</p>` : `<p class="ans-short">${esc(t)}</p>`;
+  }
+
+  // Sklopi + vprasanja. Razredi q-item / q-label / q-kljuc / q-answer ostanejo (testi).
+  function izrisiVprasalnik() {
+    const sklopi = [];
+    for (const q of vprasanja) {
+      if (q.tip === 'section') { sklopi.push({ label: q.label, polja: [] }); continue; }
+      sklopi[sklopi.length - 1].polja.push(q);
+    }
+    const ostala = Object.entries(odgovor).filter(([k]) => !vprasanja.some(q => q.id === k));
+    if (ostala.length) sklopi.push({ label: 'Ostala polja', polja: ostala.map(([k]) => ({ tip: 'bool', id: k, label: k === 'gdpr_consent' ? 'Soglasje GDPR' : k })) });
+
+    let st = 0, odg = 0, vse = 0;
+    $('#vprasalnik').innerHTML = sklopi.map(s => {
+      const n = s.polja.filter(q => !prazno(odgovor[q.id])).length;
+      const vrstice = s.polja.map(q => {
+        const v = q.tip === 'bool' ? (odgovor[q.id] ? 'Da' : 'Ne') : odgovor[q.id];
+        const je = !prazno(v);
+        if (q.tip !== 'bool') { vse++; if (je) odg++; }
+        st++;
+        return `
+          <article class="qa q-item${je ? '' : ' qa--empty'}" data-kljuc="${esc(q.id)}">
+            <span class="qa__n" aria-hidden="true">${q.tip === 'bool' ? '' : st}</span>
+            <div style="min-width:0">
+              <h4 class="qa__label q-label">${esc(brezRazlage(q.label))}${q.obvezno ? '<span class="field__req" aria-label="obvezno">*</span>' : ''}</h4>
+              <div class="qa__key q-kljuc">${esc(q.id)}</div>
+              <div class="qa__ans q-answer">${izris(q, v)}</div>
+            </div>
+          </article>`;
+      }).join('');
+      return `<section class="panel qsec"><div class="qsec__head"><h3>${esc(s.label)}</h3><span>${n}/${s.polja.length}</span></div>${vrstice}</section>`;
+    }).join('');
+    const pct = Math.round(odg / vse * 100);
+    $('#odstotek').textContent = pct;
+    $('#odstotekBar').style.width = pct + '%';
+    $('#izpNote').textContent = `${odg} od ${vse} vprašanj odgovorjenih`;
+    $('#stVprasanj').textContent = `${vse} vprašanj`;
+  }
+  izrisiVprasalnik();
+
+  // Tehnicni kljuci polj: samo na zahtevo (za admina), sicer ne motijo branja
+  $('#kljuci').addEventListener('change', (e) => $('#vprasalnik').classList.toggle('show-keys', e.target.checked));
+
+  // Kopija obrazca se nalozi sele ob odprtju, v peskovniku (sandbox="" ugasne skripte in oddajo)
+  const KOPIJA = `<!doctype html><html lang="sl"><head><meta charset="utf-8"><style>
+    body{font:15px/1.5 system-ui,sans-serif;margin:24px;max-width:560px}h1{font-size:20px}label{display:block;margin:14px 0 4px;font-weight:600}
+    input,textarea{width:100%;padding:8px;border:1px solid;border-radius:6px;font:inherit;box-sizing:border-box}</style></head><body>
+    <h1>Ocena poslovnega potenciala za AI</h1><p>Hotel Smrekov gaj · vprašalnik za zaposlene</p>
+    <label>Ime in priimek *</label><input value="Mojca Zupan" disabled>
+    <label>Delovno mesto</label><input value="vodja prodaje" disabled>
+    <label>Katera opravila vam vzamejo največ časa? *</label><textarea rows="4" disabled>Ponudbe za skupine in poroke …</textarea>
+    <p><small>Odgovori gredo na ai@acenta.si.</small></p></body></html>`;
+  $('#obrazecOvoj').addEventListener('toggle', (e) => {
+    if (e.target.open && !$('#obrazec').getAttribute('srcdoc')) $('#obrazec').setAttribute('srcdoc', KOPIJA);
+  });
+
+  // CSV: ista logika kot prenesiCsv() v aplikaciji (BOM, da Excel pokaze sumnike)
+  $('#btnCsv').addEventListener('click', () => {
+    const celica = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const vrstice = [['Podjetje', 'Hotel Smrekov gaj'], ['Vprašalnik', 'Ocena poslovnega potenciala za AI'], ['Datum', '6. 10. 2026, 14.05'], ['GDPR', 'da'], ['', ''], ['Vprašanje', 'Odgovor'],
+      ...vprasanja.filter(q => q.tip !== 'section' && (!prazno(odgovor[q.id]) || q.obvezno)).map(q => [q.label, Array.isArray(odgovor[q.id]) ? odgovor[q.id].join('; ') : odgovor[q.id]])];
+    const csv = vrstice.map(r => r.map(celica).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' }));
+    const a = Object.assign(document.createElement('a'), { href: url, download: 'odgovor-hotel-smrekov-gaj-mojca-zupan.csv' });
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  });
+</script>
+</body>
+</html>

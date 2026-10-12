@@ -2,211 +2,317 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Izpolnjevanje vprašalnika</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Zapis sestanka · Acenta baza</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
-    /* Poudarjeno vprasanje (poudarek:true v shemi) — Maja je izrecno oznacila
-       dolocitev rezultata procesa kot enega pomembnejsih delov vprasalnika. */
-    .poudarek { border-left: 3px solid var(--acenta-teal); padding-left: 14px; }
-    .polje textarea { min-height: 76px; resize: vertical; }
-    /* Prilepljeno orodje ostane vidno tudi med dolgim drsenjem po obrazcu. */
-    .lepljivo { position: sticky; top: 0; z-index: 30; }
-    .sklop-nav a.aktiven { color: var(--acenta-teal); font-weight: 600; }
+    /* Session page (design-prototype/seja.html). Semantic variables only. */
+    :root { --sessionbar-h: 84px; }   /* JS measures the real height */
+
+    /* Sticky session bar: who, where we are, what is saved, what next */
+    .sessionbar {
+      position: sticky; top: 0; z-index: var(--z-sticky);
+      display: grid; gap: 6px; padding: 10px var(--space-8) 12px;
+      background: var(--bg-canvas); border-bottom: 1px solid var(--border-subtle);
+    }
+    .sessionbar__row { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+    .sessionbar__title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .sessionbar__title h1 { font-size: 1.125rem; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .sessionbar__title .chip { flex: none; }
+    .sessionbar__meta { font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; padding-left: 2px; }
+    .sessionbar__actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+    .sessionbar__line { display: none; }
+    .prog { display: inline-flex; align-items: center; gap: 10px; flex: none; }
+    .prog__txt { border: 0; background: none; padding: 0; font-size: var(--text-sm); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; border-radius: var(--radius-xs); }
+    .prog__txt b { font-weight: var(--weight-medium); color: var(--warning-text); }
+    .prog__txt:not(:disabled):hover b { text-decoration: underline; text-underline-offset: 3px; }
+    .prog__txt:disabled { cursor: default; }
+    .prog .progress { width: 140px; }
+    .save { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 128px; font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .save[data-s="dirty"] { color: var(--warning-text); }
+    .save[data-s="error"] { color: var(--danger-text); font-weight: var(--weight-medium); }
+    .save[data-s="busy"] .dot { animation: pulse 1.2s var(--ease-in-out) infinite; }
+    .lbl-short { display: none; }
+    #btnUredi[aria-pressed="true"] { background: var(--accent-subtle); border-color: var(--accent-border); color: var(--accent-text); }
+    #btnUredi[aria-pressed="true"]:hover { background: var(--accent-subtle-hover); }
+
+    /* Section index + form */
+    .seja { max-width: 1120px; }
+    .opozorilo__txt { flex: 1; min-width: 0; }
+    .seja__grid { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: var(--space-8); align-items: start; }
+    .seja__form { display: grid; gap: var(--space-5); min-width: 0; max-width: 780px; }
+    #obrazec { max-width: none; }
+    .idx {
+      position: sticky; top: calc(var(--sessionbar-h) + var(--space-4));
+      max-height: calc(100vh - var(--sessionbar-h) - var(--space-8)); overflow-y: auto;
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    #sklopNav { display: contents; }
+    .idx__title { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--text-muted); padding: 0 var(--space-2) 6px; }
+    .idx__item { position: relative; display: flex; align-items: flex-start; gap: var(--space-2); padding: 6px var(--space-2); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.4; transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+    .idx__item:hover { background: var(--bg-hover); color: var(--text); }
+    .idx__item.is-active { background: var(--bg-surface); color: var(--text); font-weight: var(--weight-medium); box-shadow: 0 0 0 1px var(--border-subtle); }
+    .idx__lbl { flex: 1; min-width: 0; }
+    .idx__n { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: 1px; font-weight: var(--weight-regular); }
+    .idx__n.is-done { color: var(--accent-text); }
+    .idx__n .dot { width: 6px; height: 6px; }
+    .idx__sep { height: 1px; background: var(--border-subtle); margin: var(--space-3) var(--space-2); }
+
+    /* Sections and questions */
+    .qsec { scroll-margin-top: calc(var(--sessionbar-h) + var(--space-4)); }
+    .qsec__head .idx__n { margin-left: auto; font-size: var(--text-sm); }
+    .qsec__body--tight { gap: var(--space-4); }
+    .kartica__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+    .field__hint--warning { color: var(--warning-text); }
+    .q { scroll-margin-top: calc(var(--sessionbar-h) + var(--space-6)); }
+    .q .field__label .chip + .chip { margin-left: 6px; }
+
+    /* Question editing (this meeting only) */
+    .q-edit { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px dashed var(--border); }
+    .q-edit .input { flex: 1 1 260px; width: auto; height: var(--control-h); font-size: var(--text-sm); }
+    .q--missing .q-edit .input:not(:focus) { border-color: var(--border); }
+    .q--missing .q-edit .input:hover:not(:focus) { border-color: var(--border-strong); }
+    .q-edit__req { font-size: var(--text-sm); }
+    .q-edit__del { color: var(--danger-text); }
+    .q-edit__del:hover:not(:disabled) { color: var(--danger-text); background: var(--danger-bg); }
+    .q-add { justify-self: start; }
+
+    /* Transcript and sending */
+    .row-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .row-actions > .input { flex: 1 1 280px; width: auto; }
+    .row-actions--field > .btn { height: var(--field-h); }
+    .tr-rocno { display: grid; gap: var(--space-2); margin-top: var(--space-1); }
+    .tr-rocno .btn { justify-self: start; }
+    #tSeznam { display: grid; gap: var(--space-2); }
+    .tr-prazno { font-size: var(--text-sm); color: var(--text-muted); }
+    .tr-item { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3) 14px; display: grid; gap: 4px; min-width: 0; }
+    .tr-item--napaka { border-color: var(--danger-border); background: var(--danger-bg); }
+    .tr-item__top { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--text-sm); color: var(--text-secondary); }
+    .tr-item__top b { font-weight: var(--weight-medium); display: inline-flex; align-items: center; gap: 4px; }
+    .tr-item__ok { color: var(--success-text); }
+    .tr-item__err { color: var(--danger-text); }
+    .tr-item--napaka .tr-item__top > span:not(.muted) { color: var(--danger-text); }
+    .tr-item__url { font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tr-item .sub-disclosure { margin-top: 4px; }
+    .tr-item pre { margin: var(--space-2) 0 0; padding: var(--space-3); background: var(--bg-subtle); border-radius: var(--radius-sm); font: var(--text-xs)/1.6 var(--font-mono); color: var(--text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; max-height: 160px; overflow-y: auto; }
+
+    /* Status lines under actions */
+    .st { font-size: var(--text-sm); color: var(--text-muted); }
+    .st:empty { display: none; }
+    .st--napaka { color: var(--danger-text); }
+    .st--opozorilo { color: var(--warning-text); }
+    .st--uspeh { color: var(--success-text); }
+    .st .icon { display: inline-block; vertical-align: -2px; margin-right: 4px; }
+    .st b { font-weight: var(--weight-semibold); }
+
+    /* Sending history */
+    #pZgodovina:empty { display: none; }
+    .hist__title { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--text-muted); margin-bottom: var(--space-1); }
+    .hist { list-style: none; margin: 0; padding: 0; border: 1px solid var(--border); border-radius: var(--radius-md); }
+    .hist__item { display: flex; align-items: center; gap: var(--space-2); padding: 10px 14px; font-size: var(--text-sm); color: var(--text-secondary); border-bottom: 1px solid var(--border-subtle); min-width: 0; }
+    .hist__item:last-child { border-bottom: 0; }
+    .hist__ok { color: var(--success-text); display: inline-flex; }
+    .hist__err { color: var(--danger-text); display: inline-flex; }
+    .hist__txt { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+    .hist__txt b { font-weight: var(--weight-medium); color: var(--text); }
+    .hist__napaka { color: var(--danger-text); }
+
+    @media (max-width: 1100px) {
+      .sessionbar { padding-left: var(--space-6); padding-right: var(--space-6); }
+      /* Sidebar still visible: the name keeps its room, actions wrap below it */
+      .sessionbar__row:first-child { flex-wrap: wrap; row-gap: 6px; }
+      .sessionbar__title { flex: 1 1 220px; }
+      .sessionbar__actions { margin-left: auto; }
+      .sessionbar__meta { flex: 1 1 0; }   /* leftover space only: progress and save come first */
+      .prog { flex: 0 1 auto; min-width: 0; }
+      .prog__txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+      .prog .progress { display: none; }   /* the thin line under the bar takes over */
+      .sessionbar__line { display: block; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--border-subtle); }
+      .sessionbar__line i { display: block; height: 100%; background: var(--accent); }
+      .save { min-width: 0; }
+      .seja__grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+      .seja__form { max-width: none; }
+      .kartica__grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+      .idx {
+        position: static; max-height: none; flex-direction: row; overflow-x: auto; overflow-y: visible; gap: 6px;
+        scrollbar-width: none; margin: 0 calc(var(--space-4) * -1); padding: 0 var(--space-4) 2px;
+      }
+      .idx::-webkit-scrollbar { display: none; }
+      .idx__title, .idx__sep { display: none; }
+      .idx__item { flex: none; white-space: nowrap; border: 1px solid var(--border); background: var(--bg-surface); align-items: center; min-height: 36px; }
+      .idx__item.is-active { box-shadow: none; border-color: var(--accent-muted); background: var(--accent-subtle); color: var(--accent-text); }
+      .idx__n { padding-top: 0; }
+    }
+    @media (max-width: 760px) {
+      .sessionbar { padding: var(--space-2) var(--space-4) 10px; gap: 4px; }
+      .sessionbar__title h1 { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+      .sessionbar__meta { display: none; }
+      .lbl-long, .sessionbar__actions .icon, .prog__long { display: none; }
+      .lbl-short { display: inline; }
+      .sessionbar__actions {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-sticky); margin-left: 0;
+        padding: 10px var(--space-4) calc(10px + env(safe-area-inset-bottom));
+        background: var(--bg-canvas); border-top: 1px solid var(--border-subtle);
+      }
+      .sessionbar__actions .btn { flex: 1 1 auto; height: 44px; }
+      .page.seja { padding-bottom: 120px; }
+      .kartica__grid { grid-template-columns: minmax(0, 1fr); }
+      .row-actions > .btn { flex: 1 1 auto; }
+      .tr-rocno .btn { justify-self: stretch; }
+    }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
-  <header id="nav"></header>
-
-  <!-- Orodna vrstica -->
-  <div class="lepljivo bg-white border-b border-gray-200 shadow-sm">
-    <div class="max-w-6xl mx-auto px-6 py-3 flex items-center gap-4 flex-wrap">
-      <a href="/admin/procesi.html" class="text-sm text-[#0b7a6c] hover:underline shrink-0">← Procesi</a>
-
-      <!-- Na ozkem zaslonu naslov dobi svojo vrstico (basis-full). Prej ga je
-           stiskanje odrezalo na "Hote..." in ni bilo videti, cigav sestanek je
-           odprt — kar je pri delu s stranko najpomembnejsi podatek na ekranu. -->
-      <div class="min-w-0 basis-full order-last sm:order-none sm:basis-auto sm:flex-1">
-        <div id="glavaNaslov" class="font-semibold text-[#16262e] truncate">Nalagam...</div>
-        <div id="glavaPod" class="text-xs text-gray-500 truncate"></div>
-      </div>
-
-      <div id="glavaNapredek" class="text-xs text-gray-500 tabular-nums shrink-0"></div>
-      <div id="shranjeno" class="text-xs text-gray-400 shrink-0 min-w-[92px] text-right"></div>
-
-      <div class="flex items-center gap-2 shrink-0">
-        <button id="btnUredi" class="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors">
-          Uredi vprašanja
-        </button>
-        <button id="btnZakljuci" class="px-3 py-1.5 text-sm bg-[#16262e] text-white rounded hover:bg-[#16262e] transition-colors">
-          Zaključi
-        </button>
-        <button id="btnPoslji" class="px-3 py-1.5 text-sm bg-[#0b7a6c] text-white rounded hover:bg-[#0b7a6c] transition-colors">
-          Pošlji stranki
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <main class="max-w-6xl mx-auto px-6 py-6">
-    <div id="opozorilo" class="hidden mb-4 px-4 py-3 rounded text-sm"></div>
-
-    <div class="flex gap-8 items-start">
-      <!-- Navigacija po sklopih -->
-      <nav class="sklop-nav hidden lg:block w-52 shrink-0 sticky top-24 text-sm">
-        <div class="text-xs uppercase tracking-wide text-gray-400 mb-2">Sklopi</div>
-        <div id="sklopNav" class="space-y-1.5"></div>
-
-        <div class="mt-6 pt-4 border-t border-gray-200 space-y-1.5">
-          <a href="#kartaTranskript" class="block text-gray-600 hover:text-[#0b7a6c]">Transkript</a>
-          <a href="#kartaPosiljanje" class="block text-gray-600 hover:text-[#0b7a6c]">Pošiljanje stranki</a>
+<body data-mobilebar="static">
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="sessionbar" id="sessionbar">
+        <div class="sessionbar__row">
+          <a class="btn btn--ghost btn--sm" href="/admin/procesi.html" aria-label="Procesi"><svg class="icon" aria-hidden="true"><use href="#i-arrow-left"/></svg><span class="lbl-long">Procesi</span></a>
+          <div class="sessionbar__title" id="glavaNaslov"><h1>Nalagam …</h1></div>
+          <span class="spacer"></span>
+          <div class="sessionbar__actions">
+            <button class="btn btn--secondary" type="button" id="btnUredi" aria-pressed="false"><svg class="icon" aria-hidden="true"><use href="#i-pencil"/></svg><span class="lbl-long" data-uredi>Uredi vprašanja</span><span class="lbl-short" data-uredi-k>Uredi</span></button>
+            <button class="btn btn--primary" type="button" id="btnZakljuci"><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Zaključi</span></button>
+            <button class="btn btn--secondary" type="button" id="btnPoslji"><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg><span>Pošlji stranki</span></button>
+          </div>
         </div>
-      </nav>
+        <div class="sessionbar__row">
+          <span class="sessionbar__meta" id="glavaPod"></span>
+          <span class="spacer"></span>
+          <span class="prog">
+            <button class="prog__txt" type="button" id="glavaNapredek" disabled></button>
+            <span class="progress" aria-hidden="true"><span class="progress__fill" id="napredekVrstica" style="width:0%"></span></span>
+          </span>
+          <span class="save" id="shraniStanje" data-s="idle" aria-live="polite"><span class="dot" aria-hidden="true"></span><span id="shranjeno"></span></span>
+        </div>
+        <span class="sessionbar__line" aria-hidden="true"><i id="napredekCrta" style="width:0%"></i></span>
+      </header>
 
-      <div class="flex-1 min-w-0">
-        <!-- Kartica sestanka: poganja seznam in filtre, ni del dokumenta za stranko -->
-        <section class="bg-white rounded shadow p-5 mb-6">
-          <h2 class="text-sm font-semibold text-[#16262e] mb-1">Kartica sestanka</h2>
-          <p class="text-xs text-gray-500 mb-4">
-            Za razvrščanje in iskanje po seznamu. Vsebina dokumenta za stranko pride iz „Osnovni podatki“ spodaj.
-          </p>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <label class="block">
-              <span class="text-xs text-gray-500 block mb-1">Stranka</span>
-              <input id="mStranka" data-meta="stranka_naziv" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
-            </label>
-            <label class="block">
-              <span class="text-xs text-gray-500 block mb-1">Proces</span>
-              <input id="mProces" data-meta="proces" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
-            </label>
-            <label class="block">
-              <span class="text-xs text-gray-500 block mb-1">Oddelek</span>
-              <input id="mOddelek" data-meta="oddelek" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
-            </label>
-            <label class="block">
-              <span class="text-xs text-gray-500 block mb-1">Svetovalec</span>
-              <input id="mSvetovalec" data-meta="svetovalec" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
-            </label>
-            <label class="block">
-              <span class="text-xs text-gray-500 block mb-1">Datum sestanka</span>
-              <input id="mDatum" data-meta="datum_sestanka" type="date"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
-            </label>
-            <!-- Povezava s podjetjem: samo tako zapis vidita prodajni predlog
-                 in izvoz za Claude na strani podjetja. -->
-            <label class="block">
-              <span class="text-xs text-gray-500 block mb-1">Podjetje v bazi</span>
-              <select id="mPodjetje" data-meta="company_id"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm bg-white focus:outline-none focus:border-[#0b7a6c]">
-                <option value="">Ni izbrano</option>
-              </select>
-              <span id="mPodjetjeNamig" class="text-xs block mt-1"></span>
-            </label>
+      <div class="page seja">
+        <div class="seja__grid">
+          <nav class="idx" aria-label="Sklopi">
+            <p class="idx__title">Sklopi</p>
+            <div id="sklopNav"></div>
+            <span class="idx__sep" aria-hidden="true"></span>
+            <a class="idx__item" href="#kartaTranskript" data-navza="kartaTranskript"><span class="idx__lbl">Transkript</span></a>
+            <a class="idx__item" href="#kartaPosiljanje" data-navza="kartaPosiljanje"><span class="idx__lbl">Pošiljanje stranki</span></a>
+          </nav>
+
+          <div class="seja__form">
+            <div id="opozorilo" class="callout hidden" aria-live="polite"></div>
+
+            <!-- Kartica sestanka: poganja seznam in filtre, ni del dokumenta za stranko -->
+            <section class="panel qsec" id="kartica">
+              <div class="qsec__head"><h2>Kartica sestanka</h2></div>
+              <p class="qsec__desc">Za razvrščanje in iskanje po seznamu. Vsebina dokumenta za stranko pride iz »Osnovni podatki« spodaj.</p>
+              <div class="qsec__body">
+                <div class="kartica__grid">
+                  <div class="field">
+                    <label class="field__label field__label--sm" for="mStranka">Stranka</label>
+                    <input class="input" id="mStranka" data-meta="stranka_naziv" type="text">
+                  </div>
+                  <div class="field">
+                    <label class="field__label field__label--sm" for="mProces">Proces</label>
+                    <input class="input" id="mProces" data-meta="proces" type="text">
+                  </div>
+                  <div class="field">
+                    <label class="field__label field__label--sm" for="mOddelek">Oddelek</label>
+                    <input class="input" id="mOddelek" data-meta="oddelek" type="text">
+                  </div>
+                  <div class="field">
+                    <label class="field__label field__label--sm" for="mSvetovalec">Svetovalec</label>
+                    <input class="input" id="mSvetovalec" data-meta="svetovalec" type="text">
+                  </div>
+                  <div class="field">
+                    <label class="field__label field__label--sm" for="mDatum">Datum sestanka</label>
+                    <input class="input" id="mDatum" data-meta="datum_sestanka" type="date">
+                  </div>
+                  <!-- Povezava s podjetjem: samo tako zapis vidita prodajni predlog
+                       in izvoz za Claude na strani podjetja. -->
+                  <div class="field">
+                    <label class="field__label field__label--sm" for="mPodjetje">Podjetje v bazi</label>
+                    <span class="select-wrap"><select class="select" id="mPodjetje" data-meta="company_id">
+                      <option value="">Ni izbrano</option>
+                    </select></span>
+                    <span class="field__hint" id="mPodjetjeNamig"></span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <!-- Obrazec: sklopi vprasalnika (izrise JS) -->
+            <form id="obrazec" class="seja__form" onsubmit="return false;">
+              <div class="loading" role="status"><span class="spinner" aria-hidden="true"></span>Nalagam zapis sestanka …</div>
+            </form>
+
+            <!-- Transkript -->
+            <section class="panel qsec" id="kartaTranskript">
+              <div class="qsec__head"><h2>Transkript sestanka</h2></div>
+              <p class="qsec__desc">Besedilo se shrani v našo bazo, ne le kot povezava, ker Soniox povezava lahko poteče.</p>
+              <div class="qsec__body qsec__body--tight">
+                <div class="row-actions row-actions--field">
+                  <label class="sr-only" for="tUrl">Soniox povezava</label>
+                  <input class="input" id="tUrl" type="url" placeholder="Soniox povezava (https://…)">
+                  <button class="btn btn--secondary" type="button" id="tPrenesi"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg><span>Prenesi in shrani</span></button>
+                </div>
+                <details class="sub-disclosure" id="tRocnoOvoj">
+                  <summary>Prilepi transkript ročno</summary>
+                  <div class="tr-rocno">
+                    <label class="sr-only" for="tBesedilo">Transkript</label>
+                    <textarea class="textarea textarea--mono" id="tBesedilo" rows="6" placeholder="Prilepi celoten surov transkript …"></textarea>
+                    <button class="btn btn--secondary" type="button" id="tShraniRocno"><span>Shrani prilepljeni transkript</span></button>
+                  </div>
+                </details>
+                <p class="field__status st" id="tStatus" aria-live="polite"></p>
+                <div id="tSeznam"></div>
+              </div>
+            </section>
+
+            <!-- Posiljanje -->
+            <section class="panel qsec" id="kartaPosiljanje">
+              <div class="qsec__head"><h2>Pošiljanje stranki</h2></div>
+              <p class="qsec__desc">Stranka prejme izpolnjen zapis v telesu e-pošte in kot PDF prilogo. Transkript ne gre stranki. Odgovori gredo na ai@acenta.si.</p>
+              <div class="qsec__body qsec__body--tight">
+                <div class="grid-2">
+                  <div class="field">
+                    <label class="field__label field__label--sm" for="pEmail">E-naslov prejemnika<span class="field__req" aria-hidden="true">*</span></label>
+                    <input class="input" id="pEmail" type="email" placeholder="ime@hotel.si" required>
+                  </div>
+                  <div class="field">
+                    <label class="field__label field__label--sm" for="pZadeva">Zadeva</label>
+                    <input class="input" id="pZadeva" type="text">
+                  </div>
+                </div>
+                <div class="field">
+                  <label class="field__label field__label--sm" for="pSporocilo">Spremno besedilo</label>
+                  <textarea class="textarea" id="pSporocilo" rows="8"></textarea>
+                </div>
+                <label class="check"><input id="pPdf" type="checkbox" checked>Priloži PDF</label>
+                <div class="row-actions">
+                  <a class="btn btn--secondary" id="pPredogled" target="_blank" rel="noopener">Predogled za stranko<svg class="icon icon--sm" aria-hidden="true"><use href="#i-external"/></svg></a>
+                  <a class="btn btn--secondary" id="pPredogledInterno" target="_blank" rel="noopener">Interni predogled (s transkriptom)<svg class="icon icon--sm" aria-hidden="true"><use href="#i-external"/></svg></a>
+                  <a class="btn btn--secondary" id="pPdfLink" target="_blank" rel="noopener">PDF<svg class="icon icon--sm" aria-hidden="true"><use href="#i-external"/></svg></a>
+                  <span class="spacer"></span>
+                  <button class="btn btn--primary" type="button" id="pPoslji"><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg><span>Pošlji stranki</span></button>
+                </div>
+                <div id="pNiVklopljeno" class="callout callout--info hidden">
+                  <svg class="icon" aria-hidden="true"><use href="#i-info"/></svg>
+                  <div>Pošiljanje e-pošte še ni vklopljeno (manjka nastavitev strežnika).
+                    Uporabi <strong>Predogled za stranko</strong> ali <strong>PDF</strong> zgoraj in pošlji ročno iz svojega nabiralnika.</div>
+                </div>
+                <p class="field__status st" id="pStatus" aria-live="polite"></p>
+                <div id="pZgodovina"></div>
+              </div>
+            </section>
           </div>
-        </section>
-
-        <!-- Obrazec -->
-        <form id="obrazec" onsubmit="return false;"></form>
-
-        <!-- Transkript -->
-        <section id="kartaTranskript" class="bg-white rounded shadow p-5 mt-8 scroll-mt-24">
-          <h2 class="font-semibold text-[#16262e] mb-1">Transkript sestanka</h2>
-          <p class="text-sm text-gray-500 mb-4">
-            Besedilo se shrani <strong>v našo bazo</strong>, ne le kot povezava — Soniox povezava lahko poteče.
-          </p>
-
-          <div class="flex flex-col sm:flex-row gap-3 mb-3">
-            <input id="tUrl" type="url" placeholder="Soniox povezava (https://...)"
-              class="flex-1 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
-            <button id="tPrenesi"
-              class="px-4 py-2 bg-[#16262e] text-white rounded text-sm font-medium hover:bg-[#16262e] transition-colors shrink-0">
-              Prenesi in shrani
-            </button>
-          </div>
-
-          <details id="tRocnoOvoj" class="mb-3">
-            <summary class="text-sm text-[#0b7a6c] cursor-pointer hover:underline">
-              Prilepi transkript ročno
-            </summary>
-            <textarea id="tBesedilo" rows="8" placeholder="Prilepi celoten surov transkript..."
-              class="w-full mt-3 px-3 py-2 border border-gray-300 rounded text-sm font-mono focus:outline-none focus:border-[#0b7a6c]"></textarea>
-            <button id="tShraniRocno"
-              class="mt-2 px-4 py-2 bg-[#0b7a6c] text-white rounded text-sm font-medium hover:bg-[#0b7a6c] transition-colors">
-              Shrani prilepljeni transkript
-            </button>
-          </details>
-
-          <div id="tStatus" class="text-sm mb-3"></div>
-          <div id="tSeznam"></div>
-        </section>
-
-        <!-- Posiljanje -->
-        <section id="kartaPosiljanje" class="bg-white rounded shadow p-5 mt-6 mb-10 scroll-mt-24">
-          <h2 class="font-semibold text-[#16262e] mb-1">Pošiljanje stranki</h2>
-          <p class="text-sm text-gray-500 mb-4">
-            Stranka prejme izpolnjen zapis v telesu e-pošte in kot PDF prilogo.
-            Transkript <strong>ne</strong> gre stranki. Odgovori gredo na ai@acenta.si.
-          </p>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <label class="block">
-              <span class="text-xs text-gray-500 block mb-1">E-naslov prejemnika <span class="text-red-500">*</span></span>
-              <input id="pEmail" type="email" placeholder="ime@hotel.si"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
-            </label>
-            <label class="block">
-              <span class="text-xs text-gray-500 block mb-1">Zadeva</span>
-              <input id="pZadeva" type="text"
-                class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">
-            </label>
-          </div>
-
-          <label class="block mb-4">
-            <span class="text-xs text-gray-500 block mb-1">Spremno besedilo</span>
-            <textarea id="pSporocilo" rows="9"
-              class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]"></textarea>
-          </label>
-
-          <label class="flex items-center gap-2 text-sm text-gray-600 mb-4">
-            <input id="pPdf" type="checkbox" checked class="rounded"> Priloži PDF
-          </label>
-
-          <div class="flex items-center gap-3 flex-wrap">
-            <a id="pPredogled" href="#" target="_blank"
-              class="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
-              Predogled za stranko →
-            </a>
-            <a id="pPredogledInterno" href="#" target="_blank"
-              class="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
-              Interni predogled (s transkriptom) →
-            </a>
-            <a id="pPdfLink" href="#" target="_blank"
-              class="px-4 py-2 border border-gray-300 rounded text-sm hover:bg-gray-50 transition-colors">
-              PDF →
-            </a>
-            <button id="pPoslji"
-              class="px-4 py-2 bg-[#0b7a6c] text-white rounded text-sm font-medium hover:bg-[#0b7a6c] transition-colors">
-              Pošlji stranki
-            </button>
-          </div>
-
-          <div id="pNiVklopljeno" class="hidden flex gap-2 items-start text-sm text-gray-600 bg-slate-100 border border-slate-200 rounded px-3 py-2 mt-3">
-            <span aria-hidden="true">ⓘ</span>
-            <span>Pošiljanje e-pošte še ni vklopljeno (manjka nastavitev strežnika).
-              Uporabi <strong>Predogled za stranko</strong> ali <strong>PDF</strong> zgoraj in pošlji ročno iz svojega nabiralnika.</span>
-          </div>
-
-          <div id="pStatus" class="text-sm mt-3"></div>
-          <div id="pZgodovina" class="mt-4"></div>
-        </section>
+        </div>
       </div>
-    </div>
-  </main>
+    </main>
+  </div>
 
   <script src="/admin/app.js"></script>
   <script>
@@ -223,6 +329,8 @@
     let odgovoriCakajo = false;  // je med debounce in dejanskim PATCH-em odgovorov
     let revizija = null;         // answers_rev iz baze (zascita pred prepisom med zavihki)
     let posiljanjeVklopljeno = false;
+    // Izrisani sklopi (za stevce v kazalu in za "dodaj vprasanje v ta sklop").
+    let sklopi = [];
 
     // Vsi zapisi gredo skozi ENO verigo obljub: naslednji PATCH pocaka
     // prejsnjega, zato iz tega zavihka nikoli ne tece dvoje hkrati in
@@ -237,68 +345,84 @@
     // ── Pomozne ─────────────────────────────────────────────────────────
     function el(id) { return document.getElementById(id); }
 
+    // Smooth scrolling only when the user has not asked for reduced motion.
+    function gladko() {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    }
+
+    // vrsta: info | opozorilo | napaka | uspeh (as before) -> callout tone + icon.
+    const OPOZORILO_VRSTE = {
+      info:      ['callout--info', 'info'],
+      opozorilo: ['callout--warning', 'alert'],
+      napaka:    ['callout--danger', 'alert'],
+      uspeh:     ['callout--success', 'check'],
+    };
     function pokaziOpozorilo(besedilo, vrsta = 'info') {
-      const razredi = {
-        info:  'bg-blue-50 text-blue-800',
-        opozorilo: 'bg-amber-50 text-amber-900',
-        napaka: 'bg-red-50 text-red-700',
-        uspeh: 'bg-green-50 text-green-800',
-      };
+      const [razred, znak] = OPOZORILO_VRSTE[vrsta] || OPOZORILO_VRSTE.info;
       const o = el('opozorilo');
-      o.className = `mb-4 px-4 py-3 rounded text-sm ${razredi[vrsta] || razredi.info}`;
-      o.innerHTML = besedilo;
+      o.className = `callout ${razred}`;
+      o.innerHTML = `${ikona(znak)}<div class="opozorilo__txt">${besedilo}</div>`;
       o.classList.remove('hidden');
     }
     function skrijOpozorilo() { el('opozorilo').classList.add('hidden'); }
 
-    function nastaviShranjeno(besedilo, barva = 'text-gray-400') {
-      el('shranjeno').className = `text-xs shrink-0 min-w-[92px] text-right ${barva}`;
+    // Save state in the session bar: dot color + text (tests read #shranjeno).
+    // stanje: ok | dirty | busy | error | idle
+    const SHRANI_PIKA = { ok: 'dot--success', dirty: 'dot--warning', error: 'dot--danger', busy: '', idle: '' };
+    function nastaviShranjeno(besedilo, stanje = 'idle') {
+      const ovoj = el('shraniStanje');
+      ovoj.dataset.s = stanje;
+      ovoj.querySelector('.dot').className = `dot ${SHRANI_PIKA[stanje] || ''}`.trim();
       el('shranjeno').textContent = besedilo;
+    }
+    // Slovenian time with a dot (10.42), as in the approved prototype.
+    function casZdaj() {
+      const d = new Date();
+      return `${d.getHours()}.${String(d.getMinutes()).padStart(2, '0')}`;
+    }
+
+    // Status line under an action (transcript, sending). ton: '' | napaka | opozorilo | uspeh
+    function nastaviStatus(id, html, ton = '') {
+      const e = el(id);
+      e.className = `field__status st${ton ? ` st--${ton}` : ''}`;
+      e.innerHTML = html;
     }
 
     // ── Izris posameznega vprasanja ─────────────────────────────────────
-
-    function izrisiPolje(q, indeks) {
+    // The FIRST <label> inside [data-polje] is the question text (tests read it).
+    function izrisiPolje(q) {
       const v = odgovori[q.id];
-      const zvezdica = q.obvezno ? ' <span class="text-red-500">*</span>' : '';
-      const namig = q.namig
-        ? `<div class="text-xs text-gray-500 italic mb-2">${esc(q.namig)}</div>` : '';
+      const qid = esc(q.id);
+      const fid = `q-${qid}`;
+      const manjka = q.obvezno && !jeIzpolnjeno(q, v);
+      const zvezdica = q.obvezno
+        ? '<span class="field__req" aria-hidden="true">*</span><span class="sr-only"> (obvezno)</span>' : '';
+      const znacke = (q.poudarek ? '<span class="chip chip--accent">Pomembno</span>' : '')
+        + (q.obvezno ? `<span class="chip chip--warning" data-manjka${manjka ? '' : ' hidden'}>Manjka</span>` : '');
+      const namig = q.namig ? `<p class="field__hint">${esc(q.namig)}</p>` : '';
+      const skupina = ['radio', 'select', 'checkbox_multi', 'table'].includes(q.tip);
 
       let polje = '';
 
       if (q.tip === 'textarea') {
-        polje = `<textarea data-qid="${esc(q.id)}" data-tip="textarea"
-                    class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]"
-                  >${esc(v ?? '')}</textarea>`;
+        polje = `<textarea class="textarea" id="${fid}" rows="3" data-qid="${qid}" data-tip="textarea">${esc(v ?? '')}</textarea>`;
 
       } else if (q.tip === 'radio' || q.tip === 'select') {
         // Radio tudi za 'select': na sestanku je en klik hitrejsi od
         // spustnega seznama, moznosti pa je malo (da/delno/ne).
-        polje = `<div class="flex flex-wrap gap-x-5 gap-y-2">` +
-          (q.options || []).map((o, i) => `
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="radio" name="q_${esc(q.id)}" data-qid="${esc(q.id)}" data-tip="radio"
-                value="${esc(o)}" ${v === o ? 'checked' : ''}>
-              <span>${esc(o)}</span>
-            </label>`).join('') +
-          (v ? `<button type="button" data-pocisti="${esc(q.id)}"
-                  class="text-xs text-gray-400 hover:text-red-600 underline">počisti</button>` : '') +
-          `</div>`;
+        polje = '<div class="choices">' +
+          (q.options || []).map(o => `<label class="choice"><input type="radio" name="q_${qid}" data-qid="${qid}" data-tip="radio" value="${esc(o)}"${v === o ? ' checked' : ''}>${esc(o)}</label>`).join('') +
+          (v ? `<button type="button" class="q__clear" data-pocisti="${qid}">Počisti</button>` : '') +
+          '</div>';
 
       } else if (q.tip === 'checkbox_multi') {
         const izbrano = Array.isArray(v?.izbrano) ? v.izbrano : [];
         const drugo = v?.drugo ?? '';
-        polje = `<div class="flex flex-wrap gap-x-5 gap-y-2">` +
-          (q.options || []).map(o => `
-            <label class="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" data-qid="${esc(q.id)}" data-tip="checkbox_multi"
-                value="${esc(o)}" ${izbrano.includes(o) ? 'checked' : ''}>
-              <span>${esc(o)}</span>
-            </label>`).join('') + `</div>` +
-          (q.drugo ? `
-            <input type="text" data-qid="${esc(q.id)}" data-tip="checkbox_drugo"
-              placeholder="drugo: ..." value="${esc(drugo)}"
-              class="mt-2 w-full sm:w-2/3 px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">`
+        polje = '<div class="choices">' +
+          (q.options || []).map(o => `<label class="choice"><input type="checkbox" data-qid="${qid}" data-tip="checkbox_multi" value="${esc(o)}"${izbrano.includes(o) ? ' checked' : ''}>${esc(o)}</label>`).join('') +
+          '</div>' +
+          (q.drugo
+            ? `<input class="input q__drugo" type="text" data-qid="${qid}" data-tip="checkbox_drugo" placeholder="drugo: …" aria-label="Drugo" value="${esc(drugo)}">`
             : '');
 
       } else if (q.tip === 'table') {
@@ -307,82 +431,78 @@
         const mreza = Array.isArray(v) ? v : [];
         let vrstice = '';
         for (let r = 0; r < stVrstic; r++) {
-          vrstice += '<tr>' + stolpci.map((_, c) => `
-            <td class="border border-gray-200 p-0">
-              <input type="text" data-qid="${esc(q.id)}" data-tip="table" data-r="${r}" data-c="${c}"
-                value="${esc(mreza[r]?.[c] ?? '')}"
-                class="w-full px-2 py-1.5 text-sm border-0 focus:outline-none focus:bg-[#e3f5f1]">
-            </td>`).join('') + '</tr>';
+          vrstice += '<tr>' + stolpci.map((ime, c) =>
+            `<td><input type="text" data-qid="${qid}" data-tip="table" data-r="${r}" data-c="${c}" aria-label="${esc(ime)}, vrstica ${r + 1}" value="${esc(mreza[r]?.[c] ?? '')}"></td>`).join('') + '</tr>';
         }
-        polje = `
-          <div class="overflow-x-auto">
-            <table class="w-full border-collapse text-sm min-w-[520px]">
-              <thead>
-                <tr>${stolpci.map(c => `
-                  <th class="border border-gray-200 bg-gray-50 px-2 py-1.5 text-left text-xs text-gray-500 font-semibold">${esc(c)}</th>`).join('')}</tr>
-              </thead>
-              <tbody>${vrstice}</tbody>
-            </table>
-          </div>`;
+        polje = `<div class="grid-scroll"><table class="grid-input">
+            <thead><tr>${stolpci.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead>
+            <tbody>${vrstice}</tbody>
+          </table></div>`;
 
       } else {
         const htmlTip = q.tip === 'date' ? 'date' : q.tip === 'email' ? 'email' : 'text';
-        polje = `<input type="${htmlTip}" data-qid="${esc(q.id)}" data-tip="${esc(q.tip)}"
-                    value="${esc(v ?? '')}"
-                    class="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:border-[#0b7a6c]">`;
+        polje = `<input class="input" id="${fid}" type="${htmlTip}" data-qid="${qid}" data-tip="${esc(q.tip)}" value="${esc(v ?? '')}">`;
       }
 
+      // Urejanje: samo v nacinu urejanja (sicer bi bile to kontrole brez namena).
       const urejanje = urejanjeVprasanj ? `
-        <div class="flex items-center gap-3 mt-2 pt-2 border-t border-dashed border-gray-200">
-          <input type="text" data-labelza="${esc(q.id)}" value="${esc(q.label)}"
-            class="flex-1 px-2 py-1 border border-gray-300 rounded text-xs"
-            placeholder="Besedilo vprašanja">
-          <label class="flex items-center gap-1.5 text-xs text-gray-500 whitespace-nowrap">
-            <input type="checkbox" data-obveznoza="${esc(q.id)}" ${q.obvezno ? 'checked' : ''}> obvezno
-          </label>
-          <button type="button" data-odstrani="${esc(q.id)}"
-            class="text-xs text-red-600 hover:underline whitespace-nowrap">odstrani</button>
+        <div class="q-edit">
+          <input class="input" type="text" data-labelza="${qid}" value="${esc(q.label)}" placeholder="Besedilo vprašanja" aria-label="Besedilo vprašanja">
+          <label class="check q-edit__req"><input type="checkbox" data-obveznoza="${qid}"${q.obvezno ? ' checked' : ''}>obvezno</label>
+          <button type="button" class="btn btn--ghost btn--sm q-edit__del" data-odstrani="${qid}">Odstrani</button>
         </div>` : '';
 
+      const oznaka = skupina
+        ? `<label class="field__label" id="${fid}-l">${esc(q.label)}${zvezdica}${znacke}</label>`
+        : `<label class="field__label" for="${fid}">${esc(q.label)}${zvezdica}${znacke}</label>`;
+      const razred = `q${q.poudarek ? ' q--emph poudarek' : ''}${manjka ? ' q--missing' : ''}`;
+      const skupinaAttr = skupina ? ` role="group" aria-labelledby="${fid}-l"` : '';
+
       return `
-        <div class="polje mb-5 pb-5 border-b border-gray-100 ${q.poudarek ? 'poudarek' : ''}" data-polje="${esc(q.id)}">
-          <label class="block text-sm font-medium text-[#3a3a48] mb-1.5">${esc(q.label)}${zvezdica}</label>
-          ${namig}
-          ${polje}
-          ${urejanje}
-        </div>`;
+        <div class="${razred}" data-polje="${qid}"${skupinaAttr}>${oznaka}${namig}${polje}${urejanje}</div>`;
     }
 
     // ── Izris celega obrazca ────────────────────────────────────────────
     function izrisiObrazec() {
       const kosi = [];
-      const navKosi = [];
-      let odprtaSekcija = false;
-      let stevecSekcij = 0;
+      sklopi = [];
+      let odprt = null;
+
+      // vstaviNa = index in `vprasanja` where "add question to this section"
+      // inserts (right before the next section item, i.e. at the section end).
+      function odpriSklop(label, namig) {
+        odprt = { st: sklopi.length + 1, id: `sklop-${sklopi.length + 1}`, label, polja: [], vstaviNa: vprasanja.length };
+        sklopi.push(odprt);
+        kosi.push(`
+          <section class="panel qsec" id="${odprt.id}">
+            <div class="qsec__head"><h2>${esc(label)}</h2><span class="idx__n" data-stevec="${odprt.id}"></span></div>
+            ${namig ? `<p class="qsec__desc">${esc(namig)}</p>` : ''}
+            <div class="qsec__body">`);
+      }
+      function zapriSklop(konec) {
+        if (!odprt) return;
+        odprt.vstaviNa = konec;
+        kosi.push(dodajGumb(odprt.st), '</div></section>');
+        odprt = null;
+      }
 
       // Vprasanja pred prvo sekcijo so glava obrazca (Hotel, Datum,
       // Sodelujoci predstavniki ...). Dobijo svojo prvo kartico.
       //
       // Prej sem jih preskocil, ker sem mislil, da jih pokriva meta kartica
-      // zgoraj — a ta hrani podatke SEJE (stranka_naziv, proces ...), ne teh
+      // zgoraj, a ta hrani podatke SEJE (stranka_naziv, proces ...), ne teh
       // vprasanj. Posledica: pet polj, med njimi "Sodelujoci predstavniki
       // hotela", ni bilo mogoce izpolniti nikjer. Zato jih izrisemo tu.
       const idxPrveSekcije = vprasanja.findIndex(q => q.tip === 'section');
       const zacetek = idxPrveSekcije === -1 ? 0 : idxPrveSekcije;
 
       if (zacetek > 0) {
-        stevecSekcij++;
-        const sid = `sklop-${stevecSekcij}`;
-        navKosi.push(`<a href="#${sid}" class="block text-gray-600 hover:text-[#0b7a6c]" data-navza="${sid}">Osnovni podatki</a>`);
-        kosi.push(`
-          <section id="${sid}" class="bg-white rounded shadow p-5 mb-6 scroll-mt-24">
-            <h2 class="text-base font-semibold text-[#16262e] pb-2 mb-1 border-b-2 border-[#0b7a6c]">Osnovni podatki</h2>
-            <div class="text-xs text-gray-500 italic mb-4">Glava vprašalnika — to gre v dokument za stranko. Prednapolnjeno iz kartice sestanka zgoraj.</div>`);
+        odpriSklop('Osnovni podatki', 'Glava vprašalnika, ki gre v dokument za stranko. Prednapolnjeno iz kartice sestanka.');
         for (let i = 0; i < zacetek; i++) {
           const q = vprasanja[i];
-          if (q && q.tip !== 'section') kosi.push(izrisiPolje(q, i));
+          if (q && q.tip !== 'section') { odprt.polja.push(q); kosi.push(izrisiPolje(q)); }
         }
-        kosi.push(dodajGumb(stevecSekcij), '</section>');
+        zapriSklop(zacetek);
       }
 
       for (let i = zacetek; i < vprasanja.length; i++) {
@@ -390,41 +510,31 @@
         if (!q) continue;
 
         if (q.tip === 'section') {
-          if (odprtaSekcija) kosi.push(dodajGumb(stevecSekcij), '</section>');
-          stevecSekcij++;
-          const sid = `sklop-${stevecSekcij}`;
-          navKosi.push(`<a href="#${sid}" class="block text-gray-600 hover:text-[#0b7a6c]" data-navza="${sid}">${esc(q.label)}</a>`);
-          kosi.push(`
-            <section id="${sid}" class="bg-white rounded shadow p-5 mb-6 scroll-mt-24">
-              <h2 class="text-base font-semibold text-[#16262e] pb-2 mb-1 border-b-2 border-[#0b7a6c]">${esc(q.label)}</h2>
-              ${q.namig ? `<div class="text-xs text-gray-500 italic mb-4">${esc(q.namig)}</div>` : '<div class="mb-4"></div>'}`);
-          odprtaSekcija = true;
+          zapriSklop(i);
+          odpriSklop(q.label, q.namig);
           continue;
         }
-
-        if (!odprtaSekcija) {
-          // Obrazec brez sekcij — odpremo eno privzeto, da polja niso brez okvira.
-          stevecSekcij++;
-          kosi.push(`<section id="sklop-${stevecSekcij}" class="bg-white rounded shadow p-5 mb-6 scroll-mt-24">`);
-          odprtaSekcija = true;
-        }
-        kosi.push(izrisiPolje(q, i));
+        // Obrazec brez sekcij: odpremo eno privzeto, da polja niso brez okvira.
+        if (!odprt) odpriSklop('Vprašanja', '');
+        odprt.polja.push(q);
+        kosi.push(izrisiPolje(q));
       }
-
-      if (odprtaSekcija) kosi.push(dodajGumb(stevecSekcij), '</section>');
+      zapriSklop(vprasanja.length);
 
       el('obrazec').innerHTML = kosi.join('');
-      el('sklopNav').innerHTML = navKosi.join('');
+      el('obrazec').classList.toggle('is-editing', urejanjeVprasanj);
+      el('sklopNav').innerHTML = sklopi.map(s =>
+        `<a class="idx__item" href="#${s.id}" data-navza="${s.id}"><span class="idx__lbl">${esc(s.label)}</span><span class="idx__n" data-stevec="${s.id}"></span></a>`).join('');
       priklopiPoslusalce();
       osveziNapredek();
+      opazujSklope();
     }
 
-    // Gumb "dodaj vprasanje" se izrise samo v nacinu urejanja — brez tega
+    // Gumb "dodaj vprasanje" se izrise samo v nacinu urejanja; brez tega
     // bi bil to mrtev gumb med obicajnim izpolnjevanjem.
     function dodajGumb(stSekcije) {
       if (!urejanjeVprasanj) return '';
-      return `<button type="button" data-dodajvsekcijo="${stSekcije}"
-        class="mt-2 text-sm text-[#0b7a6c] hover:underline">+ dodaj vprašanje v ta sklop</button>`;
+      return `<button type="button" class="btn btn--ghost btn--sm q-add" data-dodajvsekcijo="${stSekcije}">${ikona('plus')}<span>Dodaj vprašanje v ta sklop</span></button>`;
     }
 
     // ── Branje odgovorov iz DOM v objekt ───────────────────────────────
@@ -480,7 +590,7 @@
           preberiPolje(t.dataset.qid);
           osveziNapredek();
           zahtevajShranjevanje();
-          // Radio: po izbiri ponovno izrisemo, da se pokaze gumb "pocisti".
+          // Radio: po izbiri ponovno izrisemo, da se pokaze gumb "Počisti".
           if (t.dataset.tip === 'radio') izrisiObrazec();
         }
         if (t.dataset.obveznoza) shraniUrejanjeVprasanj();
@@ -499,7 +609,7 @@
         }
         if (t.dataset.odstrani) {
           const q = vprasanja.find(x => x.id === t.dataset.odstrani);
-          if (!confirm(`Odstranim vprašanje „${q?.label ?? t.dataset.odstrani}“ iz TEGA sestanka?\n\nPredloga za druge sestanke ostane nespremenjena.`)) return;
+          if (!confirm(`Odstranim vprašanje »${q?.label ?? t.dataset.odstrani}« iz TEGA sestanka?\n\nPredloga za druge sestanke ostane nespremenjena.`)) return;
           vprasanja = vprasanja.filter(x => x.id !== t.dataset.odstrani);
           delete odgovori[t.dataset.odstrani];
           izrisiObrazec();
@@ -512,8 +622,8 @@
       };
     }
 
-    // Doda novo vprasanje na konec izbranega sklopa.
-    function dodajVprasanje(stSekcije) {
+    // Doda novo vprasanje na konec izbranega sklopa (st = 1, 2, ... kot v izrisu).
+    function dodajVprasanje(stSklopa) {
       const label = prompt('Besedilo novega vprašanja:');
       if (!label || !label.trim()) return;
 
@@ -542,14 +652,11 @@
       const novo = { id, label: label.trim(), tip };
       if (options) novo.options = options;
 
-      // Vstavimo pred naslednjo sekcijo (torej na konec te sekcije).
-      let sekcij = 0, vstaviNa = vprasanja.length;
-      for (let i = 0; i < vprasanja.length; i++) {
-        if (vprasanja[i].tip === 'section') {
-          sekcij++;
-          if (sekcij === stSekcije + 1) { vstaviNa = i; break; }
-        }
-      }
+      // Na konec tega sklopa: tik pred naslednjo sekcijo (ali na konec).
+      // Prej je stetje sekcij ob glavi "Osnovni podatki" zgresilo za eno
+      // in vprasanje vstavilo v naslednji sklop.
+      const sklop = sklopi[stSklopa - 1];
+      const vstaviNa = sklop ? sklop.vstaviNa : vprasanja.length;
       vprasanja.splice(vstaviNa, 0, novo);
       izrisiObrazec();
       shraniUrejanjeVprasanj();
@@ -567,26 +674,99 @@
       return !!String(v ?? '').trim();
     }
 
+    const OBLIKE_MANJKA = ['obvezno manjka', 'obvezni manjkata', 'obvezna manjkajo', 'obveznih manjka'];
+
     function osveziNapredek() {
       const polja = vprasanja.filter(q => q.tip !== 'section');
       const izpolnjenih = polja.filter(q => jeIzpolnjeno(q, odgovori[q.id])).length;
       const manjkaObveznih = polja.filter(q => q.obvezno && !jeIzpolnjeno(q, odgovori[q.id])).length;
-      el('glavaNapredek').innerHTML =
-        `${izpolnjenih}/${polja.length} izpolnjenih` +
-        (manjkaObveznih ? ` <span class="text-amber-600 font-semibold">· ${manjkaObveznih} obveznih manjka</span>` : '');
+      const pct = polja.length ? Math.round(izpolnjenih / polja.length * 100) : 0;
+
+      const gumb = el('glavaNapredek');
+      gumb.innerHTML = `${izpolnjenih}/${polja.length}<span class="prog__long"> izpolnjenih</span>` +
+        (manjkaObveznih ? ` · <b>${sklon(manjkaObveznih, OBLIKE_MANJKA)}</b>` : '');
+      // Click jumps to the first empty required field; nothing to jump to = disabled.
+      gumb.disabled = !manjkaObveznih;
+      gumb.title = manjkaObveznih ? 'Skoči na prvo manjkajoče obvezno polje' : 'Vsa obvezna polja so izpolnjena';
+      el('napredekVrstica').style.width = `${pct}%`;
+      el('napredekCrta').style.width = `${pct}%`;
+
+      // Counters per section (index and section head): "4/6", dot = required missing.
+      for (const s of sklopi) {
+        const n = s.polja.filter(q => jeIzpolnjeno(q, odgovori[q.id])).length;
+        const m = s.polja.some(q => q.obvezno && !jeIzpolnjeno(q, odgovori[q.id]));
+        const vse = s.polja.length > 0 && n === s.polja.length;
+        const html = !s.polja.length ? '' :
+          (m ? '<span class="dot dot--warning" aria-hidden="true"></span><span class="sr-only">manjka obvezno polje, </span>' : '') +
+          (vse ? ikona('check', 'icon--sm') : '') + `${n}/${s.polja.length}`;
+        document.querySelectorAll(`[data-stevec="${s.id}"]`).forEach(e => {
+          e.classList.toggle('is-done', vse);
+          e.innerHTML = html;
+        });
+      }
+
+      // Required fields: "Manjka" chip and warning border follow the answer.
+      for (const q of polja) {
+        if (!q.obvezno) continue;
+        const ovoj = document.querySelector(`[data-polje="${CSS.escape(q.id)}"]`);
+        if (!ovoj) continue;
+        const manjka = !jeIzpolnjeno(q, odgovori[q.id]);
+        ovoj.classList.toggle('q--missing', manjka);
+        ovoj.querySelector('[data-manjka]')?.toggleAttribute('hidden', !manjka);
+      }
+    }
+
+    // Scroll to a question and focus its first control. Returns false if the
+    // question is not on the page (e.g. removed from this meeting).
+    function skociNaPolje(qid) {
+      const ovoj = qid ? document.querySelector(`[data-polje="${CSS.escape(qid)}"]`) : null;
+      if (!ovoj) return false;
+      ovoj.scrollIntoView({ behavior: gladko(), block: 'center' });
+      setTimeout(() => ovoj.querySelector('input, textarea')?.focus({ preventScroll: true }), 350);
+      return true;
+    }
+    function prvoManjkajoce() {
+      const q = vprasanja.find(x => x.tip !== 'section' && x.obvezno && !jeIzpolnjeno(x, odgovori[x.id]));
+      if (q) skociNaPolje(q.id);
+    }
+    el('glavaNapredek').addEventListener('click', prvoManjkajoce);
+
+    // Index: mark the section that is currently at the top of the form.
+    let opazovalec = null;
+    function opazujSklope() {
+      opazovalec?.disconnect();
+      if (!('IntersectionObserver' in window)) return;
+      const vrstniRed = [...sklopi.map(s => s.id), 'kartaTranskript', 'kartaPosiljanje'];
+      const vidni = new Set();
+      opazovalec = new IntersectionObserver((vnosi) => {
+        for (const v of vnosi) {
+          if (v.isIntersecting) vidni.add(v.target.id); else vidni.delete(v.target.id);
+        }
+        // Above the first section (meeting card in view): the first one is next.
+        const prvi = el(vrstniRed[0]);
+        const aktiven = vrstniRed.find(id => vidni.has(id))
+          || (prvi && prvi.getBoundingClientRect().top > 0 ? vrstniRed[0] : null);
+        if (!aktiven) return;
+        document.querySelectorAll('.idx__item').forEach(a => {
+          const da = a.dataset.navza === aktiven;
+          a.classList.toggle('is-active', da);
+          if (da) a.setAttribute('aria-current', 'location'); else a.removeAttribute('aria-current');
+        });
+      }, { rootMargin: '-110px 0px -60% 0px' });
+      vrstniRed.forEach(id => { const e = el(id); if (e) opazovalec.observe(e); });
     }
 
     // ── Shranjevanje ────────────────────────────────────────────────────
     function zahtevajShranjevanje() {
       nespravljeno = true;
       odgovoriCakajo = true;
-      nastaviShranjeno('Spremembe...', 'text-amber-600');
+      nastaviShranjeno('Spremembe …', 'dirty');
       clearTimeout(cakaSave);
       cakaSave = setTimeout(shraniOdgovore, 900);
     }
 
-    // PATCH z odgovori nosi revizijo (answers_rev). Ob 409 — drug zavihek je
-    // medtem pisal — ENKRAT ponovi s svezo revizijo, ker je obrazec v TEM
+    // PATCH z odgovori nosi revizijo (answers_rev). Ob 409 (drug zavihek je
+    // medtem pisal) ENKRAT ponovi s svezo revizijo, ker je obrazec v TEM
     // zavihku najnovejsa volja uporabnika; ob drugem neuspehu vrne false.
     async function patchSejo(telo, zRevizijo) {
       const posljiEnkrat = async (rev) => {
@@ -610,27 +790,27 @@
       return false;
     }
 
-    // Vrne true/false — klicatelja (zakljuci, poslji) ob false NE nadaljujeta.
+    // Vrne true/false; klicatelja (zakljuci, poslji) ob false NE nadaljujeta.
     async function shraniOdgovore() {
       clearTimeout(cakaSave);
       odgovoriCakajo = false;
       return vVrsto(async () => {
-        nastaviShranjeno('Shranjujem...', 'text-gray-400');
+        nastaviShranjeno('Shranjujem …', 'busy');
         const ok = await patchSejo({ answers: odgovori }, true);
         if (!ok) {
           odgovoriCakajo = true;
-          nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
-          pokaziOpozorilo('Odgovorov ni bilo mogoče shraniti. Ne zapiraj zavihka — preveri povezavo in nadaljuj z vnosom, poskusili bomo znova.', 'napaka');
+          nastaviShranjeno('NI shranjeno', 'error');
+          pokaziOpozorilo('Odgovorov ni bilo mogoče shraniti. Ne zapiraj zavihka: preveri povezavo in nadaljuj z vnosom, poskusili bomo znova.', 'napaka');
           return false;
         }
         if (!metaCaka) nespravljeno = false;
         skrijOpozorilo();
-        const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#0b7a6c]');
+        nastaviShranjeno(`Shranjeno ${casZdaj()}`, 'ok');
         return true;
       });
     }
 
+    let urejanjeVVrsti = null;   // queued (not yet started) question-edit save
     async function shraniUrejanjeVprasanj() {
       // Preberi morebitne spremenjene labele in obveznost iz DOM.
       document.querySelectorAll('[data-labelza]').forEach(i => {
@@ -643,22 +823,28 @@
       });
 
       nespravljeno = true;
-      return vVrsto(async () => {
-        nastaviShranjeno('Shranjujem...', 'text-gray-400');
+      // A queued save that has not started yet already sends the newest
+      // state (it reads `vprasanja` when it runs), so typing a label does not
+      // queue one full PATCH per keystroke. Once a save has started, the next
+      // change queues a new one.
+      if (urejanjeVVrsti) return urejanjeVVrsti;
+      urejanjeVVrsti = vVrsto(async () => {
+        urejanjeVVrsti = null;
+        nastaviShranjeno('Shranjujem …', 'busy');
         const ok = await patchSejo({ questions_snapshot: vprasanja, answers: odgovori }, true);
         if (!ok) {
-          nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold');
+          nastaviShranjeno('NI shranjeno', 'error');
           pokaziOpozorilo('Sprememb vprašanj ni bilo mogoče shraniti.', 'napaka');
           return false;
         }
         if (!metaCaka && !odgovoriCakajo) nespravljeno = false;
-        const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#0b7a6c]');
+        nastaviShranjeno(`Shranjeno ${casZdaj()}`, 'ok');
         return true;
       });
+      return urejanjeVVrsti;
     }
 
-    // Meta polja (stranka, proces, ...) — isti debounce, isti nespravljeno
+    // Meta polja (stranka, proces, ...): isti debounce, isti nespravljeno
     // (beforeunload mora pokriti tudi kartico sestanka).
     let metaCaka = null;
 
@@ -670,17 +856,16 @@
         telo[i.dataset.meta] = i.value.trim() || null;
       });
       if (!telo.stranka_naziv) {
-        nastaviShranjeno('Stranka je obvezna', 'text-red-600');
+        nastaviShranjeno('Stranka je obvezna', 'error');
         return false;
       }
       return vVrsto(async () => {
         const ok = await patchSejo(telo, false);
-        if (!ok) { nastaviShranjeno('NI shranjeno', 'text-red-600 font-semibold'); return false; }
+        if (!ok) { nastaviShranjeno('NI shranjeno', 'error'); return false; }
         seja = { ...seja, ...telo };
         osveziGlavo();
         if (!odgovoriCakajo) nespravljeno = false;
-        const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-        nastaviShranjeno(`Shranjeno ${cas}`, 'text-[#0b7a6c]');
+        nastaviShranjeno(`Shranjeno ${casZdaj()}`, 'ok');
         return true;
       });
     }
@@ -704,10 +889,10 @@
       const v = el('mPodjetje').value;
       const n = el('mPodjetjeNamig');
       if (v) {
-        n.className = 'text-xs block mt-1';
-        n.innerHTML = `<a href="/admin/company.html?id=${encodeURIComponent(v)}" class="text-[#0b7a6c] hover:underline">Odpri podjetje →</a>`;
+        n.className = 'field__hint';
+        n.innerHTML = `<a class="link" href="/admin/company.html?id=${encodeURIComponent(v)}">Odpri podjetje${ikona('arrow-right', 'icon--sm')}</a>`;
       } else {
-        n.className = 'text-xs block mt-1 text-amber-700';
+        n.className = 'field__hint field__hint--warning';
         n.textContent = 'Zapis ni povezan s podjetjem, zato ga prodajni predlog ne vidi.';
       }
     }
@@ -716,14 +901,14 @@
     document.querySelectorAll('[data-meta]').forEach(inp => {
       inp.addEventListener('input', () => {
         nespravljeno = true;
-        nastaviShranjeno('Spremembe...', 'text-amber-600');
+        nastaviShranjeno('Spremembe …', 'dirty');
         clearTimeout(metaCaka);
         metaCaka = setTimeout(shraniMeta, 900);
       });
     });
 
     // Pred zakljucevanjem ali posiljanjem: preklici oba debounca, pocakaj
-    // tekoce zapise in shrani VSE (odgovore + kartico). Vrne skupni uspeh —
+    // tekoce zapise in shrani VSE (odgovore + kartico). Vrne skupni uspeh;
     // ob false klicatelj STOP, sicer bi stranki slo zastarelo stanje iz baze.
     async function splakniVse() {
       const okOdgovori = await shraniOdgovore();
@@ -738,45 +923,53 @@
 
     // ── Glava ───────────────────────────────────────────────────────────
     const STATUS_OZNAKA = {
-      osnutek:   ['Osnutek', 'bg-amber-100 text-amber-800'],
-      zakljucen: ['Zaključen', 'bg-blue-100 text-blue-800'],
-      poslan:    ['Poslan stranki', 'bg-green-100 text-green-800'],
-      arhiv:     ['Arhiv', 'bg-gray-100 text-gray-500'],
+      osnutek:   ['Osnutek', 'chip--warning'],
+      zakljucen: ['Zaključen', 'chip--info'],
+      poslan:    ['Poslan stranki', 'chip--success'],
+      arhiv:     ['Arhiv', ''],
     };
 
     function osveziGlavo() {
-      const [besedilo, razred] = STATUS_OZNAKA[seja.status] || [seja.status, 'bg-gray-100'];
+      const [besedilo, razred] = STATUS_OZNAKA[seja.status] || [seja.status, ''];
       el('glavaNaslov').innerHTML =
-        `${esc(seja.stranka_naziv)} <span class="px-2 py-0.5 text-xs rounded font-semibold ${razred} ml-1">${esc(besedilo)}</span>`;
+        `<h1 title="${esc(seja.stranka_naziv)}">${esc(seja.stranka_naziv)}</h1><span class="chip${razred ? ` ${razred}` : ''}">${esc(besedilo)}</span>`;
       el('glavaPod').textContent =
         [seja.naziv_prikaz, seja.proces, seja.oddelek].filter(Boolean).join(' · ');
+      el('glavaPod').title = el('glavaPod').textContent;
+      document.title = `${seja.stranka_naziv} · Zapis sestanka · Acenta baza`;
+      // One primary action: Zakljuci while the meeting is a draft, then
+      // Poslji stranki (the API only closes drafts or re-closes closed ones).
+      const osnutek = seja.status === 'osnutek';
+      el('btnZakljuci').hidden = !osnutek;
+      el('btnPoslji').className = `btn ${osnutek ? 'btn--secondary' : 'btn--primary'}`;
     }
 
     // ── Transkripti ─────────────────────────────────────────────────────
+    const VIR_IME = { soniox: 'Soniox', rocno: 'ročni vnos' };
+
     function izrisiTranskripte(seznam) {
       if (!seznam.length) {
-        el('tSeznam').innerHTML = '<div class="text-sm text-gray-400">Še ni shranjenega transkripta.</div>';
+        el('tSeznam').innerHTML = '<p class="tr-prazno">Še ni shranjenega transkripta.</p>';
         return;
       }
       el('tSeznam').innerHTML = seznam.map(t => {
         const ok = t.status === 'ok';
         return `
-          <div class="border border-gray-200 rounded p-3 mb-2 ${ok ? '' : 'bg-red-50 border-red-200'}">
-            <div class="flex items-center justify-between gap-3 flex-wrap">
-              <div class="text-sm">
-                ${ok
-                  ? `<span class="text-[#0b7a6c] font-semibold">✓ shranjen</span>
-                     <span class="text-gray-500">· ${Number(t.znakov || 0).toLocaleString('sl-SI')} znakov · vir: ${esc(t.vir)}</span>`
-                  : `<span class="text-red-700 font-semibold">✗ ni prenesen</span>
-                     <span class="text-red-600">· ${esc(t.napaka || 'neznana napaka')}</span>`}
-              </div>
-              <div class="text-xs text-gray-400">${formatDatum(t.fetched_at)}</div>
+          <div class="tr-item${ok ? '' : ' tr-item--napaka'}">
+            <div class="tr-item__top">
+              ${ok
+                ? `<b class="tr-item__ok">${ikona('check', 'icon--sm')}Shranjen</b>
+                   <span>${Number(t.znakov || 0).toLocaleString('sl-SI')} znakov · vir: ${esc(VIR_IME[t.vir] || t.vir)}</span>`
+                : `<b class="tr-item__err">${ikona('x', 'icon--sm')}Ni prenesen</b>
+                   <span>${esc(t.napaka || 'neznana napaka')}</span>`}
+              <span class="spacer"></span>
+              <span class="muted nowrap">${formatDatum(t.fetched_at)}</span>
             </div>
-            ${t.soniox_url ? `<div class="text-xs text-gray-400 mt-1 truncate">${esc(t.soniox_url)}</div>` : ''}
+            ${t.soniox_url ? `<div class="tr-item__url" title="${esc(t.soniox_url)}">${esc(t.soniox_url)}</div>` : ''}
             ${ok && t.predogled ? `
-              <details class="mt-2">
-                <summary class="text-xs text-[#0b7a6c] cursor-pointer hover:underline">Pokaži začetek</summary>
-                <div class="mt-2 text-xs text-gray-600 font-mono whitespace-pre-wrap bg-gray-50 p-2 rounded max-h-40 overflow-y-auto">${esc(t.predogled)}…</div>
+              <details class="sub-disclosure">
+                <summary>Pokaži začetek</summary>
+                <pre>${esc(t.predogled)}…</pre>
               </details>` : ''}
           </div>`;
       }).join('');
@@ -784,29 +977,29 @@
 
     el('tPrenesi').addEventListener('click', async () => {
       const url = el('tUrl').value.trim();
-      if (!url) { el('tStatus').innerHTML = '<span class="text-red-600">Vpiši Soniox povezavo.</span>'; return; }
+      if (!url) { nastaviStatus('tStatus', 'Vpiši Soniox povezavo.', 'napaka'); el('tUrl').focus(); return; }
 
       const gumb = el('tPrenesi');
-      gumb.disabled = true; gumb.textContent = 'Prenašam...';
-      el('tStatus').innerHTML = '<span class="text-gray-500">Prenašam transkript...</span>';
+      const oznaka = gumb.querySelector('span');
+      gumb.disabled = true; oznaka.textContent = 'Prenašam …';
+      nastaviStatus('tStatus', 'Prenašam transkript …');
 
       const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}/transkript`, {
         method: 'POST', body: JSON.stringify({ soniox_url: url }),
       });
 
-      gumb.disabled = false; gumb.textContent = 'Prenesi in shrani';
+      gumb.disabled = false; oznaka.textContent = 'Prenesi in shrani';
 
       if (!d) {
-        el('tStatus').innerHTML = '<span class="text-red-600">Zahteva ni uspela.</span>';
+        nastaviStatus('tStatus', 'Zahteva ni uspela.', 'napaka');
         return;
       }
       if (!d.ok) {
-        el('tStatus').innerHTML =
-          `<span class="text-amber-700">Samodejni prenos ni uspel (${esc(d.napaka || '?')}). ${esc(d.nasvet || '')}</span>`;
+        nastaviStatus('tStatus', `Samodejni prenos ni uspel (${esc(d.napaka || '?')}). ${esc(d.nasvet || '')}`, 'opozorilo');
         // Odpremo rocno polje, da je naslednji korak očiten.
         el('tRocnoOvoj').open = true;
       } else {
-        el('tStatus').innerHTML = '<span class="text-[#0b7a6c]">Transkript shranjen v bazo.</span>';
+        nastaviStatus('tStatus', 'Transkript shranjen v bazo.', 'uspeh');
         el('tUrl').value = '';
       }
       naloziSejo();
@@ -814,23 +1007,24 @@
 
     el('tShraniRocno').addEventListener('click', async () => {
       const besedilo = el('tBesedilo').value;
-      if (!besedilo.trim()) { el('tStatus').innerHTML = '<span class="text-red-600">Polje je prazno.</span>'; return; }
+      if (!besedilo.trim()) { nastaviStatus('tStatus', 'Polje je prazno.', 'napaka'); return; }
 
       const gumb = el('tShraniRocno');
-      gumb.disabled = true; gumb.textContent = 'Shranjujem...';
+      const oznaka = gumb.querySelector('span');
+      gumb.disabled = true; oznaka.textContent = 'Shranjujem …';
 
       const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}/transkript`, {
         method: 'POST',
         body: JSON.stringify({ besedilo, soniox_url: el('tUrl').value.trim() || null }),
       });
 
-      gumb.disabled = false; gumb.textContent = 'Shrani prilepljeni transkript';
+      gumb.disabled = false; oznaka.textContent = 'Shrani prilepljeni transkript';
 
       if (!d?.ok) {
-        el('tStatus').innerHTML = '<span class="text-red-600">Shranjevanje ni uspelo.</span>';
+        nastaviStatus('tStatus', 'Shranjevanje ni uspelo.', 'napaka');
         return;
       }
-      el('tStatus').innerHTML = '<span class="text-[#0b7a6c]">Transkript shranjen v bazo.</span>';
+      nastaviStatus('tStatus', 'Transkript shranjen v bazo.', 'uspeh');
       el('tBesedilo').value = '';
       naloziSejo();
     });
@@ -838,20 +1032,21 @@
     // ── Zakljuci ────────────────────────────────────────────────────────
     el('btnZakljuci').addEventListener('click', async () => {
       const gumb = el('btnZakljuci');
+      const oznaka = gumb.querySelector('span');
       gumb.disabled = true;
-      gumb.textContent = 'Shranjujem ...';
-      const obnovi = () => { gumb.disabled = false; gumb.textContent = 'Zaključi'; };
+      oznaka.textContent = 'Shranjujem …';
+      const obnovi = () => { gumb.disabled = false; oznaka.textContent = 'Zaključi'; };
 
-      // Najprej VSE shrani; ce ne uspe, sestanka NE zakljucimo — stranki bi
+      // Najprej VSE shrani; ce ne uspe, sestanka NE zakljucimo. Stranki bi
       // sicer kasneje slo zastarelo stanje, komercialist pa tega ne bi videl.
       if (!await splakniVse()) {
         obnovi();
-        pokaziOpozorilo('Zadnje spremembe niso shranjene, zato sestanek ni zaključen. Preveri povezavo in poskusi znova — nič ni izgubljeno, odgovori so še v tem zavihku.', 'napaka');
+        pokaziOpozorilo('Zadnje spremembe niso shranjene, zato sestanek ni zaključen. Preveri povezavo in poskusi znova. Nič ni izgubljeno, odgovori so še v tem zavihku.', 'napaka');
         return;
       }
 
-      gumb.textContent = 'Zaključujem ...';
-      let d = await apiFetch(`/api/procesi/seje/${SEJA_ID}/zakljuci`, {
+      oznaka.textContent = 'Zaključujem …';
+      const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}/zakljuci`, {
         method: 'POST', body: JSON.stringify({}),
       });
       obnovi();
@@ -869,16 +1064,26 @@
         if (res.status === 422 && Array.isArray(telo.manjka)) {
           const seznam = telo.manjka.map(m => `<li>${esc(m.label)}</li>`).join('');
           pokaziOpozorilo(
-            `<div class="font-semibold mb-1">Manjkajo obvezna polja (${telo.manjka.length}):</div>
-             <ul class="list-disc ml-5 mb-2">${seznam}</ul>
-             <button id="vsiliZakljucek" class="px-3 py-1.5 bg-amber-600 text-white rounded text-sm">
-               Vseeno zaključi
-             </button>`, 'opozorilo');
+            `<b>Manjkajo obvezna polja (${telo.manjka.length}):</b>
+             <ul>${seznam}</ul>
+             <div class="row-actions" style="margin-top:var(--space-3)">
+               <button type="button" class="btn btn--secondary btn--sm" id="naPrvoPolje">Pojdi na prvo polje</button>
+               <button type="button" class="btn btn--ghost btn--sm" id="vsiliZakljucek">Vseeno zaključi</button>
+             </div>`, 'napaka');
+          // The list sits at the top of the page: bring it into view.
+          const o = el('opozorilo');
+          const r = o.getBoundingClientRect();
+          if (r.top < el('sessionbar').getBoundingClientRect().bottom || r.bottom > window.innerHeight) {
+            o.scrollIntoView({ behavior: gladko(), block: 'center' });
+          }
+          el('naPrvoPolje').addEventListener('click', () => {
+            if (!skociNaPolje(telo.manjka[0]?.id)) prvoManjkajoce();
+          });
           el('vsiliZakljucek').addEventListener('click', async () => {
             const f = await apiFetch(`/api/procesi/seje/${SEJA_ID}/zakljuci`, {
               method: 'POST', body: JSON.stringify({ vsiljeno: true }),
             });
-            if (f?.ok) { pokaziOpozorilo('Sestanek zaključen.', 'uspeh'); naloziSejo(); }
+            if (f?.ok) poZakljucku();
             else pokaziOpozorilo('Zaključevanje ni uspelo.', 'napaka');
           });
           return;
@@ -887,17 +1092,23 @@
         return;
       }
 
-      pokaziOpozorilo('Sestanek zaključen. Zdaj ga lahko pošlješ stranki.', 'uspeh');
-      naloziSejo();
+      poZakljucku();
     });
+
+    // Reload first, then confirm: the message appears together with the new
+    // status and buttons (and nothing re-renders under the user afterwards).
+    async function poZakljucku() {
+      await naloziSejo();
+      if (el('opozorilo')) pokaziOpozorilo('Sestanek zaključen. Zdaj ga lahko pošlješ stranki.', 'uspeh');
+    }
 
     // ── Urejanje vprasanj ───────────────────────────────────────────────
     el('btnUredi').addEventListener('click', () => {
       urejanjeVprasanj = !urejanjeVprasanj;
-      el('btnUredi').textContent = urejanjeVprasanj ? 'Končaj urejanje' : 'Uredi vprašanja';
-      el('btnUredi').className = urejanjeVprasanj
-        ? 'px-3 py-1.5 text-sm bg-amber-500 text-white rounded hover:bg-amber-600 transition-colors'
-        : 'px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50 transition-colors';
+      const gumb = el('btnUredi');
+      gumb.querySelector('[data-uredi]').textContent = urejanjeVprasanj ? 'Končaj urejanje' : 'Uredi vprašanja';
+      gumb.querySelector('[data-uredi-k]').textContent = urejanjeVprasanj ? 'Končaj' : 'Uredi';
+      gumb.setAttribute('aria-pressed', String(urejanjeVprasanj));
       if (urejanjeVprasanj) {
         pokaziOpozorilo('Urejaš vprašanja <strong>samo za ta sestanek</strong>. Predloga za druge sestanke ostane nespremenjena.', 'info');
       } else {
@@ -908,29 +1119,30 @@
 
     // ── Posiljanje ──────────────────────────────────────────────────────
     el('btnPoslji').addEventListener('click', () => {
-      el('kartaPosiljanje').scrollIntoView({ behavior: 'smooth' });
-      el('pEmail').focus();
+      el('kartaPosiljanje').scrollIntoView({ behavior: gladko(), block: 'start' });
+      setTimeout(() => el('pEmail').focus({ preventScroll: true }), 400);
     });
 
     el('pPoslji').addEventListener('click', async () => {
       const prejemnik = el('pEmail').value.trim();
-      if (!prejemnik) { el('pStatus').innerHTML = '<span class="text-red-600">Vpiši e-naslov prejemnika.</span>'; return; }
+      if (!prejemnik) { nastaviStatus('pStatus', 'Vpiši e-naslov prejemnika.', 'napaka'); el('pEmail').focus(); return; }
 
       if (!confirm(`Pošljem izpolnjen zapis na ${prejemnik}?\n\nStranka bo prejela e-pošto takoj.`)) return;
 
       const gumb = el('pPoslji');
-      gumb.disabled = true; gumb.textContent = 'Shranjujem ...';
+      const oznaka = gumb.querySelector('span');
+      gumb.disabled = true; oznaka.textContent = 'Shranjujem …';
 
-      // Ce zadnjih sprememb ni v bazi, posiljanje USTAVIMO — mail se sestavi
+      // Ce zadnjih sprememb ni v bazi, posiljanje USTAVIMO: mail se sestavi
       // iz baze in stranka bi dobila zastarelo razlicico.
       if (!await splakniVse()) {
-        gumb.disabled = false; gumb.textContent = besediloGumbaPoslji();
-        el('pStatus').innerHTML = '<span class="text-red-600">Zadnje spremembe niso shranjene — pošiljanje ustavljeno, da stranka ne dobi zastarele različice. Preveri povezavo in poskusi znova.</span>';
+        gumb.disabled = false; oznaka.textContent = besediloGumbaPoslji();
+        nastaviStatus('pStatus', 'Zadnje spremembe niso shranjene, zato je pošiljanje ustavljeno, da stranka ne dobi zastarele različice. Preveri povezavo in poskusi znova.', 'napaka');
         return;
       }
 
-      gumb.textContent = 'Pošiljam...';
-      el('pStatus').innerHTML = '<span class="text-gray-500">Pošiljam...</span>';
+      oznaka.textContent = 'Pošiljam …';
+      nastaviStatus('pStatus', 'Pošiljam …');
 
       const telo = {
         potrjeno: true,
@@ -949,13 +1161,13 @@
 
       // Osnutek: ponudimo vsiljeno posiljanje, ne pa tiho.
       if (res.status === 422 && d.error === 'seja_ni_zakljucena') {
-        gumb.disabled = false; gumb.textContent = besediloGumbaPoslji();
+        gumb.disabled = false; oznaka.textContent = besediloGumbaPoslji();
         const stManjka = Array.isArray(d.manjka) ? d.manjka.length : 0;
         if (!confirm(`Sestanek še ni zaključen${stManjka ? ` (manjka ${stManjka} obveznih polj)` : ''}.\n\nPošljem vseeno?`)) {
-          el('pStatus').innerHTML = '<span class="text-gray-500">Pošiljanje preklicano.</span>';
+          nastaviStatus('pStatus', 'Pošiljanje preklicano.');
           return;
         }
-        gumb.disabled = true; gumb.textContent = 'Pošiljam...';
+        gumb.disabled = true; oznaka.textContent = 'Pošiljam …';
         res = await fetch(`/api/procesi/seje/${SEJA_ID}/poslji`, {
           method: 'POST', headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ ...telo, vsiljeno: true }),
@@ -963,68 +1175,69 @@
         d = await res.json().catch(() => ({}));
       }
 
-      gumb.disabled = false; gumb.textContent = besediloGumbaPoslji();
+      gumb.disabled = false; oznaka.textContent = besediloGumbaPoslji();
 
       if (!res.ok || !d.ok) {
-        el('pStatus').innerHTML =
-          `<span class="text-red-600">Pošiljanje ni uspelo: ${esc(d.detail || d.error || 'neznana napaka')}</span>`;
+        nastaviStatus('pStatus', `Pošiljanje ni uspelo: ${esc(d.detail || d.error || 'neznana napaka')}`, 'napaka');
         return;
       }
       const kdaj = new Date().toLocaleString('sl-SI', { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-      el('pStatus').innerHTML =
-        `<span class="text-[#0b7a6c] font-semibold">✓ Poslano na ${esc(prejemnik)}</span>
-         <span class="text-gray-500">— ${esc(kdaj)}. Status sestanka je zdaj »Poslan stranki«.</span>`;
+      nastaviStatus('pStatus',
+        `${ikona('check', 'icon--sm')}<b>Poslano na ${esc(prejemnik)}</b>, ${esc(kdaj)}. Status sestanka je zdaj »Poslan stranki«.`, 'uspeh');
       naloziSejo();
     });
 
     // Besedilo glavnega gumba: ce je zapis ze sel stranki, je ponoven klik
-    // "Poslji znova" — komercialist tako vidi, da ne posilja prvic.
+    // "Poslji znova"; komercialist tako vidi, da ne posilja prvic.
     function besediloGumbaPoslji() {
       return (seja?.status === 'poslan') ? 'Pošlji znova' : 'Pošlji stranki';
     }
 
     // Stanje gumba za posiljanje glede na streznisko nastavitev. Brez
-    // Resend kljuca je gumb onemogocen z RAZLAGO in rocno potjo — nikoli
+    // Resend kljuca je gumb onemogocen z RAZLAGO in rocno potjo; nikoli
     // aktiven gumb, ki tiho ne naredi nicesar.
     function posodobiPosiljanje() {
       const gumb = el('pPoslji');
-      const info = el('pNiVklopljeno');
-      gumb.textContent = besediloGumbaPoslji();
-      if (posiljanjeVklopljeno) {
-        gumb.disabled = false;
-        gumb.className = 'px-4 py-2 bg-[#0b7a6c] text-white rounded text-sm font-medium hover:bg-[#0b7a6c] transition-colors';
-        info.classList.add('hidden');
-      } else {
-        gumb.disabled = true;
-        gumb.className = 'px-4 py-2 bg-slate-300 text-slate-500 rounded text-sm font-medium cursor-not-allowed';
-        info.classList.remove('hidden');
-      }
+      gumb.querySelector('span').textContent = besediloGumbaPoslji();
+      gumb.disabled = !posiljanjeVklopljeno;
+      el('pNiVklopljeno').classList.toggle('hidden', posiljanjeVklopljeno);
     }
 
     function izrisiEmaile(seznam) {
       if (!seznam.length) { el('pZgodovina').innerHTML = ''; return; }
       el('pZgodovina').innerHTML = `
-        <div class="text-xs uppercase tracking-wide text-gray-400 mb-2">Zgodovina pošiljanja</div>
-        ${seznam.map(e => `
-          <div class="text-sm border-t border-gray-100 py-2 flex items-center justify-between gap-3 flex-wrap">
-            <div>
-              ${e.status === 'poslan'
-                ? '<span class="text-[#0b7a6c] font-semibold">✓</span>'
-                : '<span class="text-red-600 font-semibold">✗</span>'}
-              <span class="text-gray-700">${esc(e.prejemnik)}</span>
-              ${e.poslal ? `<span class="text-gray-400 text-xs"> · poslal ${esc(e.poslal)}</span>` : ''}
-              ${e.napaka ? `<span class="text-red-600 text-xs"> — ${esc(e.napaka)}</span>` : ''}
-            </div>
-            <span class="text-xs text-gray-400">${formatDatum(e.sent_at)}</span>
-          </div>`).join('')}`;
+        <p class="hist__title">Zgodovina pošiljanja</p>
+        <ul class="hist">${seznam.map(e => `
+          <li class="hist__item">
+            ${e.status === 'poslan'
+              ? `<span class="hist__ok">${ikona('check', 'icon--sm')}<span class="sr-only">Poslano: </span></span>`
+              : `<span class="hist__err">${ikona('x', 'icon--sm')}<span class="sr-only">Ni poslano: </span></span>`}
+            <span class="hist__txt"><b>${esc(e.prejemnik)}</b>${e.poslal ? `<span class="muted"> · poslal ${esc(e.poslal)}</span>` : ''}${e.napaka ? `<span class="hist__napaka"> · ${esc(e.napaka)}</span>` : ''}</span>
+            <span class="muted nowrap">${formatDatum(e.sent_at)}</span>
+          </li>`).join('')}
+        </ul>`;
     }
 
     // ── Nalozi sejo ─────────────────────────────────────────────────────
+    // Page-level error (no session, wrong id): replaces the page content.
+    function prikaziNapakoStrani(naslov, besedilo) {
+      document.querySelector('main').innerHTML = `
+        <header class="topbar">
+          <nav class="crumbs" aria-label="Pot"><a href="/admin/procesi.html">Procesi</a>${ikona('chev-right', 'icon--sm')}<span aria-current="page">Zapis sestanka</span></nav>
+        </header>
+        <div class="page">
+          <div class="panel"><div class="empty">
+            <b class="empty__title">${esc(naslov)}</b>
+            <p class="empty__text">${esc(besedilo)}</p>
+            <a class="btn btn--secondary" href="/admin/procesi.html">${ikona('arrow-left')}<span>Na seznam procesov</span></a>
+          </div></div>
+        </div>`;
+    }
+
     async function naloziSejo() {
       const d = await apiFetch(`/api/procesi/seje/${SEJA_ID}`);
       if (!d?.seja) {
-        document.querySelector('main').innerHTML =
-          '<div class="bg-red-50 text-red-700 p-4 rounded">Sestanka ni bilo mogoče naložiti. Preveri povezavo ali ID.</div>';
+        prikaziNapakoStrani('Sestanka ni bilo mogoče naložiti', 'Preveri povezavo ali ID v naslovu in poskusi znova.');
         return;
       }
 
@@ -1049,11 +1262,11 @@
       izrisiTranskripte(d.transkripti || []);
       izrisiEmaile(d.emaili || []);
 
-      // Spremno besedilo napolnimo samo, ce ga uporabnik se ni urejal —
+      // Spremno besedilo napolnimo samo, ce ga uporabnik se ni urejal;
       // drugace bi mu vsak refresh povozil besedilo.
       if (!el('pSporocilo').value.trim()) el('pSporocilo').value = d.privzeto_sporocilo || '';
       if (!el('pZadeva').value.trim()) {
-        el('pZadeva').value = `Zapis sestanka — ${seja.stranka_naziv}${seja.proces ? ` (${seja.proces})` : ''}`;
+        el('pZadeva').value = `Zapis sestanka: ${seja.stranka_naziv}${seja.proces ? `, ${seja.proces}` : ''}`;
       }
 
       // Povezave na predoglede
@@ -1061,13 +1274,13 @@
       el('pPredogledInterno').href = `/api/procesi/seje/${SEJA_ID}/predogled?namen=interno`;
       el('pPdfLink').href = `/api/procesi/seje/${SEJA_ID}/pdf?namen=stranka`;
 
-      nastaviShranjeno(`Naloženo ${new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' })}`);
+      nastaviShranjeno(`Naloženo ${casZdaj()}`, 'ok');
       skociNaHash();
     }
 
     // Vsebina se izrise sele po fetchu, zato brskalnikov samodejni skok na
     // #hash zgresi (cilja se ni). Po prvem izrisu skocimo sami in fokusiramo
-    // prvo polje kartice — gumba "Odpri in poslji" / "Dodaj transkript" s
+    // prvo polje kartice: gumba "Odpri in poslji" / "Dodaj transkript" s
     // strani Danes pripeljeta naravnost na pravo mesto, ne na vrh strani.
     let hashObravnavan = false;
     const HASH_VZDEVKI = { posiljanje: 'kartaPosiljanje', transkript: 'kartaTranskript' };
@@ -1082,10 +1295,10 @@
       // orientacijske vrednosti, uporabnik naj takoj stoji na cilju.
       cilj.scrollIntoView({ block: 'start' });
       cilj.querySelector('input, textarea')?.focus({ preventScroll: true });
-      // Tailwind CDN in pisave se nalozijo PO izrisu in rastejo layout —
-      // vsebina nad kartico se raztegne in cilj odplava tudi za vec tisoc px.
-      // Zato skok ponovimo, ko se pisave umirijo, a SAMO ce je cilj medtem
-      // res odplaval (ce uporabnik ze stoji na njem, ga ne premikamo).
+      // Pisave se nalozijo PO izrisu in rastejo layout: vsebina nad kartico
+      // se raztegne in cilj odplava. Zato skok ponovimo, ko se pisave
+      // umirijo, a SAMO ce je cilj medtem res odplaval (ce uporabnik ze
+      // stoji na njem, ga ne premikamo).
       const poravnaj = () => {
         const r = cilj.getBoundingClientRect();
         if (r.top < -10 || r.top > window.innerHeight / 2) cilj.scrollIntoView({ block: 'start' });
@@ -1094,9 +1307,17 @@
       setTimeout(poravnaj, 700);
     }
 
+    // The sticky bar changes height (title wraps on a phone): anchors and the
+    // sticky index read the real height from --sessionbar-h.
+    if ('ResizeObserver' in window) {
+      new ResizeObserver(() => {
+        const v = Math.ceil(el('sessionbar')?.getBoundingClientRect().height || 0);
+        if (v) document.documentElement.style.setProperty('--sessionbar-h', `${v}px`);
+      }).observe(el('sessionbar'));
+    }
+
     if (!Number.isInteger(SEJA_ID)) {
-      document.querySelector('main').innerHTML =
-        '<div class="bg-red-50 text-red-700 p-4 rounded">Manjka parameter ?id= v naslovu.</div>';
+      prikaziNapakoStrani('Sestanek ni izbran', 'V naslovu manjka parameter ?id=. Sestanek odpri s seznama procesov.');
     } else {
       naloziSejo();
     }

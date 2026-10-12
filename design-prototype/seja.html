@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="sl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hotel Smrekov gaj · Zapis sestanka · Acenta baza</title>
+  <link rel="stylesheet" href="tokens.css">
+  <style>
+    :root { --sessionbar-h: 92px; }
+
+    /* Lepljiva vrstica seje: kdo, kje smo, kaj je shranjeno, kaj naprej */
+    .sessionbar {
+      position: sticky; top: 0; z-index: var(--z-sticky);
+      display: grid; gap: 6px; padding: 10px var(--space-8) 12px;
+      background: var(--bg-canvas); border-bottom: 1px solid var(--border-subtle);
+    }
+    .sessionbar__row { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+    .sessionbar__title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .sessionbar__title h1 { font-size: 1.125rem; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sessionbar__meta { font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; padding-left: 2px; }
+    .sessionbar__actions { display: flex; align-items: center; gap: var(--space-2); flex: none; }
+    .sessionbar__line { display: none; }
+    .prog { display: inline-flex; align-items: center; gap: 10px; flex: none; }
+    .prog__txt { border: 0; background: none; padding: 0; font-size: var(--text-sm); color: var(--text-secondary); white-space: nowrap; font-variant-numeric: tabular-nums; border-radius: var(--radius-xs); }
+    .prog__txt b { font-weight: var(--weight-medium); color: var(--warning-text); }
+    .prog__txt:hover b { text-decoration: underline; text-underline-offset: 3px; }
+    .prog .progress { width: 140px; }
+    .save { display: inline-flex; align-items: center; justify-content: flex-end; gap: 6px; min-width: 128px; font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .save[data-s="dirty"] { color: var(--warning-text); }
+    .save[data-s="error"] { color: var(--danger-text); font-weight: var(--weight-medium); }
+    .lbl-short { display: none; }
+
+    /* Kazalo sklopov + obrazec */
+    .seja { max-width: 1120px; }
+    .seja__grid { display: grid; grid-template-columns: 232px minmax(0, 1fr); gap: var(--space-8); align-items: start; }
+    .seja__form { display: grid; gap: var(--space-5); min-width: 0; max-width: 780px; }
+    .idx { position: sticky; top: calc(var(--sessionbar-h) + var(--space-4)); display: flex; flex-direction: column; gap: 2px; }
+    .idx__title { font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--text-muted); padding: 0 var(--space-2) 6px; }
+    .idx__item { display: flex; align-items: flex-start; gap: var(--space-2); padding: 6px var(--space-2); border-radius: var(--radius-sm); color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.4; transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out); }
+    .idx__item:hover { background: var(--bg-hover); color: var(--text); }
+    .idx__item.is-active { background: var(--bg-surface); color: var(--text); font-weight: var(--weight-medium); box-shadow: 0 0 0 1px var(--border-subtle); }
+    .idx__lbl { flex: 1; min-width: 0; }
+    .idx__n { display: inline-flex; align-items: center; gap: 4px; font-size: var(--text-xs); color: var(--text-muted); font-variant-numeric: tabular-nums; white-space: nowrap; padding-top: 1px; font-weight: var(--weight-regular); }
+    .idx__n.is-done { color: var(--accent-text); }
+    .idx__n .dot { width: 6px; height: 6px; }
+    .idx__sep { height: 1px; background: var(--border-subtle); margin: var(--space-3) var(--space-2); }
+
+    /* Sklopi in vprasanja */
+    .qsec { scroll-margin-top: calc(var(--sessionbar-h) + var(--space-4)); }
+    .qsec__head { display: flex; align-items: baseline; gap: var(--space-3); padding: var(--space-4) var(--space-5) 0; }
+    .qsec__head h2 { font-size: var(--text-md); }
+    .qsec__head .idx__n { margin-left: auto; font-size: var(--text-sm); }
+    .qsec__desc { padding: 4px var(--space-5) 0; font-size: var(--text-sm); color: var(--text-muted); }
+    .qsec__body { padding: var(--space-5); display: grid; gap: var(--space-6); }
+    .kartica__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+    .q { display: flex; flex-direction: column; gap: 6px; min-width: 0; border: 0; margin: 0; padding: 0; scroll-margin-top: calc(var(--sessionbar-h) + var(--space-6)); }
+    .q legend { padding: 0; margin-bottom: 6px; }
+    .q--emph { padding: var(--space-4); border-radius: 10px; background: var(--accent-subtle); border: 1px solid var(--accent-border); }
+    .q--missing .textarea, .q--missing .input { border-color: var(--warning-border); }
+    .q .input[type="date"] { max-width: 220px; }
+    .q__drugo { max-width: 420px; margin-top: var(--space-2); }
+    .q__clear { font-size: var(--text-sm); color: var(--text-muted); background: none; border: 0; padding: 4px 6px; border-radius: var(--radius-xs); }
+    .q__clear:hover { color: var(--danger-text); text-decoration: underline; }
+    .grid-scroll { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius-md); }
+    .grid-input { width: 100%; min-width: 560px; border-collapse: collapse; }
+    .grid-input th { background: var(--bg-subtle); text-align: left; font-size: var(--text-sm); font-weight: var(--weight-medium); color: var(--text-secondary); padding: 8px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .grid-input th + th, .grid-input td + td { border-left: 1px solid var(--border-subtle); }
+    .grid-input td { padding: 0; border-bottom: 1px solid var(--border-subtle); }
+    .grid-input tr:last-child td { border-bottom: 0; }
+    .grid-input input { width: 100%; height: 38px; border: 0; padding: 0 10px; background: transparent; font-size: var(--text-base); }
+    .grid-input input:focus { outline: none; background: var(--accent-subtle); box-shadow: inset 0 0 0 2px var(--accent); }
+
+    /* Nacin urejanja vprasanj */
+    .q-edit, .q-add { display: none; }
+    .is-editing .q-edit { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px dashed var(--border); }
+    .is-editing .q-edit .input { flex: 1 1 260px; height: var(--control-h); font-size: var(--text-sm); }
+    .is-editing .q-add { display: inline-flex; justify-self: start; }
+
+    /* Transkript in posiljanje */
+    .row-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .tr-item { border: 1px solid var(--border); border-radius: var(--radius-md); padding: var(--space-3) 14px; display: grid; gap: 4px; }
+    .tr-item__top { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; font-size: var(--text-sm); color: var(--text-secondary); }
+    .tr-item__top b { color: var(--success-text); font-weight: var(--weight-medium); display: inline-flex; align-items: center; gap: 4px; }
+    .tr-item__url { font-size: var(--text-xs); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tr-item pre { margin: var(--space-2) 0 0; padding: var(--space-3); background: var(--bg-subtle); border-radius: var(--radius-sm); font: var(--text-xs)/1.6 var(--font-mono); color: var(--text-secondary); white-space: pre-wrap; max-height: 160px; overflow-y: auto; }
+    .sub-disclosure > summary { cursor: pointer; color: var(--accent-text); font-size: var(--text-sm); font-weight: var(--weight-medium); width: fit-content; border-radius: var(--radius-xs); }
+    .sub-disclosure > summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+    .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+
+    .frames { margin-top: var(--space-16); padding-top: var(--space-8); border-top: 1px dashed var(--border-strong); max-width: 1044px; }
+    .frames > h2 { font-size: var(--text-md); margin-left: calc(232px + var(--space-8)); }
+    .frames > p { margin-left: calc(232px + var(--space-8)); }
+    .frames > p { font-size: var(--text-sm); color: var(--text-muted); margin-top: 4px; }
+    .frames__list { display: grid; gap: var(--space-8); margin-top: var(--space-6); max-width: 780px; margin-left: calc(232px + var(--space-8)); }
+    .frame__label { font-size: var(--text-xs); font-weight: var(--weight-semibold); color: var(--text-muted); margin-bottom: var(--space-2); }
+
+    @media (max-width: 1099px) {
+      .seja__grid { grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
+      .seja__form { max-width: none; }
+      .idx { position: static; flex-direction: row; overflow-x: auto; gap: 6px; scrollbar-width: none; margin: 0 calc(var(--space-4) * -1); padding: 0 var(--space-4) 2px; }
+      .idx::-webkit-scrollbar { display: none; }
+      .idx__title, .idx__sep { display: none; }
+      .idx__item { flex: none; white-space: nowrap; border: 1px solid var(--border); background: var(--bg-surface); align-items: center; min-height: 36px; }
+      .idx__item.is-active { box-shadow: none; border-color: var(--accent-muted); background: var(--accent-subtle); color: var(--accent-text); }
+      .frames__list, .frames > h2, .frames > p { margin-left: 0; }
+    }
+    @media (max-width: 899px) {
+      :root { --sessionbar-h: 84px; }
+      .sessionbar { padding: var(--space-2) var(--space-4) 10px; gap: 4px; }
+      .sessionbar__meta, .prog .progress { display: none; }
+      .sessionbar__line { display: block; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--border-subtle); }
+      .sessionbar__line i { display: block; height: 100%; background: var(--accent); }
+      .lbl-long, .sessionbar__actions .icon, .prog__long { display: none; }
+      .prog { flex: 0 1 auto; min-width: 0; }
+      .prog__txt { overflow: hidden; text-overflow: ellipsis; }
+      .lbl-short { display: inline; }
+      .sessionbar__actions {
+        position: fixed; left: 0; right: 0; bottom: 0; z-index: var(--z-sticky);
+        padding: 10px var(--space-4) calc(10px + env(safe-area-inset-bottom));
+        background: var(--bg-canvas); border-top: 1px solid var(--border-subtle);
+      }
+      .sessionbar__actions .btn { flex: 1 1 auto; height: 44px; }
+      .page.seja { padding-bottom: 120px; }
+      .save { min-width: 0; }
+      .kartica__grid, .two { grid-template-columns: minmax(0, 1fr); }
+      .qsec__head { padding: var(--space-4) var(--space-4) 0; }
+      .qsec__desc { padding: 4px var(--space-4) 0; }
+      .qsec__body { padding: var(--space-4); gap: var(--space-5); }
+      .q .input[type="date"] { max-width: none; }
+      .row-actions .btn { flex: 1 1 auto; }
+    }
+  </style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-inbox" viewBox="0 0 24 24"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="i-check-square" viewBox="0 0 24 24"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+  <symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h4"/></symbol>
+  <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2zM9 7h7M9 11h5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M12 20V10M18 20V4M6 20v-4"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2zM22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
+  <symbol id="i-chev-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+</svg>
+
+<div class="app">
+  <header class="mobilebar mobilebar--static">
+    <button class="btn btn--ghost btn--icon" type="button" data-nav-open-btn aria-label="Odpri meni" aria-controls="sidebar" aria-expanded="false"><svg class="icon icon--lg"><use href="#i-menu"/></svg></button>
+    <span class="mobilebar__brand"><span class="brand-mark" aria-hidden="true">a</span>Acenta baza</span>
+    <span class="spacer"></span>
+    <a class="btn btn--ghost btn--icon" href="#" aria-label="Iskanje"><svg class="icon icon--lg"><use href="#i-search"/></svg></a>
+  </header>
+
+  <aside class="sidebar" id="sidebar" aria-label="Glavna navigacija">
+    <div class="sidebar__brand">
+      <span class="brand-mark" aria-hidden="true">a</span>
+      <span class="sidebar__brand-text"><b>Acenta baza</b><small>Interna konzola</small></span>
+      <button class="btn btn--ghost btn--icon sidebar__close" type="button" data-nav-close aria-label="Zapri meni"><svg class="icon"><use href="#i-x"/></svg></button>
+    </div>
+    <nav class="nav">
+      <a class="nav-item" href="danes.html"><svg class="icon"><use href="#i-inbox"/></svg><span class="nav-item__label">Danes</span><span class="nav-item__count" aria-label="6 nalog na tebi">6</span></a>
+      <div class="nav-group">Delo</div>
+      <a class="nav-item is-active" href="seja.html" aria-current="page"><svg class="icon"><use href="#i-check-square"/></svg><span class="nav-item__label">Procesi</span></a>
+      <a class="nav-item" href="podjetja.html"><svg class="icon"><use href="#i-building"/></svg><span class="nav-item__label">Podjetja</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-file"/></svg><span class="nav-item__label">Vprašalniki</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-book"/></svg><span class="nav-item__label">Katalog</span></a>
+      <div class="nav-group">Analiza</div>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-chart"/></svg><span class="nav-item__label">Primerjava</span></a>
+      <a class="nav-item" href="#"><svg class="icon"><use href="#i-search"/></svg><span class="nav-item__label">Iskanje</span><span class="nav-item__kbd">Ctrl K</span></a>
+      <button class="nav-item" type="button" id="naprednoToggle" aria-expanded="false" aria-controls="naprednoSeznam" style="margin-top:var(--space-3)"><svg class="icon nav-item__chev"><use href="#i-chev-down"/></svg><span class="nav-item__label">Napredno</span></button>
+      <div class="nav-sub" id="naprednoSeznam" hidden>
+        <a class="nav-item" href="#"><svg class="icon"><use href="#i-book-open"/></svg><span class="nav-item__label">Vpogledi</span></a>
+      </div>
+    </nav>
+    <div class="sidebar__foot">
+      <span class="avatar" aria-hidden="true">MZ</span>
+      <div class="ellipsis"><b class="ellipsis">ai@acenta.si</b><span>Admin</span></div>
+    </div>
+  </aside>
+  <div class="scrim" data-nav-close></div>
+
+  <main class="main">
+    <header class="sessionbar">
+      <div class="sessionbar__row">
+        <a class="btn btn--ghost btn--sm" href="#" aria-label="Nazaj na procese"><svg class="icon"><use href="#i-arrow-left"/></svg><span class="lbl-long">Procesi</span></a>
+        <div class="sessionbar__title">
+          <h1>Hotel Smrekov gaj</h1>
+          <span class="chip chip--warning" id="statusChip">Osnutek</span>
+        </div>
+        <span class="spacer"></span>
+        <div class="sessionbar__actions">
+          <button class="btn btn--secondary" type="button" id="btnUredi" aria-pressed="false"><svg class="icon"><use href="#i-pencil"/></svg><span class="lbl-long" data-uredi>Uredi vprašanja</span><span class="lbl-short" data-uredi-k>Uredi</span></button>
+          <button class="btn btn--primary" type="button" id="btnZakljuci"><svg class="icon"><use href="#i-check"/></svg>Zaključi</button>
+          <button class="btn btn--secondary" type="button" id="btnPoslji"><svg class="icon"><use href="#i-send"/></svg>Pošlji stranki</button>
+        </div>
+      </div>
+      <div class="sessionbar__row">
+        <span class="sessionbar__meta">Ocena poslovnega potenciala za AI · Odgovarjanje na povpraševanja · Prodaja</span>
+        <span class="spacer"></span>
+        <span class="prog">
+          <button class="prog__txt" type="button" id="progTxt" title="Skoči na prvo manjkajoče obvezno polje">18/43<span class="prog__long"> izpolnjenih</span> · <b>2 obvezni manjkata</b></button>
+          <span class="progress" aria-hidden="true"><span class="progress__fill" id="progFill" style="width:42%"></span></span>
+        </span>
+        <span class="save" id="save" data-s="ok" aria-live="polite"><span class="dot dot--success" aria-hidden="true"></span><span id="saveTxt">Shranjeno 10.42</span></span>
+      </div>
+      <span class="sessionbar__line" aria-hidden="true"><i id="progLine" style="width:42%"></i></span>
+    </header>
+
+    <div class="page seja">
+      <div class="callout callout--danger" id="opozorilo" hidden style="margin-bottom:var(--space-5)"></div>
+
+      <div class="seja__grid">
+        <nav class="idx" id="idx" aria-label="Sklopi"></nav>
+
+        <div class="seja__form">
+          <!-- Kartica sestanka: poganja seznam in filtre, ni del dokumenta za stranko -->
+          <section class="panel qsec" id="kartica">
+            <div class="qsec__head"><h2>Kartica sestanka</h2></div>
+            <p class="qsec__desc">Za razvrščanje in iskanje po seznamu. Vsebina dokumenta za stranko pride iz »Osnovni podatki« spodaj.</p>
+            <div class="qsec__body">
+              <div class="kartica__grid">
+                <div class="field"><label class="field__label field__label--sm" for="mStranka">Stranka</label><input class="input" id="mStranka" value="Hotel Smrekov gaj"></div>
+                <div class="field"><label class="field__label field__label--sm" for="mProces">Proces</label><input class="input" id="mProces" value="Odgovarjanje na povpraševanja"></div>
+                <div class="field"><label class="field__label field__label--sm" for="mOddelek">Oddelek</label><input class="input" id="mOddelek" value="Prodaja"></div>
+                <div class="field"><label class="field__label field__label--sm" for="mSvetovalec">Svetovalec</label><input class="input" id="mSvetovalec" value="Nina Petek"></div>
+                <div class="field"><label class="field__label field__label--sm" for="mDatum">Datum sestanka</label><input class="input" id="mDatum" type="date" value="2026-10-07"></div>
+                <div class="field">
+                  <label class="field__label field__label--sm" for="mPodjetje">Podjetje v bazi</label>
+                  <span class="select-wrap"><select class="select" id="mPodjetje">
+                    <option value="">Ni izbrano</option>
+                    <option value="sg" selected>Hotel Smrekov gaj</option>
+                    <option value="ar">Hotel Alpski rob</option>
+                    <option value="na">Apartmaji Na klancu</option>
+                  </select></span>
+                  <span id="mPodjetjeNamig" class="field__hint"><a class="link" href="podjetje.html">Odpri podjetje<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a></span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <form id="obrazec" class="seja__form" style="max-width:none" onsubmit="return false;"></form>
+
+          <!-- Transkript -->
+          <section class="panel qsec" id="transkript">
+            <div class="qsec__head"><h2>Transkript sestanka</h2></div>
+            <p class="qsec__desc">Besedilo se shrani v našo bazo, ne le kot povezava, ker Soniox povezava lahko poteče.</p>
+            <div class="qsec__body" style="gap:var(--space-4)">
+              <div class="row-actions">
+                <label class="sr-only" for="tUrl">Soniox povezava</label>
+                <input class="input" id="tUrl" type="url" placeholder="Soniox povezava (https://…)" style="flex:1 1 280px">
+                <button class="btn btn--secondary" type="button" id="tPrenesi" style="height:var(--field-h)"><svg class="icon"><use href="#i-download"/></svg>Prenesi in shrani</button>
+              </div>
+              <details class="sub-disclosure">
+                <summary>Prilepi transkript ročno</summary>
+                <div style="display:grid;gap:var(--space-2);margin-top:var(--space-3)">
+                  <label class="sr-only" for="tBesedilo">Transkript</label>
+                  <textarea class="textarea textarea--mono" id="tBesedilo" rows="6" placeholder="Prilepite celoten surov transkript …"></textarea>
+                  <button class="btn btn--secondary" type="button" style="justify-self:start">Shrani prilepljeni transkript</button>
+                </div>
+              </details>
+              <div class="tr-item">
+                <div class="tr-item__top"><b><svg class="icon icon--sm"><use href="#i-check"/></svg>Shranjen</b><span>18.240 znakov · vir: Soniox</span><span class="spacer"></span><span class="muted">7. 10. 2026, 11.58</span></div>
+                <div class="tr-item__url">https://soniox.com/transcripts/7f3c2a91-smrekov-gaj-prodaja</div>
+                <details class="sub-disclosure" style="margin-top:4px">
+                  <summary>Pokaži začetek</summary>
+                  <pre>Nina: Začnimo pri tem, kako danes pride povpraševanje za skupino do vas.
+Mojca: Večinoma po e-pošti, nekaj prek obrazca na strani, poroke pa skoraj vedno najprej pokličejo.
+Nina: In kdo pripravi ponudbo?
+Mojca: Jaz. Odprem cenik, poiščem podobno ponudbo od lani in jo prilagodim …</pre>
+                </details>
+              </div>
+            </div>
+          </section>
+
+          <!-- Posiljanje -->
+          <section class="panel qsec" id="posiljanje">
+            <div class="qsec__head"><h2>Pošiljanje stranki</h2></div>
+            <p class="qsec__desc">Stranka prejme izpolnjen zapis v telesu e-pošte in kot PDF prilogo. Transkript ne gre stranki. Odgovori gredo na ai@acenta.si.</p>
+            <div class="qsec__body" style="gap:var(--space-4)">
+              <div class="two">
+                <div class="field"><label class="field__label field__label--sm" for="pEmail">E-naslov prejemnika<span class="field__req">*</span></label><input class="input" id="pEmail" type="email" placeholder="ime@hotel.si"></div>
+                <div class="field"><label class="field__label field__label--sm" for="pZadeva">Zadeva</label><input class="input" id="pZadeva" value="Zapis sestanka: Hotel Smrekov gaj, odgovarjanje na povpraševanja"></div>
+              </div>
+              <div class="field">
+                <label class="field__label field__label--sm" for="pSporocilo">Spremno besedilo</label>
+                <textarea class="textarea" id="pSporocilo" rows="8">Pozdravljeni,
+
+v priponki vam pošiljamo zapis sestanka z dne 7. 10. 2026 o odgovarjanju na povpraševanja za skupine. Prosimo, da ga preverite in nam sporočite morebitne popravke.
+
+Lep pozdrav,
+Nina Petek, Acenta</textarea>
+              </div>
+              <label class="check"><input type="checkbox" id="pPdf" checked>Priloži PDF</label>
+              <div class="row-actions">
+                <a class="btn btn--secondary" href="#" target="_blank" rel="noopener">Predogled za stranko<svg class="icon icon--sm"><use href="#i-external"/></svg></a>
+                <a class="btn btn--secondary" href="#" target="_blank" rel="noopener">Interni predogled (s transkriptom)<svg class="icon icon--sm"><use href="#i-external"/></svg></a>
+                <a class="btn btn--secondary" href="#" target="_blank" rel="noopener">PDF<svg class="icon icon--sm"><use href="#i-external"/></svg></a>
+                <span class="spacer"></span>
+                <button class="btn btn--primary" type="button" id="pPoslji"><svg class="icon"><use href="#i-send"/></svg>Pošlji stranki</button>
+              </div>
+              <p class="field__status" id="pStatus" aria-live="polite"></p>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ═══ Druga stanja: ločeni okvirji v realni širini obrazca ═══ -->
+      <section class="frames" aria-label="Druga stanja">
+        <h2>Druga stanja zapisa sestanka</h2>
+        <p>Ločeni okvirji v realni širini obrazca; niso del strani zgoraj.</p>
+        <div class="frames__list">
+          <div>
+            <p class="frame__label">Kartica sestanka: zapis ni povezan s podjetjem</p>
+            <section class="panel"><div class="qsec__body">
+              <div class="kartica__grid">
+                <div class="field"><span class="field__label field__label--sm">Svetovalec</span><input class="input" value="Nina Petek" aria-label="Svetovalec"></div>
+                <div class="field"><span class="field__label field__label--sm">Datum sestanka</span><input class="input" type="date" value="2026-10-07" aria-label="Datum sestanka"></div>
+                <div class="field">
+                  <span class="field__label field__label--sm">Podjetje v bazi</span>
+                  <span class="select-wrap"><select class="select" aria-label="Podjetje v bazi"><option selected>Ni izbrano</option></select></span>
+                  <span class="field__hint" style="color:var(--warning-text)">Zapis ni povezan s podjetjem, zato ga prodajni predlog ne vidi.</span>
+                </div>
+              </div>
+            </div></section>
+          </div>
+
+          <div>
+            <p class="frame__label">Zaključi: manjkajo obvezna polja</p>
+            <div class="callout callout--danger">
+              <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+              <div style="flex:1;min-width:0">
+                <b>Manjkajo obvezna polja (2):</b>
+                <ul><li>Kje se proces začne in kaj je njegov končni rezultat?</li><li>Katera ključna odločitev najbolj vpliva na rezultat procesa?</li></ul>
+                <div class="row-actions" style="margin-top:var(--space-3)"><button class="btn btn--secondary btn--sm" type="button">Pojdi na prvo polje</button><button class="btn btn--ghost btn--sm" type="button">Zaključi vseeno</button></div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p class="frame__label">Način urejanja vprašanj (ena vrstica v sklopu)</p>
+            <section class="panel is-editing"><div class="qsec__body">
+              <div class="q">
+                <span class="field__label">Kako pogosto se izvaja?</span>
+                <input class="input" value="Vsak dan, 8 do 12 povpraševanj na teden" aria-label="Odgovor">
+                <div class="q-edit">
+                  <input class="input" value="Kako pogosto se izvaja?" aria-label="Besedilo vprašanja">
+                  <label class="check" style="font-size:var(--text-sm)"><input type="checkbox">obvezno</label>
+                  <button class="btn btn--ghost btn--sm" type="button" style="color:var(--danger-text)">Odstrani</button>
+                </div>
+              </div>
+              <button class="btn btn--ghost btn--sm q-add" type="button"><svg class="icon"><use href="#i-plus"/></svg>Dodaj vprašanje v ta sklop</button>
+            </div></section>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+  // ── Navigacija (skupno vsem zaslonom) ──
+  const telo = document.body;
+  const odpriGumb = document.querySelector('[data-nav-open-btn]');
+  function zapriMeni() { telo.removeAttribute('data-nav-open'); odpriGumb?.setAttribute('aria-expanded', 'false'); }
+  odpriGumb?.addEventListener('click', () => { telo.setAttribute('data-nav-open', ''); odpriGumb.setAttribute('aria-expanded', 'true'); document.querySelector('.sidebar__close')?.focus(); });
+  document.querySelectorAll('[data-nav-close]').forEach(el => el.addEventListener('click', zapriMeni));
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') zapriMeni(); });
+  const napredno = document.getElementById('naprednoToggle');
+  napredno.addEventListener('click', () => {
+    const odpri = napredno.getAttribute('aria-expanded') !== 'true';
+    napredno.setAttribute('aria-expanded', String(odpri));
+    document.getElementById('naprednoSeznam').hidden = !odpri;
+  });
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // ── Vprasanja: ista oblika kot questions_snapshot v bazi ──
+  const S = (id, label, namig) => ({ tip: 'section', id, label, namig });
+  const Q = (tip, id, label, extra = {}) => ({ tip, id, label, ...extra });
+  const DRA = ['da', 'delno', 'ne'];
+  const vprasanja = [
+    Q('text', 'hotel', 'Hotel', { obvezno: true }),
+    Q('text', 'oddelek', 'Oddelek oziroma področje'),
+    Q('date', 'datum', 'Datum'),
+    Q('text', 'svetovalec', 'Svetovalec Acente'),
+    Q('textarea', 'predstavniki', 'Sodelujoči predstavniki hotela'),
+    S('s1', '1. Poslovni cilj in problem'),
+    Q('textarea', 'cilj', 'Kaj želi hotel izboljšati? (poslovni cilj)', { obvezno: true }),
+    Q('textarea', 'problem', 'Kaj je danes glavni problem?', { obvezno: true }),
+    Q('textarea', 'vpliv', 'Kako problem vpliva na prihodke, stroške, čas, kakovost ali EBITDA?'),
+    Q('checkbox_multi', 'korist', 'Najpomembnejša pričakovana korist', { options: ['več prihodkov', 'nižji stroški', 'prihranek časa', 'manj napak', 'boljše odločitve', 'boljša storitev', 'manjše tveganje'], drugo: true }),
+    Q('textarea', 'korist_stevilke', 'Kako bi korist opisali ali ocenili v številkah?'),
+    S('s2', '2. Proces in trenutno stanje'),
+    Q('text', 'proces_naziv', 'Naziv procesa', { obvezno: true }),
+    Q('textarea', 'proces_meje', 'Kje se proces začne in kaj je njegov končni rezultat?', { obvezno: true, poudarek: true, namig: 'Rezultat tega procesa je pogosto osnova za vse nadaljnje procese, ki jih stranka opiše na sestanku. Zapišite ga dovolj konkretno.' }),
+    Q('text', 'proces_pogostost', 'Kako pogosto se izvaja?'),
+    Q('textarea', 'proces_izvajalci', 'Kdo proces izvaja in kdo je zanj odgovoren?'),
+    Q('text', 'proces_obremenitev', 'Koliko časa oziroma dela danes zahteva?'),
+    S('s3', '3. Ključna odločitev'),
+    Q('textarea', 'odlocitev', 'Katera ključna odločitev najbolj vpliva na rezultat procesa?', { obvezno: true }),
+    Q('text', 'odlocitev_kdo', 'Kdo danes sprejema to odločitev?'),
+    Q('textarea', 'odlocitev_podatki', 'Katere informacije ali podatke potrebuje za odločitev?'),
+    Q('textarea', 'odlocitev_pravila', 'Katera glavna pravila mora upoštevati?'),
+    Q('textarea', 'odlocitev_izjeme', 'Katere izjeme se najpogosteje pojavljajo?'),
+    Q('textarea', 'odlocitev_posledica', 'Kakšna je posledica napačne ali prepozne odločitve?'),
+    Q('radio', 'odlocitev_razlicno', 'Ali različni zaposleni ob podobnem primeru odločajo različno?', { options: DRA }),
+    Q('radio', 'odlocitev_preverljiva', 'Ali je kakovost odločitve mogoče naknadno preveriti?', { options: DRA }),
+    S('s4', '4. Podatki za dokazovanje trenutnega stanja'),
+    Q('textarea', 'podatki_dokazi', 'Kateri preverjeni podatki ali dejstva dokazujejo problem? Navedite tudi vir.'),
+    Q('textarea', 'podatki_manjkajo', 'Kateri pomembni podatki še manjkajo?'),
+    Q('textarea', 'podatki_domneve', 'Katere domneve moramo še preveriti?'),
+    S('s5', '5. Merjenje uspeha', 'Izberite največ tri kazalnike, ki bodo pokazali, ali je rešitev uspešna.'),
+    Q('table', 'kazalniki', 'Kazalniki uspešnosti', { columns: ['Kazalnik', 'Začetno stanje', 'Želeni rezultat', 'Vir podatkov'], vrstice: 3 }),
+    S('s6', '6. Obseg in odgovornosti'),
+    Q('textarea', 'obseg_vkljuceno', 'Kaj vključuje prvi obseg projekta?'),
+    Q('textarea', 'obseg_izkljuceno', 'Kaj v prvi fazi ni vključeno?'),
+    Q('text', 'lastnik_cilja', 'Lastnik poslovnega cilja'),
+    Q('text', 'lastnik_procesa', 'Lastnik procesa oziroma ključne odločitve'),
+    Q('textarea', 'pilot_sodelujoci', 'Kdo bo sodeloval pri pilotu?'),
+    Q('radio', 'vodstvo_podpira', 'Ali vodstvo podpira izvedbo?', { options: ['da', 'delno', 'še ni potrjeno', 'ne'] }),
+    S('s7', '7. Primernost za AI in omejitve'),
+    Q('checkbox_multi', 'ai_pomoc', 'Kako bi lahko pomagala umetna inteligenca?', { options: ['predlog odločitve', 'preverjanje pravil', 'primerjava možnosti', 'analiza podatkov', 'opozorila na izjeme', 'utemeljitev'] }),
+    Q('radio', 'brez_ai', 'Bi lahko problem enostavneje rešili brez AI?', { options: ['ne', 'morda', 'da'] }),
+    Q('textarea', 'brez_ai_pojasnilo', 'Pojasnilo'),
+    Q('checkbox_multi', 'omejitve', 'Katere pomembne omejitve že poznamo?', { options: ['manjkajoči ali nezanesljivi podatki', 'osebni podatki', 'zakonodaja ali kolektivna pogodba', 'tehnične omejitve in integracije', 'pomanjkanje časa'], drugo: true }),
+    Q('radio', 'acenta_resitev', 'Ali ima Acenta za ta proces že preverjeno rešitev?', { options: DRA }),
+    Q('textarea', 'acenta_resitev_posebnosti', 'Če da ali delno, katere posebnosti hotela moramo preveriti?'),
+    S('s8', '8. Odločitev svetovalca in naslednji korak'),
+    Q('radio', 'odlocitev_svetovalca', 'Odločitev', { options: ['nadaljuj z obstoječo Acentino rešitvijo', 'pridobi manjkajoče podatke in nato pripravi ponudbo', 'izvedi dodatno diagnostiko', 'najprej organizacijsko uredi proces', 'ne nadaljuj'] }),
+    Q('textarea', 'utemeljitev', 'Utemeljitev odločitve'),
+    Q('textarea', 'naslednji_korak', 'Naslednji korak'),
+    Q('text', 'odgovorna_oseba_rok', 'Odgovorna oseba in rok'),
+  ];
+  const odgovori = {
+    hotel: 'Hotel Smrekov gaj',
+    oddelek: 'Prodaja in recepcija',
+    datum: '2026-10-07',
+    svetovalec: 'Nina Petek',
+    predstavniki: 'Tadej Rozman, direktor\nMojca Zupan, vodja prodaje\nEva Kralj, receptorka',
+    cilj: 'Hitreje odgovoriti na povpraševanja za skupine in poroke, da jih ne prehiti konkurenca v dolini.',
+    problem: 'Povpraševanja pridejo po e-pošti, prek obrazca na spletni strani in po telefonu. Mojca odgovarja sama; ob koncih tedna čakajo tudi dva dni.',
+    vpliv: 'Po Mojčini oceni izgubijo vsaj eno skupinsko povpraševanje na mesec, ker odgovorijo prepozno. Sestavljanje ene ponudbe vzame od 30 do 60 minut.',
+    korist: { izbrano: ['več prihodkov', 'prihranek časa', 'boljša storitev'], drugo: '' },
+    korist_stevilke: 'Prvi odgovor isti dan namesto v dveh dneh; ena dodatna skupina na mesec.',
+    proces_naziv: 'Odgovarjanje na povpraševanja za skupine',
+    proces_pogostost: 'Vsak dan, 8 do 12 povpraševanj na teden',
+    proces_izvajalci: 'Izvaja Mojca Zupan, ob njeni odsotnosti recepcija. Odgovoren je direktor.',
+    proces_obremenitev: 'Okoli 6 ur na teden',
+    odlocitev_kdo: 'Mojca Zupan; pri popustih nad 10 % direktor',
+    odlocitev_podatki: 'Zasedenost sob in dvorane, cenik, pretekle ponudbe za podobne skupine.',
+    odlocitev_razlicno: 'delno',
+    kazalniki: [['Čas do prvega odgovora', 'do 2 dni', 'isti dan', 'e-pošta prodaje']],
+  };
+
+  function jeIzpolnjeno(q, v) {
+    if (q.tip === 'checkbox_multi') return (v?.izbrano?.length ?? 0) > 0 || !!v?.drugo?.trim();
+    if (q.tip === 'table') return Array.isArray(v) && v.some(r => r.some(c => String(c ?? '').trim()));
+    return !!String(v ?? '').trim();
+  }
+
+  // ── Izris enega vprasanja ──
+  function polje(q) {
+    const v = odgovori[q.id];
+    const manjka = q.obvezno && !jeIzpolnjeno(q, v);
+    const req = q.obvezno ? '<span class="field__req" aria-hidden="true">*</span>' : '';
+    const znacke = (q.poudarek ? '<span class="chip chip--accent">Pomembno</span>' : '') + (manjka ? '<span class="chip chip--warning">Manjka</span>' : '');
+    const namig = q.namig ? `<p class="field__hint">${esc(q.namig)}</p>` : '';
+    const urejanje = `
+      <div class="q-edit">
+        <input class="input" value="${esc(q.label)}" aria-label="Besedilo vprašanja" data-labelza="${q.id}">
+        <label class="check" style="font-size:var(--text-sm)"><input type="checkbox" ${q.obvezno ? 'checked' : ''} data-obveznoza="${q.id}">obvezno</label>
+        <button class="btn btn--ghost btn--sm" type="button" style="color:var(--danger-text)" data-odstrani="${q.id}">Odstrani</button>
+      </div>`;
+    const razred = `q${q.poudarek ? ' q--emph' : ''}${manjka ? ' q--missing' : ''}`;
+    const fid = `q-${q.id}`;
+
+    if (q.tip === 'radio' || q.tip === 'checkbox_multi') {
+      const multi = q.tip === 'checkbox_multi';
+      const izbrano = multi ? (v?.izbrano ?? []) : [v];
+      const moznosti = q.options.map(o => `
+        <label class="choice"><input type="${multi ? 'checkbox' : 'radio'}" name="${fid}" value="${esc(o)}" data-qid="${q.id}" ${izbrano.includes(o) ? 'checked' : ''}>${esc(o)}</label>`).join('');
+      const pocisti = !multi && v ? `<button class="q__clear" type="button" data-pocisti="${q.id}">Počisti</button>` : '';
+      const drugo = multi && q.drugo ? `<input class="input q__drugo" placeholder="drugo: …" aria-label="Drugo" data-qid="${q.id}" data-drugo value="${esc(v?.drugo ?? '')}">` : '';
+      return `<fieldset class="${razred}" data-polje="${q.id}"><legend class="field__label">${esc(q.label)}${req}${znacke}</legend>${namig}<div class="choices">${moznosti}${pocisti}</div>${drugo}${urejanje}</fieldset>`;
+    }
+    let vnos;
+    if (q.tip === 'textarea') vnos = `<textarea class="textarea" id="${fid}" rows="3" data-qid="${q.id}">${esc(v ?? '')}</textarea>`;
+    else if (q.tip === 'table') {
+      const vrst = Array.from({ length: q.vrstice }, (_, r) => `<tr>${q.columns.map((c, ci) => `<td><input aria-label="${esc(c)}, vrstica ${r + 1}" data-qid="${q.id}" data-r="${r}" data-c="${ci}" value="${esc(v?.[r]?.[ci] ?? '')}"></td>`).join('')}</tr>`).join('');
+      vnos = `<div class="grid-scroll"><table class="grid-input"><thead><tr>${q.columns.map(c => `<th>${esc(c)}</th>`).join('')}</tr></thead><tbody>${vrst}</tbody></table></div>`;
+    }
+    else vnos = `<input class="input" id="${fid}" type="${q.tip === 'date' ? 'date' : 'text'}" data-qid="${q.id}" value="${esc(v ?? '')}">`;
+    const lbl = q.tip === 'table' ? `<span class="field__label">${esc(q.label)}${req}${znacke}</span>` : `<label class="field__label" for="${fid}">${esc(q.label)}${req}${znacke}</label>`;
+    return `<div class="${razred}" data-polje="${q.id}">${lbl}${namig}${vnos}${urejanje}</div>`;
+  }
+
+  // ── Izris obrazca po sklopih + kazalo ──
+  let sklopi = [];
+  function izrisi() {
+    sklopi = [];
+    let trenutni = { id: 'sklop-0', label: 'Osnovni podatki', namig: 'Glava vprašalnika, ki gre v dokument za stranko. Prednapolnjeno iz kartice sestanka.', polja: [] };
+    for (const q of vprasanja) {
+      if (q.tip === 'section') { sklopi.push(trenutni); trenutni = { id: `sklop-${q.id}`, label: q.label, namig: q.namig, polja: [] }; continue; }
+      trenutni.polja.push(q);
+    }
+    sklopi.push(trenutni);
+    $('#obrazec').innerHTML = sklopi.map(s => `
+      <section class="panel qsec" id="${s.id}">
+        <div class="qsec__head"><h2>${esc(s.label)}</h2><span class="idx__n" data-stevec="${s.id}"></span></div>
+        ${s.namig ? `<p class="qsec__desc">${esc(s.namig)}</p>` : ''}
+        <div class="qsec__body">${s.polja.map(polje).join('')}
+          <button class="btn btn--ghost btn--sm q-add" type="button" data-dodaj="${s.id}"><svg class="icon"><use href="#i-plus"/></svg>Dodaj vprašanje v ta sklop</button>
+        </div>
+      </section>`).join('');
+    $('#idx').innerHTML = '<p class="idx__title">Sklopi</p>' + sklopi.map(s => `
+      <a class="idx__item" href="#${s.id}" data-za="${s.id}"><span class="idx__lbl">${esc(s.label)}</span><span class="idx__n" data-stevec="${s.id}"></span></a>`).join('') +
+      '<span class="idx__sep"></span><a class="idx__item" href="#transkript" data-za="transkript"><span class="idx__lbl">Transkript</span></a><a class="idx__item" href="#posiljanje" data-za="posiljanje"><span class="idx__lbl">Pošiljanje stranki</span></a>';
+    napredek();
+    opazuj();
+  }
+
+  // ── Napredek: skupaj, po sklopih, manjkajoca obvezna ──
+  function sklon(n, oblike) { const z = n % 100; return z === 1 ? oblike[0] : z === 2 ? oblike[1] : (z === 3 || z === 4) ? oblike[2] : oblike[3]; }
+  function napredek() {
+    const polja = vprasanja.filter(q => q.tip !== 'section');
+    const izp = polja.filter(q => jeIzpolnjeno(q, odgovori[q.id])).length;
+    const manjka = polja.filter(q => q.obvezno && !jeIzpolnjeno(q, odgovori[q.id])).length;
+    const pct = Math.round(izp / polja.length * 100);
+    $('#progTxt').innerHTML = `${izp}/${polja.length}<span class="prog__long"> izpolnjenih</span>` + (manjka ? ` · <b>${manjka} ${sklon(manjka, ['obvezno manjka', 'obvezni manjkata', 'obvezna manjkajo', 'obveznih manjka'])}</b>` : '');
+    $('#progFill').style.width = pct + '%';
+    $('#progLine').style.width = pct + '%';
+    for (const s of sklopi) {
+      const n = s.polja.filter(q => jeIzpolnjeno(q, odgovori[q.id])).length;
+      const m = s.polja.some(q => q.obvezno && !jeIzpolnjeno(q, odgovori[q.id]));
+      const done = n === s.polja.length;
+      $$(`[data-stevec="${s.id}"]`).forEach(el => {
+        el.classList.toggle('is-done', done);
+        el.innerHTML = (m ? '<span class="dot dot--warning" title="Manjka obvezno polje"></span>' : '') +
+          (done ? '<svg class="icon icon--sm"><use href="#i-check"/></svg>' : '') + `${n}/${s.polja.length}`;
+      });
+    }
+  }
+
+  // ── Samodejno shranjevanje (stanje vidno v vrstici seje) ──
+  let shraniT = null;
+  function nastaviShrani(stanje, besedilo) {
+    $('#save').dataset.s = stanje;
+    $('#save .dot').className = 'dot ' + (stanje === 'ok' ? 'dot--success' : stanje === 'dirty' ? 'dot--warning' : stanje === 'error' ? 'dot--danger' : '');
+    $('#saveTxt').textContent = besedilo;
+  }
+  function spremenjeno() {
+    nastaviShrani('dirty', 'Spremembe …');
+    clearTimeout(shraniT);
+    shraniT = setTimeout(() => {
+      nastaviShrani('busy', 'Shranjujem …');
+      setTimeout(() => { const d = new Date(); nastaviShrani('ok', `Shranjeno ${d.getHours()}.${String(d.getMinutes()).padStart(2, '0')}`); }, 450);
+    }, 800);
+  }
+  function preberi(qid) {
+    const q = vprasanja.find(x => x.id === qid);
+    if (!q) return;
+    if (q.tip === 'checkbox_multi') {
+      odgovori[qid] = { izbrano: $$(`input[type="checkbox"][data-qid="${qid}"]:checked`).map(i => i.value), drugo: $(`[data-qid="${qid}"][data-drugo]`)?.value ?? '' };
+    } else if (q.tip === 'radio') {
+      odgovori[qid] = $(`input[type="radio"][data-qid="${qid}"]:checked`)?.value ?? '';
+    } else if (q.tip === 'table') {
+      const m = [];
+      $$(`input[data-qid="${qid}"][data-r]`).forEach(i => { (m[i.dataset.r] ||= [])[i.dataset.c] = i.value; });
+      odgovori[qid] = m;
+    } else {
+      odgovori[qid] = $(`[data-qid="${qid}"]`).value;
+    }
+  }
+  $('#obrazec').addEventListener('input', (e) => {
+    const qid = e.target.dataset.qid;
+    if (!qid) return;
+    preberi(qid);
+    const q = vprasanja.find(x => x.id === qid);
+    const ovoj = e.target.closest('[data-polje]');
+    if (q.obvezno) {
+      const manjka = !jeIzpolnjeno(q, odgovori[qid]);
+      ovoj.classList.toggle('q--missing', manjka);
+      ovoj.querySelector('.chip--warning')?.toggleAttribute('hidden', !manjka);
+    }
+    napredek();
+    spremenjeno();
+  });
+  $('#obrazec').addEventListener('change', (e) => {
+    if (e.target.type === 'radio' && !e.target.closest('.q').querySelector('[data-pocisti]')) {
+      e.target.closest('.choices').insertAdjacentHTML('beforeend', `<button class="q__clear" type="button" data-pocisti="${e.target.dataset.qid}">Počisti</button>`);
+    }
+  });
+  $('#obrazec').addEventListener('click', (e) => {
+    const p = e.target.closest('[data-pocisti]');
+    if (p) { $$(`input[type="radio"][data-qid="${p.dataset.pocisti}"]`).forEach(i => { i.checked = false; }); odgovori[p.dataset.pocisti] = ''; p.remove(); napredek(); spremenjeno(); return; }
+    const o = e.target.closest('[data-odstrani]');
+    if (o) { const i = vprasanja.findIndex(q => q.id === o.dataset.odstrani); vprasanja.splice(i, 1); izrisi(); spremenjeno(); return; }
+    const d = e.target.closest('[data-dodaj]');
+    if (d) {
+      const s = sklopi.find(x => x.id === d.dataset.dodaj);
+      const zadnje = s.polja[s.polja.length - 1];
+      const i = vprasanja.indexOf(zadnje);
+      vprasanja.splice(i + 1, 0, Q('text', 'novo_' + Date.now(), 'Novo vprašanje'));
+      izrisi(); spremenjeno();
+    }
+  });
+  ['mStranka', 'mProces', 'mOddelek', 'mSvetovalec', 'mDatum'].forEach(id => $('#' + id).addEventListener('input', spremenjeno));
+  $('#mPodjetje').addEventListener('change', (e) => {
+    const n = $('#mPodjetjeNamig');
+    if (e.target.value) { n.style.color = ''; n.innerHTML = '<a class="link" href="podjetje.html">Odpri podjetje<svg class="icon icon--sm"><use href="#i-arrow-right"/></svg></a>'; }
+    else { n.style.color = 'var(--warning-text)'; n.textContent = 'Zapis ni povezan s podjetjem, zato ga prodajni predlog ne vidi.'; }
+    spremenjeno();
+  });
+
+  // ── Kazalo: aktivni sklop med drsenjem ──
+  let opazovalec = null;
+  function opazuj() {
+    opazovalec?.disconnect();
+    opazovalec = new IntersectionObserver((vnosi) => {
+      const vidni = vnosi.filter(v => v.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+      if (!vidni.length) return;
+      const id = vidni[0].target.id;
+      $$('.idx__item').forEach(a => a.classList.toggle('is-active', a.dataset.za === id));
+    }, { rootMargin: '-110px 0px -60% 0px' });
+    [...sklopi.map(s => $('#' + s.id)), $('#transkript'), $('#posiljanje')].forEach(el => el && opazovalec.observe(el));
+  }
+
+  // ── Gumbi v vrstici seje ──
+  function prvoManjkajoce() {
+    const q = vprasanja.find(x => x.obvezno && !jeIzpolnjeno(x, odgovori[x.id]));
+    if (!q) return;
+    const el = $(`[data-polje="${q.id}"]`);
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setTimeout(() => el.querySelector('input, textarea')?.focus({ preventScroll: true }), 350);
+  }
+  $('#progTxt').addEventListener('click', prvoManjkajoce);
+  $('#btnUredi').addEventListener('click', (e) => {
+    const vklop = !$('#obrazec').classList.contains('is-editing');
+    $('#obrazec').classList.toggle('is-editing', vklop);
+    e.currentTarget.setAttribute('aria-pressed', String(vklop));
+    $('[data-uredi]').textContent = vklop ? 'Končaj urejanje' : 'Uredi vprašanja';
+    $('[data-uredi-k]').textContent = vklop ? 'Končaj' : 'Uredi';
+  });
+  $('#btnZakljuci').addEventListener('click', () => {
+    const manjka = vprasanja.filter(q => q.obvezno && !jeIzpolnjeno(q, odgovori[q.id]));
+    const o = $('#opozorilo');
+    if (manjka.length) {
+      o.innerHTML = `<svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg><div style="flex:1;min-width:0"><b>Manjkajo obvezna polja (${manjka.length}):</b><ul>${manjka.map(q => `<li>${esc(q.label)}</li>`).join('')}</ul>
+        <div class="row-actions" style="margin-top:var(--space-3)"><button class="btn btn--secondary btn--sm" type="button" id="naPrvo">Pojdi na prvo polje</button><button class="btn btn--ghost btn--sm" type="button" id="vseeno">Zaključi vseeno</button></div></div>`;
+      o.className = 'callout callout--danger';
+      o.hidden = false;
+      $('#naPrvo').addEventListener('click', prvoManjkajoce);
+      $('#vseeno').addEventListener('click', zakljuci);
+      o.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    zakljuci();
+  });
+  function zakljuci() {
+    const o = $('#opozorilo');
+    o.className = 'callout callout--success';
+    o.innerHTML = '<svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><div>Sestanek zaključen. Zdaj ga lahko pošljete stranki.</div>';
+    o.hidden = false;
+    $('#statusChip').textContent = 'Zaključen'; $('#statusChip').className = 'chip chip--info';
+    $('#btnZakljuci').hidden = true;
+    $('#btnPoslji').className = 'btn btn--primary';
+  }
+  $('#btnPoslji').addEventListener('click', () => {
+    $('#posiljanje').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => $('#pEmail').focus({ preventScroll: true }), 400);
+  });
+  $('#pPoslji').addEventListener('click', () => {
+    const naslov = $('#pEmail').value.trim();
+    if (!naslov) { $('#pStatus').style.color = 'var(--danger-text)'; $('#pStatus').textContent = 'Vpišite e-naslov prejemnika.'; $('#pEmail').focus(); return; }
+    if (!confirm(`Pošljem izpolnjen zapis na ${naslov}?\n\nStranka bo prejela e-pošto takoj.`)) return;
+    $('#pStatus').style.color = 'var(--success-text)'; $('#pStatus').textContent = `Poslano na ${naslov}.`;
+  });
+  $('#tPrenesi').addEventListener('click', (e) => {
+    if (!$('#tUrl').value.trim()) { $('#tUrl').focus(); return; }
+    const b = e.currentTarget; b.classList.add('is-loading'); setTimeout(() => b.classList.remove('is-loading'), 1200);
+  });
+  addEventListener('beforeunload', (e) => { if ($('#save').dataset.s === 'dirty') { e.preventDefault(); e.returnValue = ''; } });
+
+  izrisi();
+  if (location.hash) setTimeout(() => $(location.hash)?.scrollIntoView(), 50);
+</script>
+</body>
+</html>

@@ -158,7 +158,7 @@ await page.evaluateOnNewDocument(() => {
 await page.goto(`${BASE}/admin/company.html?id=${cid}`, { waitUntil: 'networkidle0' });
 const gumb = await page.$('#btn-izvoz');
 t('gumb je na strani', !!gumb);
-t('gumb je v glavi poleg povratka', await page.$eval('#btn-izvoz', b => !!b.closest('.e-title') && b.textContent.includes('Izvoz za Claude')).catch(() => false));
+t('gumb je v glavi poleg povratka', await page.$eval('#btn-izvoz', b => !!b.closest('.topbar') &&b.textContent.includes('Izvoz za Claude')).catch(() => false));
 await gumb?.click();
 await page.waitForFunction(() => window.__prenos, { timeout: 15000 }).catch(() => {});
 const prenos = await page.evaluate(async () => {

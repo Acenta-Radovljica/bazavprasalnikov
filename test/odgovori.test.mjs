@@ -268,11 +268,11 @@ t('glava pokaze izpolnjevalca (ime, e-naslov ali "Anonimni odgovor")',
 t('vsako vprasanje je svoja kartica', vrsticeTabele.length > 3, String(vrsticeTabele.length));
 t('gumb za ogled obrazca obstaja', !!(await page.$('#btn-obrazec')));
 t('okvir je privzeto skrit',
-  await page.$eval('#obrazec-ovoj', (e) => e.className.includes('hidden')));
+  await page.$eval('#obrazec-ovoj', (e) => !e.open));
 await page.click('#btn-obrazec');
 await pocakaj(400);
 t('klik odpre obrazec',
-  !(await page.$eval('#obrazec-ovoj', (e) => e.className.includes('hidden'))));
+  await page.$eval('#obrazec-ovoj', (e) => e.open));
 t('okvir dobi shranjeni HTML',
   (await page.$eval('#obrazec', (e) => e.getAttribute('srcdoc') || '')).includes('Ime objekta'));
 t('okvir je v peskovniku',
@@ -280,7 +280,7 @@ t('okvir je v peskovniku',
 await page.click('#btn-obrazec');
 await pocakaj(300);
 t('drugi klik zapre obrazec',
-  await page.$eval('#obrazec-ovoj', (e) => e.className.includes('hidden')));
+  await page.$eval('#obrazec-ovoj', (e) => !e.open));
 t('brez JS napak', napake.length === 0, JSON.stringify(napake.slice(0, 2)));
 
 await browser.close();

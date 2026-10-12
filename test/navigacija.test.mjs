@@ -118,14 +118,23 @@ for (const [ime, pot, aktivenKljuc] of STRANI) {
   t('brez vodoravnega prelivanja', izvid.preliv <= 1, `${izvid.preliv}px`);
   t('brez JS napak', napake.length === 0, JSON.stringify(napake.slice(0, 2)));
 
-  // Ozek zaslon: stranska vrstica se skrije, nadomesti jo drsna vrstica.
+  // Ozek zaslon: stranska vrstica se skrije v predal.
+  // Oct 2026: the drawer replaced the scrolling strip. A closed drawer still
+  // has an offsetParent, so "reachable" now means: the menu button opens it
+  // and the Procesi link is actually visible inside the viewport.
   await page.setViewport({ width: 390, height: 844 });
   await new Promise(r => setTimeout(r, 500));
-  const mob = await page.evaluate(() => ({
-    preliv: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    dostopnaNavigacija: [...document.querySelectorAll('a')]
-      .some(a => a.offsetParent !== null && a.textContent.trim() === 'Procesi'),
-  }));
+  const preliv = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  await page.click('#navOdpri').catch(() => {});
+  await new Promise(r => setTimeout(r, 450));
+  const mob = await page.evaluate((p) => ({
+    preliv: p,
+    dostopnaNavigacija: [...document.querySelectorAll('#sidebar a.sidebar-item')].some(a => {
+      const r = a.getBoundingClientRect();
+      return a.textContent.trim() === 'Procesi' && getComputedStyle(a).visibility === 'visible'
+        && r.width > 0 && r.left >= 0 && r.right <= window.innerWidth;
+    }),
+  }), preliv);
   t('mobilno brez prelivanja strani', mob.preliv <= 1, `${mob.preliv}px`);
   t('mobilno: navigacija dosegljiva', mob.dostopnaNavigacija);
 

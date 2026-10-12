@@ -2,88 +2,92 @@
 <html lang="sl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Acenta — Urejanje predloge</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Urejanje predloge · Acenta baza</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap">
   <link rel="stylesheet" href="/admin/admin.css">
   <style>
-    /* Vrstica vprasanja: besedilo je urejanju namenjen input brez okvirja,
-       da seznam bere kot seznam in ne kot obrazec s 50 polji. Okvir se
-       pokaze sele ob fokusu. */
-    .vprasanje { display: flex; align-items: center; gap: 8px; padding: 4px 10px;
-                 border-bottom: 1px solid var(--row-line); }
-    .vprasanje:last-child { border-bottom: 0; }
-    .vprasanje input[type="text"] {
-      flex: 1; min-width: 0; border: 1px solid transparent; border-radius: var(--r-xs);
-      padding: 5px 7px; font-size: 12.5px; color: var(--ink); background: transparent;
-      font-family: inherit;
+    /* Template editor: the list reads as a list, not a form with 50 boxes.
+       Text inputs have no frame until hover or focus. Semantic variables only. */
+    .tpl-wrap { max-width: 880px; }
+    .crumbs h1 { font-size: inherit; font-weight: var(--weight-medium); letter-spacing: normal; line-height: inherit; min-width: 0; }
+    .tpl-save { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .tpl-save:empty { display: none; }
+    .tpl-save[data-s="dirty"] { color: var(--warning-text); }
+    .tpl-save[data-s="ok"] { color: var(--success-text); }
+    .tpl-save[data-s="dirty"]::before, .tpl-save[data-s="ok"]::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+    .tpl { overflow: hidden; }
+    .tpl-in {
+      flex: 1 1 auto; min-width: 0; height: 32px; padding: 0 var(--space-2);
+      border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent;
+      color: var(--text); font-size: var(--text-base);
+      transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
     }
-    .vprasanje input[type="text"]:hover { border-color: var(--hairline-2); }
-    .vprasanje input[type="text"]:focus { outline: none; border-color: var(--acenta-teal);
-      background: #fff; box-shadow: 0 0 0 3px var(--acenta-teal-soft); }
-    .vprasanje .tip { font-size: 10px; font-weight: 700; letter-spacing: .04em;
-      text-transform: uppercase; color: var(--muted); background: var(--bg-sub);
-      border: 1px solid var(--hairline); border-radius: 5px; padding: 2px 7px;
-      white-space: nowrap; flex: none; }
-    .vprasanje label.obvezno { display: inline-flex; align-items: center; gap: 5px;
-      font-size: 11px; color: var(--muted); white-space: nowrap; flex: none; cursor: pointer; }
-    .vprasanje .odstrani { font-size: 11.5px; color: var(--danger); background: none;
-      border: 0; cursor: pointer; white-space: nowrap; flex: none; padding: 4px 2px; }
-    .vprasanje .odstrani:hover { text-decoration: underline; }
+    .tpl-in:hover { border-color: var(--border); background: var(--bg-surface); }
+    .tpl-in:focus { outline: none; border-color: var(--accent); background: var(--bg-surface); box-shadow: 0 0 0 3px var(--accent-subtle-hover); }
 
-    .sklop-glava { display: flex; align-items: center; gap: 8px;
-      padding: 8px 10px; background: var(--bg-sub);
-      border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
-    .sklop-glava input {
-      flex: 1; min-width: 0; border: 1px solid transparent; border-radius: var(--r-xs);
-      padding: 4px 7px; background: transparent; font-family: inherit;
-      font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
-      color: var(--ink-2);
+    /* Section header: emphasized band */
+    .tpl-sec { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background: var(--bg-subtle); border-bottom: 1px solid var(--border-subtle); }
+    .tpl-sec:not(:first-child) { border-top: 1px solid var(--border-subtle); }
+    .tpl-sec .tpl-in { font-weight: var(--weight-semibold); }
+    .tpl-sec__lbl { font-weight: var(--weight-semibold); padding: 0 var(--space-2); line-height: 32px; }
+    .tpl-sec .chip { flex: none; }
+
+    /* Question row */
+    .tpl-q { display: flex; align-items: center; gap: var(--space-3); padding: 6px var(--space-3); border-bottom: 1px solid var(--border-subtle); min-width: 0; }
+    .tpl-q .chip { flex: none; }
+    .tpl-q .check { flex: none; font-size: var(--text-sm); white-space: nowrap; }
+    .tpl-del { flex: none; color: var(--danger-text); }
+    .tpl-del:hover:not(:disabled) { color: var(--danger-text); background: var(--danger-bg); }
+    .tpl-add { padding: 6px var(--space-3) var(--space-2); border-bottom: 1px solid var(--border-subtle); }
+    #seznam > :last-child { border-bottom: 0; }
+
+    @media (max-width: 760px) {
+      .tpl-q { flex-wrap: wrap; row-gap: var(--space-1); padding: var(--space-2) var(--space-3) var(--space-3); }
+      .tpl-q .tpl-in { flex: 1 1 100%; }
+      .tpl-q .chip { margin-left: var(--space-2); }
+      .tpl-q .tpl-del { margin-left: auto; }
+      .tpl-in { height: 40px; }
     }
-    .sklop-glava input:hover { border-color: var(--hairline-2); }
-    .sklop-glava input:focus { outline: none; border-color: var(--acenta-teal); background: #fff; }
-
-    .dodaj { display: block; padding: 7px 10px; font-size: 12px; font-weight: 600;
-      color: var(--acenta-teal); background: none; border: 0; cursor: pointer; text-align: left; }
-    .dodaj:hover { text-decoration: underline; }
-
-    .banner { display: flex; gap: 8px; align-items: flex-start;
-      background: var(--warn-soft); border: 1px solid var(--warn-line); color: var(--warn);
-      border-radius: var(--r-xs); padding: 9px 12px; font-size: 12.5px; line-height: 1.5; }
   </style>
 </head>
 <body>
-  <div class="flex min-h-screen">
-    <aside id="sidebar" class="w-52 app-sidebar p-3 flex flex-col"></aside>
-
-    <main class="flex-1 min-w-0 flex flex-col">
-
-      <header class="page-head">
-        <a href="/admin/procesi.html#knjiznica" class="btn-mini">&larr; Knjižnica</a>
-        <h1 class="display ellipsis" id="naslov">Urejanje predloge</h1>
-        <span class="sub" id="stevec">&mdash;</span>
-        <div class="spacer"></div>
-        <span id="stanjeShranjeno" class="sub"></span>
-        <button id="btnShrani" class="btn-primary" disabled>Shrani predlogo</button>
+  <div class="app">
+    <aside id="sidebar" class="sidebar"></aside>
+    <main class="main">
+      <header class="topbar">
+        <nav class="crumbs" aria-label="Pot">
+          <a href="/admin/procesi.html">Procesi</a>
+          <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chev-right"/></svg>
+          <a href="/admin/procesi.html#knjiznica">Knjižnica</a>
+          <svg class="icon icon--sm" aria-hidden="true"><use href="#i-chev-right"/></svg>
+          <h1 class="ellipsis" id="naslov" aria-current="page">Urejanje predloge</h1>
+        </nav>
+        <span class="topbar__meta" id="stevec">—</span>
+        <span class="spacer"></span>
+        <div class="topbar__actions">
+          <span class="tpl-save" id="stanjeShranjeno" aria-live="polite"></span>
+          <button class="btn btn--primary" type="button" id="btnShrani" disabled><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg><span>Shrani predlogo</span></button>
+        </div>
       </header>
 
-      <div class="p-4 flex flex-col gap-4 max-w-4xl">
+      <div class="page">
+        <div class="stack tpl-wrap">
+          <div class="callout callout--warning">
+            <svg class="icon" aria-hidden="true"><use href="#i-alert"/></svg>
+            <div><strong>Urejaš predlogo.</strong> Spremembe veljajo za vse prihodnje sestanke.
+              Že začeti in izpolnjeni vprašalniki obdržijo svoja vprašanja.</div>
+          </div>
 
-        <div class="banner">
-          <span aria-hidden="true">&#9888;</span>
-          <span><strong>Urejaš predlogo</strong> — spremembe veljajo za vse prihodnje sestanke.
-            Že začeti in izpolnjeni vprašalniki obdržijo svoja vprašanja.</span>
+          <div id="napaka" class="callout callout--danger hidden" role="alert"></div>
+
+          <section class="panel tpl" aria-label="Vprašanja predloge">
+            <div id="seznam"><div class="loading" role="status"><span class="spinner" aria-hidden="true"></span>Nalagam predlogo …</div></div>
+          </section>
         </div>
-
-        <div id="napaka" class="hidden banner" style="background:var(--danger-soft);border-color:var(--danger-line);color:var(--danger)"></div>
-
-        <section class="card overflow-hidden">
-          <div id="seznam"><div class="text-center text-muted py-12">Nalagam predlogo ...</div></div>
-        </section>
-
       </div>
     </main>
   </div>
@@ -99,17 +103,24 @@
 
     function el(id) { return document.getElementById(id); }
 
-    // Prijazna imena tipov — komercialist ne rabi videti "checkbox_multi".
+    // Prijazna imena tipov: komercialist ne rabi videti "checkbox_multi".
     const TIP_IME = {
       section: 'sklop', text: 'kratek odgovor', textarea: 'daljši odgovor',
       date: 'datum', email: 'e-naslov', radio: 'ena izbira',
       select: 'ena izbira', checkbox_multi: 'več izbir', table: 'tabela',
     };
 
+    // Save state next to the button. stanje: dirty | ok
+    function nastaviStanje(besedilo, stanje) {
+      const e = el('stanjeShranjeno');
+      e.dataset.s = stanje;
+      e.textContent = besedilo;
+    }
+
     function oznaciSpremenjeno() {
       spremenjeno = true;
       el('btnShrani').disabled = false;
-      el('stanjeShranjeno').textContent = 'Neshranjene spremembe';
+      nastaviStanje('Neshranjene spremembe', 'dirty');
     }
 
     window.addEventListener('beforeunload', (e) => {
@@ -118,42 +129,52 @@
 
     function pokaziNapako(besedilo) {
       const n = el('napaka');
-      n.innerHTML = besedilo;
+      n.innerHTML = `${ikona('alert')}<div>${besedilo}</div>`;
       n.classList.remove('hidden');
     }
     function skrijNapako() { el('napaka').classList.add('hidden'); }
 
+    // Page-level empty/error state with the way back to the library.
+    function prazno(naslov, besedilo) {
+      el('seznam').innerHTML = `
+        <div class="empty">
+          <b class="empty__title">${esc(naslov)}</b>
+          <p class="empty__text">${esc(besedilo)}</p>
+          <a class="btn btn--secondary" href="/admin/procesi.html#knjiznica">${ikona('arrow-left')}<span>V knjižnico</span></a>
+        </div>`;
+    }
+
     // ── Izris ───────────────────────────────────────────────────────────
     function izrisi() {
       const kosi = [];
-      let stSekcije = 0;
+      const dodaj = (pred) => `
+        <div class="tpl-add"><button type="button" class="btn btn--ghost btn--sm" data-dodajpred="${pred}">${ikona('plus')}<span>Dodaj vprašanje v ta sklop</span></button></div>`;
 
       // Vprasanja pred prvim sklopom (glava obrazca) dobijo svojo skupino,
       // enako kot na sestanku ("Osnovni podatki").
       const idxPrve = vprasanja.findIndex(q => q.tip === 'section');
       if (idxPrve !== 0) {
-        kosi.push(`<div class="sklop-glava"><span style="font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);padding:4px 7px">Osnovni podatki</span></div>`);
+        kosi.push('<div class="tpl-sec"><span class="tpl-sec__lbl">Osnovni podatki</span></div>');
       }
 
       vprasanja.forEach((q, i) => {
         if (q.tip === 'section') {
-          stSekcije++;
-          if (i > 0) kosi.push(`<button type="button" class="dodaj" data-dodajpred="${i}">+ dodaj vprašanje v ta sklop</button>`);
+          if (i > 0) kosi.push(dodaj(i));
           kosi.push(`
-            <div class="sklop-glava">
-              <input type="text" value="${esc(q.label)}" data-i="${i}" data-lastnost="label" title="Ime sklopa">
+            <div class="tpl-sec">
+              <input class="tpl-in" type="text" value="${esc(q.label)}" data-i="${i}" data-lastnost="label" title="Ime sklopa" aria-label="Ime sklopa">
             </div>`);
           return;
         }
         kosi.push(`
-          <div class="vprasanje">
-            <input type="text" value="${esc(q.label)}" data-i="${i}" data-lastnost="label" title="Besedilo vprašanja">
-            <span class="tip">${esc(TIP_IME[q.tip] || q.tip)}</span>
-            <label class="obvezno"><input type="checkbox" data-i="${i}" data-lastnost="obvezno" ${q.obvezno ? 'checked' : ''}> obvezno</label>
-            <button type="button" class="odstrani" data-odstrani="${i}">odstrani</button>
+          <div class="tpl-q">
+            <input class="tpl-in" type="text" value="${esc(q.label)}" data-i="${i}" data-lastnost="label" title="Besedilo vprašanja" aria-label="Besedilo vprašanja">
+            <span class="chip">${esc(TIP_IME[q.tip] || q.tip)}</span>
+            <label class="check"><input type="checkbox" data-i="${i}" data-lastnost="obvezno"${q.obvezno ? ' checked' : ''}>obvezno</label>
+            <button type="button" class="btn btn--ghost btn--sm tpl-del" data-odstrani="${i}">Odstrani</button>
           </div>`);
       });
-      kosi.push(`<button type="button" class="dodaj" data-dodajpred="${vprasanja.length}">+ dodaj vprašanje v ta sklop</button>`);
+      kosi.push(dodaj(vprasanja.length));
 
       el('seznam').innerHTML = kosi.join('');
       osveziStevec();
@@ -162,7 +183,7 @@
     function osveziStevec() {
       const stVprasanj = vprasanja.filter(q => q.tip !== 'section').length;
       const stSklopov = vprasanja.filter(q => q.tip === 'section').length;
-      el('stevec').textContent = `${stVprasanj} vprašanj · ${stSklopov} sklopov`;
+      el('stevec').textContent = `${sklon(stVprasanj, SKLONI.vprasanje)} · ${sklon(stSklopov, ['sklop', 'sklopa', 'sklopi', 'sklopov'])}`;
     }
 
     // ── Urejanje ────────────────────────────────────────────────────────
@@ -188,7 +209,7 @@
         const i = parseInt(t.dataset.odstrani, 10);
         const q = vprasanja[i];
         if (!q) return;
-        if (!confirm(`Odstranim vprašanje „${q.label}“ iz predloge?\n\nVelja za vse prihodnje sestanke. Že izpolnjeni vprašalniki ga obdržijo.`)) return;
+        if (!confirm(`Odstranim vprašanje »${q.label}« iz predloge?\n\nVelja za vse prihodnje sestanke. Že izpolnjeni vprašalniki ga obdržijo.`)) return;
         vprasanja.splice(i, 1);
         izrisi();
         oznaciSpremenjeno();
@@ -239,8 +260,9 @@
     // ── Shranjevanje ────────────────────────────────────────────────────
     el('btnShrani').addEventListener('click', async () => {
       const gumb = el('btnShrani');
+      const oznaka = gumb.querySelector('span');
       gumb.disabled = true;
-      gumb.textContent = 'Shranjujem ...';
+      oznaka.textContent = 'Shranjujem …';
       skrijNapako();
 
       const res = await fetch(`/api/procesi/predloge/${PREDLOGA_ID}`, {
@@ -249,36 +271,35 @@
       }).catch(() => null);
       const d = res ? await res.json().catch(() => ({})) : {};
 
-      gumb.textContent = 'Shrani predlogo';
+      oznaka.textContent = 'Shrani predlogo';
 
       if (!d.ok) {
         gumb.disabled = false;
-        pokaziNapako(`Predloge ni bilo mogoče shraniti${d.detail ? `: ${esc(d.detail)}` : ''}. Nič ni izgubljeno — poskusi znova.`);
+        pokaziNapako(`Predloge ni bilo mogoče shraniti${d.detail ? `: ${esc(d.detail)}` : ''}. Nič ni izgubljeno, poskusi znova.`);
         return;
       }
       spremenjeno = false;
-      const cas = new Date().toLocaleTimeString('sl-SI', { hour: '2-digit', minute: '2-digit' });
-      el('stanjeShranjeno').textContent = `Shranjeno ${cas}`;
+      const zdaj = new Date();
+      nastaviStanje(`Shranjeno ${zdaj.getHours()}.${String(zdaj.getMinutes()).padStart(2, '0')}`, 'ok');
     });
 
     // ── Nalaganje ───────────────────────────────────────────────────────
     async function nalozi() {
       const d = await apiFetch(`/api/procesi/predloge/${PREDLOGA_ID}`);
       if (!d?.predloga) {
-        el('seznam').innerHTML =
-          '<div class="text-center text-muted py-12">Predloge ni bilo mogoče naložiti. Preveri povezavo ali ID.</div>';
+        prazno('Predloge ni bilo mogoče naložiti', 'Preveri povezavo ali ID v naslovu in poskusi znova.');
         return;
       }
       predloga = d.predloga;
       vprasanja = Array.isArray(predloga.questions) ? predloga.questions : [];
-      el('naslov').textContent = `${predloga.naziv_prikaz} — urejanje predloge`;
-      document.title = `Acenta — ${predloga.naziv_prikaz}`;
+      el('naslov').textContent = predloga.naziv_prikaz;
+      el('naslov').title = predloga.naziv_prikaz;
+      document.title = `${predloga.naziv_prikaz} · Urejanje predloge · Acenta baza`;
       izrisi();
     }
 
     if (!Number.isInteger(PREDLOGA_ID)) {
-      el('seznam').innerHTML =
-        '<div class="text-center text-muted py-12">Manjka parameter ?id= v naslovu.</div>';
+      prazno('Predloga ni izbrana', 'V naslovu manjka parameter ?id=. Predlogo odpri v knjižnici na strani Procesi.');
     } else {
       nalozi();
     }
