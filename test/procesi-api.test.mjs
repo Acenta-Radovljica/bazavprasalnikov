@@ -49,7 +49,7 @@ r = await api('/api/procesi/seje', {
   method: 'POST',
   body: JSON.stringify({
     questionnaire_id: predloga.id,
-    stranka_naziv: 'Hotel Astoria Bled',
+    stranka_naziv: 'Hotel Smrekov gaj',
     proces: 'priprava urnikov zaposlenih',
     oddelek: 'recepcija',
     svetovalec: 'Maks Zager',
@@ -70,7 +70,7 @@ t('status = osnutek', r.telo?.seja?.status === 'osnutek', r.telo?.seja?.status);
 t('napredek 4 od 43 polj (prednapolnjena glava)',
    r.telo?.napredek?.izpolnjenih === 4 && r.telo?.napredek?.skupaj === 43,
    JSON.stringify(r.telo?.napredek));
-t('hotel prednapolnjen', r.telo?.seja?.answers?.hotel === 'Hotel Astoria Bled', r.telo?.seja?.answers?.hotel);
+t('hotel prednapolnjen', r.telo?.seja?.answers?.hotel === 'Hotel Smrekov gaj', r.telo?.seja?.answers?.hotel);
 t('datum prednapolnjen', r.telo?.seja?.answers?.datum === '2026-08-24', r.telo?.seja?.answers?.datum);
 t('svetovalec prednapolnjen', r.telo?.seja?.answers?.svetovalec === 'Maks Zager', r.telo?.seja?.answers?.svetovalec);
 t('predstavniki NISO ugibani', !r.telo?.seja?.answers?.predstavniki, r.telo?.seja?.answers?.predstavniki);
@@ -89,7 +89,7 @@ console.log('\n=== 6. Autosave vseh tipov odgovorov ===');
 r = await api(`/api/procesi/seje/${sid}`, {
   method: 'PATCH',
   body: JSON.stringify({ answers: {
-    hotel: 'Hotel Astoria Bled',
+    hotel: 'Hotel Smrekov gaj',
     cilj: 'Skrajšati pripravo urnikov in zmanjšati število popravkov.',
     korist: { izbrano: ['prihranek časa', 'manj napak'], drugo: 'manj konfliktov v ekipi' },
     odlocitev_razlicno: 'delno',
@@ -105,7 +105,7 @@ t('brez opozoril', (r.telo?.opozorila || []).length === 0, JSON.stringify(r.telo
 
 r = await api(`/api/procesi/seje/${sid}`);
 const a = r.telo?.seja?.answers || {};
-t('text shranjen', a.hotel === 'Hotel Astoria Bled', a.hotel);
+t('text shranjen', a.hotel === 'Hotel Smrekov gaj', a.hotel);
 t('textarea s sumniki', String(a.cilj).includes('Skrajšati') && String(a.cilj).includes('število'), a.cilj);
 t('checkbox_multi izbrano', JSON.stringify(a.korist?.izbrano) === JSON.stringify(['prihranek časa', 'manj napak']),
    JSON.stringify(a.korist));
@@ -131,7 +131,7 @@ t('neveljaven radio zavrzen', r.telo?.seja?.answers?.odlocitev_razlicno === '',
 t('neveljavna moznost zavrzena, veljavna ostane',
    JSON.stringify(r.telo?.seja?.answers?.korist?.izbrano) === JSON.stringify(['več prihodkov']),
    JSON.stringify(r.telo?.seja?.answers?.korist?.izbrano));
-t('delni PATCH ni izbrisal ostalega', r.telo?.seja?.answers?.hotel === 'Hotel Astoria Bled',
+t('delni PATCH ni izbrisal ostalega', r.telo?.seja?.answers?.hotel === 'Hotel Smrekov gaj',
    r.telo?.seja?.answers?.hotel);
 
 console.log('\n=== 8. Zakljucek preveri obvezna polja ===');
@@ -178,7 +178,7 @@ r = await api(`/api/procesi/seje/${sid}/predogled?namen=stranka`);
 const hStranka = String(r.telo);
 t('predogled = 200', r.status === 200, r.status);
 t('vsebuje odgovor', hStranka.includes('Skrajšati pripravo urnikov'));
-t('vsebuje stranko', hStranka.includes('Hotel Astoria Bled'));
+t('vsebuje stranko', hStranka.includes('Hotel Smrekov gaj'));
 t('vsebuje tabelo kazalnikov', hStranka.includes('Ure priprave urnika'));
 t('za stranko NE vsebuje transkripta', !hStranka.includes('Urnike pripravljamo v Excelu'));
 t('za stranko skrije prazna polja', !hStranka.includes('ni izpolnjeno'));
@@ -291,7 +291,7 @@ const s1 = r.telo.seje.find(s => s.id === sid);
 t('napredek izracunan', s1?.napredek?.izpolnjenih > 0, JSON.stringify(s1?.napredek));
 t('stete samo uspesne transkripte', s1?.st_transkriptov === 1, s1?.st_transkriptov);
 t('poslanih 0', s1?.st_poslanih === 0, s1?.st_poslanih);
-r = await api('/api/procesi/seje?stranka=Astoria');
+r = await api('/api/procesi/seje?stranka=Smrekov');
 t('filter po stranki', r.telo?.seje?.length === 1, r.telo?.seje?.length);
 r = await api('/api/procesi/seje?status=osnutek');
 t('filter po statusu', (r.telo?.seje || []).every(s => s.status === 'osnutek'),

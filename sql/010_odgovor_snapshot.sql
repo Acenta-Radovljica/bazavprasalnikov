@@ -22,7 +22,7 @@ ALTER TABLE responses ADD COLUMN IF NOT EXISTS custom_html_snapshot TEXT;
 -- bi vpis danasnjih pomenil izmisljeno zgodovino; take vrstice raje ostanejo
 -- prazne in jih vmesnik oznaci.
 --
--- IZJEMA (Maksova odlocitev 28. 8. 2026): oddaja Avtohise Radanovic na
+-- IZJEMA (Maksova odlocitev 28. 8. 2026): oddaja ene avtohise na
 -- vprasalniku review-agent-avto-intake. Tam vpis NI ugibanje, ampak dejstvo:
 -- vprasalnik je bil nazadnje urejen 11. 8. 2026, oddaja je z 26. 8. 2026, zato
 -- je danasnji custom_html natanko tista razlicica, ki jo je stranka videla.

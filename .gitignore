@@ -22,3 +22,12 @@ docs/
 # vsebinske spremembe, ki so obstajale samo v bazi. Pred vsakim uploadom najprej
 # potegni zivo verzijo (curl /f/<slug>) in jo vsebinsko diffaj.
 public/intake/
+
+# Stari prototipi (avg-sep 2026) s pravimi imeni strank. Ostanejo lokalno kot
+# arhiv smeri; v repozitoriju so samo novi prototipi z izmisljenimi podatki.
+design-prototype/a-konzola.html
+design-prototype/b-danes.html
+design-prototype/c-noir.html
+design-prototype/d-studio.html
+design-prototype/e-cobalt.html
+design-prototype/spremembe-komercialist.html

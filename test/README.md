@@ -66,7 +66,7 @@ je bil v scratchpadu seje (e2e-v2.cjs, 138/0), ni v repu.
 `test/porocilo-kakovost.mjs` NI del zagona: 6 pravih klicev Sonnet (pregled besedil na eni strani). Samo na Maksovo besedo in s streznikom na narocnini (CLAUDE_SDK=1).
 
 `TEST_DB_URL` prepiše bazo (privzeto port 5435). Pozor: na 5435 zna teči baza
-katerega drugega projekta (25. 9. 2026 je bila tam Zlata Ribica) — preveri
+katerega drugega projekta (25. 9. 2026 je bila tam baza drugega projekta) — preveri
 `docker ps` in po potrebi podaj svoj kontejner na drugem portu. `reset-testne-baze.mjs`
 in `odgovori.test.mjs` brez `TEST_DB_URL` ciljata prav 5435, zato ga vedno nastavi.
 
