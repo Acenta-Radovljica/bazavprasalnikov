@@ -21,11 +21,12 @@
       display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6);
       /* props spans the first two rows: with a short (empty) proposal the side
          column would otherwise stretch row 1 and leave a gap above the workshop. */
-      grid-template-areas: "doc props" "work props" "answers meta";
-      grid-template-rows: auto 1fr auto;
+      grid-template-areas: "doc props" "popis props" "work props" "answers meta";
+      grid-template-rows: auto auto 1fr auto;
       align-items: start;
     }
     .a-doc { grid-area: doc; scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
+    .a-popis { grid-area: popis; scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
     .a-props { grid-area: props; align-self: stretch; min-width: 0; }
     .a-work { grid-area: work; }
     .a-answers { grid-area: answers; }
@@ -37,6 +38,32 @@
     .doc h3 .dept { font-weight: var(--weight-regular); color: var(--text-muted); }
     .panel > .empty { padding: var(--space-4) var(--space-6) var(--space-8); }
     .docp__head + .loading { padding: var(--space-8) var(--space-6); justify-content: flex-start; }
+
+    /* Task inventory (Popis opravil): employees' recurring tasks with hours per month */
+    .popis__head { display: flex; align-items: flex-start; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-4) var(--space-6) var(--space-3); }
+    .popis__title { min-width: 0; flex: 1 1 220px; }
+    .popis__title h2 { font-size: var(--text-md); }
+    .popis__title p { font-size: var(--text-sm); color: var(--text-muted); margin-top: 2px; }
+    .popis__acts { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+    .popis__sum { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: 0 var(--space-6) var(--space-4); }
+    .popis__total { font-size: 1.375rem; font-weight: var(--weight-semibold); letter-spacing: -0.01em; line-height: 1.2; font-variant-numeric: tabular-nums; }
+    .popis__link { max-width: 100%; padding: 3px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--bg-subtle); font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .popis__link[hidden] { display: none; }
+    .popis__empty { padding: 0 var(--space-6) var(--space-6); font-size: var(--text-sm); color: var(--text-secondary); max-width: var(--prose-max); }
+    .popis .table { table-layout: fixed; }
+    .popis .table th:first-child, .popis .table td:first-child { padding-left: var(--space-6); }
+    .popis .table th:last-child, .popis .table td:last-child { padding-right: var(--space-6); }
+    .popis__c-pog { width: 150px; }
+    .popis__c-cas { width: 140px; }
+    .popis__c-ure { width: 116px; }
+    .popis .table td { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .popis__opis { display: block; color: var(--text); font-weight: var(--weight-medium); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .popis__ure { color: var(--text); font-weight: var(--weight-semibold); }
+    .popis__enota { display: none; }
+    .popis .table__sub.only-m { display: none; }
+    .popis__link.is-nova { border-color: var(--accent-border); background: var(--accent-subtle); color: var(--accent-text); }
+    .pp-novi { flex: 1; display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+    .pp-novi .link { font-weight: var(--weight-semibold); white-space: nowrap; }
 
     /* Lead score: the AI segment shows what the AI suggests */
     .seg-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--text-faint); }
@@ -86,7 +113,7 @@
     .kv--meta dd { font-family: var(--font-mono); color: var(--text-secondary); white-space: normal; overflow-wrap: anywhere; }
 
     @media (max-width: 1100px) {
-      .record { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "doc" "props" "work" "answers" "meta"; }
+      .record { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "doc" "popis" "props" "work" "answers" "meta"; }
       .props { position: static; }
     }
     @media (max-width: 760px) {
@@ -97,6 +124,21 @@
       .docp__bar .tabs { border-top: 1px solid var(--border-subtle); gap: var(--space-6); }
       .resp { grid-template-columns: 36px minmax(0, 1fr); }
       .resp__open { grid-column: 2; justify-self: start; }
+      /* Task inventory on a phone: buttons full width, each task a stacked row */
+      .popis__head, .popis__sum { padding-left: var(--space-4); padding-right: var(--space-4); }
+      .popis__acts { flex: 1 1 100%; flex-direction: column; align-items: stretch; }
+      .popis__empty { padding: 0 var(--space-4) var(--space-4); }
+      .popis .table thead { display: none; }
+      .popis .table, .popis .table tbody { display: block; }
+      .popis .table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--space-3); align-items: center; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border-subtle); }
+      .popis .table tbody tr:last-child { border-bottom: 0; }
+      .popis .table td { display: block; height: auto; padding: 0 !important; border: 0; }
+      .popis .table .popis__c-pog, .popis .table .popis__c-cas { display: none; }
+      .popis .table td.is-num { width: auto; text-align: right; line-height: 1.1; }
+      .popis .table td:first-child { white-space: normal; }
+      .popis__opis { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
+      .popis__enota { display: block; font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--weight-regular); }
+      .popis .table__sub.only-m { display: block; }
       .work__sum p { white-space: normal; }
       .work > summary.work__sum { padding: var(--space-4); }
       .work__tabs { padding: 0 var(--space-4); gap: var(--space-6); }
@@ -200,6 +242,7 @@
         <header class="ident" id="ident"></header>
         <div class="record">
           <section class="panel a-doc" id="prodajni-predlog" aria-labelledby="ppNaslov"></section>
+          <section class="panel a-popis popis" id="popis-opravil" aria-labelledby="popNaslov"></section>
           <div class="a-props pp-stran">
             <aside class="panel props e-side" aria-label="Lastnosti podjetja">
               ${opombeHtml()}
@@ -222,6 +265,7 @@
       renderDvojnik();
       renderIdent();
       renderPredlog();
+      renderPopis();
       renderKval();
       renderStatus();
       renderDelavnica();
@@ -347,6 +391,16 @@
           </div>`;
       }
 
+      // New task inventories since this proposal was prepared: one line, the
+      // regeneration stays Matjaz's choice (it takes a few minutes).
+      const novi = p && !tece ? noviPopisi(p) : 0;
+      if (novi) {
+        html += `
+          <div class="docp__note" id="pp-novi-popisi">
+            <div class="callout callout--info">${ikona('info')}<div class="pp-novi">${esc(besediloNovih(novi))}<span class="spacer"></span><button type="button" class="link" id="pp-pripravi-novi">Pripravi znova</button></div></div>
+          </div>`;
+      }
+
       if (p) {
         const besedilo = predlogDok === 'direktor' ? p.za_direktorja : p.za_matjaza;
         const opozorila = predlogDok === 'direktor' && p.opozorila?.length ? `
@@ -394,6 +448,7 @@
       el.innerHTML = html;
       document.getElementById('pp-pripravi')?.addEventListener('click', (e) => pripraviPredlog(e.currentTarget));
       document.getElementById('pp-kopiraj')?.addEventListener('click', (e) => kopirajPredlog(e.currentTarget));
+      document.getElementById('pp-pripravi-novi')?.addEventListener('click', () => document.getElementById('pp-pripravi')?.click());
     }
 
     async function naloziPredlog() {
@@ -460,6 +515,137 @@
         oznaka.textContent = 'Kopiranje ni uspelo';
       }
       setTimeout(() => { oznaka.textContent = 'Kopiraj'; }, 1600);
+    }
+
+    // ── Task inventory (Popis opravil) ────────────────────────────────────
+    // Employees describe up to three recurring tasks on the company's own link
+    // (/popis/<code>); hours per month come from public/admin/popis.js, the
+    // same rule the sales proposal uses.
+    let P = null;   // public/admin/popis.js, loaded at start
+
+    const popisOdgovori = () => (P ? odgovori.filter(o => o.q_slug === P.POPIS_SLUG) : []);
+
+    function noviPopisi(predlog) {
+      const od = new Date(predlog.created_at).getTime();
+      return popisOdgovori().filter(o => new Date(o.submitted_at).getTime() > od).length;
+    }
+
+    function besediloNovih(n) {
+      const d = n % 100;
+      if (d === 1) return `Od zadnje priprave je prišel ${n} nov odgovor na Popis opravil.`;
+      if (d === 2) return `Od zadnje priprave sta prišla ${n} nova odgovora na Popis opravil.`;
+      if (d === 3 || d === 4) return `Od zadnje priprave so prišli ${n} novi odgovori na Popis opravil.`;
+      return `Od zadnje priprave je prišlo ${n} novih odgovorov na Popis opravil.`;
+    }
+
+    // Public link: on the admin host (nacrt-admin.*) the clean nacrt.* host.
+    function popisPovezava() {
+      const h = window.location.host;
+      const javni = h.startsWith('nacrt-admin.') ? h.replace('nacrt-admin.', 'nacrt.') : h;
+      return `${window.location.protocol}//${javni}/popis/${podjetje.popis_koda}`;
+    }
+
+    // "12. 10." this year, "12. 10. 2025" otherwise.
+    function kratekDan(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return '';
+      return d.getFullYear() === new Date().getFullYear() ? `${d.getDate()}. ${d.getMonth() + 1}.` : formatDan(iso);
+    }
+
+    function renderPopis() {
+      const el = document.getElementById('popis-opravil');
+      if (!el || !P) return;
+      const odg = popisOdgovori();
+      const opravila = P.opravilaPodjetja(odg).sort((a, b) => b.minut - a.minut || a.oznaka.localeCompare(b.oznaka, 'sl', { numeric: true }));
+      const povezava = popisPovezava();
+      const kopiraj = `<button class="btn btn--primary" type="button" id="popis-kopiraj">${ikona('copy')}<span>Kopiraj povezavo za zaposlene</span></button>`;
+
+      if (!odg.length) {
+        el.innerHTML = `
+          <header class="popis__head">
+            <div class="popis__title"><h2 class="lbl" id="popNaslov">Popis opravil</h2></div>
+            <div class="popis__acts">${kopiraj}</div>
+          </header>
+          <p class="popis__empty">Še noben zaposleni ni izpolnil popisa. Kopirajte povezavo in jo pošljite direktorju, da jo posreduje zaposlenim.</p>
+          <div class="popis__sum"><code class="popis__link" id="popis-povezava" title="${esc(povezava)}" hidden>${esc(povezava)}</code></div>`;
+      } else {
+        const zadnji = odg.reduce((m, o) => (new Date(o.submitted_at) > new Date(m) ? o.submitted_at : m), odg[0].submitted_at);
+        const vrstice = opravila.map(o => {
+          const kdo = o.ime || 'brez imena';
+          const ure = P.ureNaMesec(o.minut);
+          const prikazUr = o.minut > 0 && ure < 1 ? '<1' : String(ure);
+          const url = `/admin/response.html?id=${o.responseId}`;
+          return `
+            <tr class="is-link" data-href="${url}">
+              <td>
+                <a class="popis__opis" href="${url}" title="${esc(o.opis)}">${esc(o.opis)}</a>
+                <span class="table__sub hide-m">${esc([o.oddelek, kdo].filter(Boolean).join(' · '))}</span>
+                <span class="table__sub only-m">${esc([o.oddelek, o.pogostost, o.cas].filter(Boolean).join(' · '))}</span>
+              </td>
+              <td class="popis__c-pog">${esc(o.pogostost)}</td>
+              <td class="popis__c-cas">${esc(o.cas)}</td>
+              <td class="is-num popis__c-ure"><span class="popis__ure">${prikazUr}</span><span class="popis__enota">ur</span></td>
+            </tr>`;
+        }).join('');
+        el.innerHTML = `
+          <header class="popis__head">
+            <div class="popis__title">
+              <h2 class="lbl" id="popNaslov">Popis opravil</h2>
+              <p>${sklon(odg.length, P.ODGOVORI)} · ${sklon(opravila.length, P.OPRAVILA)} · zadnji ${kratekDan(zadnji)}</p>
+            </div>
+            <div class="popis__acts">
+              ${kopiraj}
+              <button class="btn btn--secondary" type="button" id="popis-zamenjaj" title="Nova povezava; stara takoj preneha delovati">${ikona('refresh')}<span>Zamenjaj povezavo</span></button>
+            </div>
+          </header>
+          <div class="popis__sum">
+            <div class="popis__total" id="popis-skupaj">Skupaj ${esc(P.besediloUr(P.skupajMinut(opravila)))}</div>
+            <code class="popis__link" id="popis-povezava" title="${esc(povezava)}">${esc(povezava)}</code>
+          </div>
+          <div class="table-scroll">
+            <table class="table" id="popis-tabela">
+              <thead><tr>
+                <th>Opravilo</th>
+                <th class="popis__c-pog">Kako pogosto</th>
+                <th class="popis__c-cas">Čas vsakič</th>
+                <th class="is-num popis__c-ure">Ur na mesec</th>
+              </tr></thead>
+              <tbody>${vrstice}</tbody>
+            </table>
+          </div>`;
+        el.querySelector('#popis-tabela').addEventListener('click', (e) => {
+          if (e.target.closest('a')) return;
+          const tr = e.target.closest('tr[data-href]');
+          if (tr) window.location.href = tr.dataset.href;
+        });
+        document.getElementById('popis-zamenjaj').addEventListener('click', (e) => zamenjajPovezavo(e.currentTarget));
+      }
+      document.getElementById('popis-kopiraj').addEventListener('click', (e) => kopirajPovezavo(e.currentTarget));
+    }
+
+    async function kopirajPovezavo(gumb) {
+      const oznaka = gumb.querySelector('span');
+      try {
+        await navigator.clipboard.writeText(popisPovezava());
+        oznaka.textContent = 'Povezava kopirana';
+      } catch {
+        // Without clipboard access the link is shown so it can be copied by hand.
+        document.getElementById('popis-povezava').hidden = false;
+        oznaka.textContent = 'Kopirajte jo spodaj';
+      }
+      setTimeout(() => { oznaka.textContent = 'Kopiraj povezavo za zaposlene'; }, 2000);
+    }
+
+    async function zamenjajPovezavo(gumb) {
+      if (!confirm('Zamenjati povezavo? Stara povezava takoj preneha delovati; zaposleni, ki popisa še niso izpolnili, bodo potrebovali novo. Oddani odgovori ostanejo.')) return;
+      gumb.disabled = true;
+      const r = await apiFetch(`/api/companies/${id}/popis-koda`, { method: 'POST' });
+      gumb.disabled = false;
+      if (!r?.popis_koda) { alert('Zamenjava povezave ni uspela. Poskusite znova.'); return; }
+      podjetje.popis_koda = r.popis_koda;
+      renderPopis();
+      const nova = document.getElementById('popis-povezava');
+      nova?.classList.add('is-nova');
     }
 
     // ── Internal notes ────────────────────────────────────────────────────
@@ -947,6 +1133,7 @@
       mozniDvojnik = data.mozni_dvojnik ?? null;
       odgovori     = data.responses ?? [];
       priporocila  = data.priporocila ?? [];
+      P = await import('/admin/popis.js').catch((err) => { console.error('[popis]', err); return null; });
       // ?q=ID preselects the questionnaire (link from the answer page).
       const q = Number(qs('q'));
       if (q && vprasalniki().some(v => v.qid === q)) aktivniTab = q;

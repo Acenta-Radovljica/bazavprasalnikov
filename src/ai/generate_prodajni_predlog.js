@@ -12,6 +12,7 @@
 import { dbQuery } from '../db.js';
 import { klicOpus, sdkVklopljen, MODEL_OPUS } from './claude.js';
 import { naloziKatalog } from '../routes/katalog.js';
+import { POPIS_SLUG, opravilaPodjetja, besediloUr, steviloSSklonom, ZAPOSLENI } from '../../public/admin/popis.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 
@@ -36,7 +37,13 @@ dokument 1
 dokument 2
 </za_matjaza>
 
-Pred, med ali po teh oznakah ne pišite ničesar.`;
+Pred, med ali po teh oznakah ne pišite ničesar.
+
+Dokumenta pripravlja aplikacija: oznake [ure: …] iz navodil pustite nespremenjene, aplikacija jih zamenja z izračunanimi urami.`;
+
+// [ure: O1, O4 | na recepciji] ali v tabeli [ure: O1, O4]. Oznake opravil
+// so iz 03-popis-opravil.md; sesteje jih aplikacija, model jih samo izbere.
+const OZNAKA_UR = /\[ure:\s*([^\]|]*?)\s*(?:\|\s*([^\]]*?)\s*)?\]/gi;
 
 // Splosna orodja, ki jih podjetje kupi samo; v dokumentu za direktorja jih ne
 // predlagamo (glej navodila, pravilo o splosnih orodjih).
@@ -141,6 +148,43 @@ export function prepovedanaImenaStrank(katalog, nazivPodjetja) {
   return [...out];
 }
 
+// Zamenja oznake [ure: …] z vsoto ur izbranih opravil iz popisa. V vrstici
+// tabele kratko ("okoli 20"), drugje z rodom in stevilom ljudi. Vrne
+// { besedilo, neznane: oznake brez opravila, nove: vstavljena besedila }.
+export function zamenjajUre(besedilo, opravila = []) {
+  const po = new Map(opravila.map(o => [o.oznaka.toUpperCase(), o]));
+  const neznane = new Set();
+  const nove = [];
+  const out = String(besedilo || '').split('\n').map((vrstica) => {
+    const vTabeli = vrstica.trim().startsWith('|');
+    return vrstica.replace(OZNAKA_UR, (_, seznam, kje) => {
+      const oznake = [...new Set(String(seznam).split(/[\s,;]+/).map(s => s.trim().toUpperCase()).filter(Boolean))];
+      oznake.filter(o => !po.has(o)).forEach(o => neznane.add(o));
+      const izbrana = oznake.map(o => po.get(o)).filter(Boolean);
+      if (!izbrana.length) return '';
+      const minut = izbrana.reduce((s, o) => s + o.minut, 0);
+      const ljudi = new Set(izbrana.map(o => o.responseId)).size;
+      const t = vTabeli
+        ? besediloUr(minut, { kratko: true })
+        : `${besediloUr(minut)} (${steviloSSklonom(ljudi, ZAPOSLENI)}${kje ? ` ${kje.trim()}` : ''}, po popisu opravil)`;
+      nove.push(t);
+      return t;
+    });
+  }).join('\n');
+  return { besedilo: out, neznane: [...neznane], nove };
+}
+
+// Oba dokumenta z zamenjanimi urami + tezave z oznakami.
+function urediUre(rezultat, opravila) {
+  const d = zamenjajUre(rezultat.za_direktorja, opravila);
+  const m = zamenjajUre(rezultat.za_matjaza, opravila);
+  const neznane = [...new Set([...d.neznane, ...m.neznane])];
+  const tezave = neznane.length
+    ? [`Oznaka [ure: …] navaja opravila, ki jih v 03-popis-opravil.md ni (${neznane.join(', ')}). Uporabite samo oznake iz popisa ali vrstico izpustite.`]
+    : [];
+  return { rezultat: { za_direktorja: d.besedilo, za_matjaza: m.besedilo }, nove: [...d.nove, ...m.nove], tezave };
+}
+
 function druzinaEnote(enota) {
   return ENOTE.find(([, re]) => re.test(enota))?.[0] ?? null;
 }
@@ -216,7 +260,7 @@ function esc(s) {
 
 // Celoten tek brez baze. klic({ system, user }) -> besedilo | null.
 // Vrne { ok, za_direktorja, za_matjaza, opozorila, stevci, napaka }.
-export async function pripraviPredlog(datoteke, { klic, katalog = null, nazivPodjetja = '' }) {
+export async function pripraviPredlog(datoteke, { klic, katalog = null, nazivPodjetja = '', popis = [] }) {
   const vhod = sestaviVhod(datoteke);
   if (!vhod.stevci.datotek) return { ok: false, napaka: 'Paket je prazen.', stevci: vhod.stevci };
   if (vhod.prevelik) {
@@ -231,8 +275,16 @@ export async function pripraviPredlog(datoteke, { klic, katalog = null, nazivPod
   const prvi = await klic({ system: SYSTEM, user: vhod.besedilo });
   // Brez odgovora (cas potekel, napaka API-ja) ponovni klic le podvoji cakanje.
   if (!prvi) return { ok: false, napaka: 'AI se ni odzval. Poskusite znova čez nekaj minut.', stevci: vhod.stevci };
+  // Ure zamenjamo pred preverjanjem; izracunane vsote stejejo kot vhod, ker
+  // jih je izracunala aplikacija iz popisa, ne model.
+  const preglej = (surov) => {
+    const u = urediUre(surov, popis);
+    const tez = [...u.tezave, ...preveri(u.rezultat, { ...kontekst, vhod: `${kontekst.vhod}\n${u.nove.join('\n')}` })];
+    return { rezultat: u.rezultat, tezave: tez };
+  };
   let rezultat = razcleni(prvi);
-  let tezave = rezultat ? preveri(rezultat, kontekst) : ['Odgovor nima oznak <za_direktorja> in <za_matjaza>.'];
+  let tezave = ['Odgovor nima oznak <za_direktorja> in <za_matjaza>.'];
+  if (rezultat) ({ rezultat, tezave } = preglej(rezultat));
 
   if (tezave.length) {
     const popravek = [
@@ -245,10 +297,7 @@ export async function pripraviPredlog(datoteke, { klic, katalog = null, nazivPod
       'Vrnite popravljena oba dokumenta v celoti, v isti obliki z oznakama <za_direktorja> in <za_matjaza>.',
     ].join('\n');
     const drugi = razcleni(await klic({ system: SYSTEM, user: popravek }));
-    if (drugi) {
-      rezultat = drugi;
-      tezave = preveri(drugi, kontekst);
-    }
+    if (drugi) ({ rezultat, tezave } = preglej(drugi));
   }
 
   if (!rezultat) return { ok: false, napaka: 'AI ni vrnil obeh dokumentov.', stevci: vhod.stevci };
@@ -266,7 +315,16 @@ export async function pripraviPredlog(datoteke, { klic, katalog = null, nazivPod
 export async function generirajProdajniPredlog(predlogId, companyId, datoteke) {
   const meta = await dbQuery('SELECT naziv_prikaz FROM companies WHERE id = $1', [companyId]);
   const katalog = await naloziKatalog().catch(() => null);
+  // Popis opravil iz baze: iste oznake O1, O2 ... kot v 03-popis-opravil.md,
+  // ker obe strani uporabita opravilaPodjetja (stalni vrstni red po casu oddaje).
+  const pop = await dbQuery(
+    `SELECT r.id, r.submitted_at, r.raw_data
+       FROM responses r JOIN questionnaires q ON q.id = r.questionnaire_id
+      WHERE r.company_id = $1 AND q.slug = $2`,
+    [companyId, POPIS_SLUG],
+  );
   const izid = await pripraviPredlog(datoteke, {
+    popis: opravilaPodjetja(pop?.rows || []),
     klic: ({ system, user }) => klicOpus({ system, user, maxTokens: MAX_IZHOD_TOKENOV, effort: 'high', timeoutMs: TIMEOUT_MS }),
     katalog,
     nazivPodjetja: meta?.rows?.[0]?.naziv_prikaz || '',

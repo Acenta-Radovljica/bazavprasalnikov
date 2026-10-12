@@ -13,6 +13,7 @@ import { router as procesiRouter } from './routes/procesi.js';
 import { router as nalogeRouter } from './routes/naloge.js';
 import { router as formRouter } from './routes/form.js';
 import { router as katalogRouter } from './routes/katalog.js';
+import { router as popisRouter } from './routes/popis.js';
 import { basicAuth } from './middleware/auth.js';
 import { javniRouter as scoreJavniRouter, adminRouter as scoreAdminRouter } from './routes/score.js';
 import { zazeniOutbox as zazeniScoreOutbox } from './score/outbox.js';
@@ -67,6 +68,9 @@ app.use('/f', formRouter);
 // AI Business Score: javna pristajalna stran s kvizom (/ai-business-score) in
 // porocila pod neugibljivim tokenom (/r/:token). Oddaja gre prek /f/ai-business-score.
 app.use(scoreJavniRouter);
+
+// Popis opravil: javni obrazec za zaposlene pod kodo podjetja (/popis/:koda).
+app.use(popisRouter);
 
 // Debug rute — ZASCITENE z basic auth. Razkrivajo osebne podatke in vsebujejo
 // nevarne operacije (/debug/cleanup zbrise vso bazo), zato nikoli brez auth.

@@ -8,6 +8,8 @@
 // obrazca, ime izpolnjevalca; oboje v app.js), dobi kot parameter, zato ga
 // test pozene v Node (test/izvoz.test.mjs).
 
+import { POPIS_SLUG, opravilaPodjetja, besediloUr, skupajMinut, steviloSSklonom, ODGOVORI, OPRAVILA } from './popis.js';
+
 const TZ = 'Europe/Ljubljana';
 
 // Isto kot HONEYPOT v app.js: past za robote, ne odgovor stranke.
@@ -274,6 +276,64 @@ function mdKataloga(k) {
   return L.join('\n') + '\n';
 }
 
+// Popis opravil: vsa opravila z oznakami O1, O2 ... (isti vrstni red kot na
+// strezniku, public/admin/popis.js), z urami in potjo do odgovora.
+function mdPopisa(opravila, odgovori, poti) {
+  const oddelki = new Map();
+  for (const o of opravila) {
+    const ime = o.oddelek || 'brez navedenega oddelka';
+    const k = ime.toLowerCase();
+    if (!oddelki.has(k)) oddelki.set(k, { ime, opravila: [], odgovori: new Set() });
+    oddelki.get(k).opravila.push(o);
+    oddelki.get(k).odgovori.add(o.responseId);
+  }
+  const poOddelkih = [...oddelki.values()]
+    .sort((a, b) => skupajMinut(b.opravila) - skupajMinut(a.opravila))
+    .map(d => `- ${d.ime}: ${steviloSSklonom(d.opravila.length, OPRAVILA)}, ${steviloSSklonom(d.odgovori.size, ODGOVORI)}, skupaj ${besediloUr(skupajMinut(d.opravila))}`);
+
+  const vrstice = [
+    '# Popis opravil',
+    '',
+    'Zaposleni so na povezavi za to podjetje opisali do tri ponavljajoča se opravila, kako pogosto jih opravljajo in koliko časa jim vzamejo vsakič. Ure na mesec je izračunala aplikacija po pravilu spodaj; zaposleni jih niso ocenjevali.',
+    '',
+    `${steviloSSklonom(odgovori.length, ODGOVORI)} · ${steviloSSklonom(opravila.length, OPRAVILA)} · skupaj ${besediloUr(skupajMinut(opravila))}`,
+    '',
+    '## Pravilo za ure',
+    '',
+    '- Kako pogosto, kolikokrat na mesec: vsak dan 20-krat, večkrat na teden 10-krat, enkrat na teden 4-krat, enkrat na mesec 1-krat.',
+    '- Čas vsakič, koliko računamo: do 15 minut 10 minut, 15 do 60 minut pol ure, 1 do 3 ure dve uri, več kot 3 ure štiri ure.',
+    '- Ure na mesec = kolikokrat × čas, zaokroženo na cele ure. Razponi so računani previdno.',
+    '',
+    '## Po oddelkih',
+    '',
+    ...poOddelkih,
+    '',
+    '## Opravila',
+  ];
+  for (const o of opravila) {
+    const opis = o.opis.replace(/\s+/g, ' ');
+    const naslov = opis.length > 80 ? `${opis.slice(0, 77).trimEnd()} …` : opis;
+    const pot = poti.get(o.responseId);
+    vrstice.push(
+      '',
+      `### ${o.oznaka} · ${naslov}`,
+      '',
+      `- Oddelek: ${o.oddelek || 'ni naveden'}`,
+      `- Kdo: ${o.ime || 'brez imena'}`,
+      `- Kako pogosto: ${o.pogostost}`,
+      `- Čas vsakič: ${o.cas}`,
+      `- **Ure: ${besediloUr(o.minut)}**`,
+      `- Kako danes: ${o.kako.length ? o.kako.join(', ') : 'ni navedeno'}`,
+      ...(pot ? [`- Odgovor: \`${pot}\``] : []),
+      '',
+      'Opis zaposlenega:',
+      citat(o.opis),
+    );
+    if (o.pomocnik) vrstice.push('', 'Kaj bi moral narediti pomočnik namesto njega:', citat(o.pomocnik));
+  }
+  return `${vrstice.join('\n')}\n`;
+}
+
 function mdNavodil(data, stevci) {
   const ime = data.company.naziv_prikaz;
   const katalog = imaKatalog(data.katalog);
@@ -286,6 +346,9 @@ function mdNavodil(data, stevci) {
   }
   if (stevci.odgovori) {
     gradivo.push(`- \`odgovori/\`: oddani vprašalniki (${stevci.odgovori}). Vsaka datoteka pove, kdo je izpolnjeval (ime in vloga, kadar sta znana) in kdaj.`);
+  }
+  if (stevci.popis) {
+    gradivo.push(`- \`03-popis-opravil.md\`: popis opravil zaposlenih (${stevci.popis}). Za vsako opravilo pogostost, čas in ure na mesec, ki jih je izračunala aplikacija; vsako ima oznako (O1, O2 …).`);
   }
   if (stevci.seje) {
     gradivo.push(`- \`procesne-seje/\`: zapisi s sestankov (${stevci.seje}), ki jih je med pogovorom s stranko vodil naš svetovalec${stevci.transkripti ? `, in transkripti teh sestankov (${stevci.transkripti})` : ''}.`);
@@ -317,6 +380,9 @@ function mdNavodil(data, stevci) {
       'Vsak proces povežite z rešitvijo iz kataloga, kadar ta obstaja, in njen status navedite tako, kot je zapisan. Proces brez ustrezne rešitve v katalogu označite kot »nova rešitev«.',
       'Drugo stranko iz kataloga v dokumentu 1 omenite samo, kjer piše »Smemo stranko omeniti: da«. V dokumentu 2 so imena strank dovoljena.',
     );
+  }
+  if (stevci.popis) {
+    pravila.push('Ure vzemite samo iz `03-popis-opravil.md`. Ne ocenjujte jih in ne preračunavajte sami (ne na teden, ne na leto). Pri procesu, h kateremu sodijo opravila iz popisa, zapišite, koliko časa vzame danes (glej Dokument 1). Nikoli ne pišite, koliko časa ali denarja podjetje prihrani: to je obljuba rezultata.');
   }
   if (opombe) {
     pravila.push('Interne opombe v `01-podjetje.md` so dejstva, ki jih vemo mi (npr. katera orodja podjetje že ima). Upoštevajte jih, v dokumentu 1 pa jih ne navajajte.');
@@ -350,12 +416,12 @@ Začnite z dvema ali tremi stavki: koliko ljudi je sodelovalo in kaj smo od njih
 Nato za vsak proces svoj razdelek, razvrščeno od najbolj priporočenega. Naslov razdelka je oblike \`### 1. Ime procesa (oddelek)\`, pod njim:
 
 - **Kaj pravijo vaši ljudje**: kako poteka danes in kaj jih moti, z enim ali dvema kratkima dobesednima citatoma v »…«
-- **Kako bi pomagala umetna inteligenca**: konkretno, kaj naredi AI in kaj ostane človeku
+${stevci.popis ? `- **Koliko časa vam vzame danes**: samo pri procesih, h katerim sodijo opravila iz \`03-popis-opravil.md\`. Namesto številke zapišite oznako \`[ure: O1, O4 | na recepciji]\`: oznake opravil, ki sodijo k procesu, za navpičnico pa kje (v mestniku, z malo začetnico; lahko izpustite). Aplikacija oznako zamenja z vsoto, npr. »okoli 20 ur na mesec (2 zaposlena na recepciji, po popisu opravil)«. Če dokumenta ne pripravlja aplikacija, oznako zamenjajte sami: seštejte ure navedenih opravil in jih zapišite v isti obliki.\n` : ''}- **Kako bi pomagala umetna inteligenca**: konkretno, kaj naredi AI in kaj ostane človeku
 - **Kaj pridobite**: čas, manj napak, hitrejši odziv, prihodek; samo kar izhaja iz gradiva
 - **Zahtevnost uvedbe**: nizka, srednja ali visoka, z enim stavkom zakaj (kateri sistemi in podatki so potrebni)
 - **Koliko ljudi si to želi**: število in vloge (pri anonimnih odgovorih število odgovorov)
 
-Na koncu tabela za izbiro: proces | kdo si ga želi | korist | zahtevnost | naše priporočilo (za začetek / naslednji korak / kasneje). Pod tabelo en stavek, ki direktorja povabi, naj izbere enega ali dva procesa za začetek, in predlog naslednjega koraka (kratek sestanek, na katerem skupaj izberemo prvi proces).
+Na koncu tabela za izbiro: proces | kdo si ga želi | ${stevci.popis ? 'ur na mesec danes (oznaka `[ure: …]` brez navpičnice; prazno pri procesih brez popisa) | ' : ''}korist | zahtevnost | naše priporočilo (za začetek / naslednji korak / kasneje). Pod tabelo en stavek, ki direktorja povabi, naj izbere enega ali dva procesa za začetek, in predlog naslednjega koraka (kratek sestanek, na katerem skupaj izberemo prvi proces).
 
 ## Dokument 2: Prodajna priporočila za Matjaža
 
@@ -383,6 +449,7 @@ export function sestaviDatoteke(data, { vprasanjaZa, izpolnjevalec }) {
   const dodaj = (pot, vsebina) => datoteke.push({ ime: `${koren}/${pot}`, vsebina });
 
   const kazaloOdg = [], kazaloSej = [], kazaloPrip = [];
+  const potiOdgovorov = new Map();
   const ljudje = new Map();
   let stTranskriptov = 0;
 
@@ -394,6 +461,7 @@ export function sestaviDatoteke(data, { vprasanjaZa, izpolnjevalec }) {
       : vrsticeOdgovora(r.raw_data, vprasanja);
     const pot = `odgovori/${st2(i)}-${isoDan(r.submitted_at)}-${slug(r.q_slug || r.q_naziv, 30)}-${slug(oseba.ime, 30) || 'anonimno'}.md`;
     dodaj(pot, mdOdgovora(r, oseba, odg, podjetje));
+    potiOdgovorov.set(r.id, pot);
     kazaloOdg.push(`${i + 1}. \`${pot}\`: ${r.q_naziv}, ${oseba.ime}${oseba.vloga ? ` (${oseba.vloga})` : ''}, ${dan(r.submitted_at)}`);
 
     // Isti clovek na vec vprasalnikih je en clovek; anonimni odgovori so vsak svoj.
@@ -426,9 +494,13 @@ export function sestaviDatoteke(data, { vprasanjaZa, izpolnjevalec }) {
     kazaloPrip.push(`${i + 1}. \`${pot}\`: ${p.naziv_prikaz}, ${dan(p.updated_at)}`);
   });
 
+  const popisOdg = (data.responses || []).filter(r => r.q_slug === POPIS_SLUG);
+  const opravila = opravilaPodjetja(popisOdg);
+
   const stevci = {
     odgovori: kazaloOdg.length, seje: kazaloSej.length,
     transkripti: stTranskriptov, priporocila: kazaloPrip.length,
+    popis: opravila.length,
   };
   const kazalo = [
     [`Oddani vprašalniki (${kazaloOdg.length})`, kazaloOdg],
@@ -440,6 +512,7 @@ export function sestaviDatoteke(data, { vprasanjaZa, izpolnjevalec }) {
     { ime: `${koren}/00-NAVODILA-ZA-CLAUDE.md`, vsebina: mdNavodil(data, stevci) },
     { ime: `${koren}/01-podjetje.md`, vsebina: mdPodjetja(data, kazalo, [...ljudje.values()]) },
     ...(imaKatalog(data.katalog) ? [{ ime: `${koren}/02-acenta-resitve.md`, vsebina: mdKataloga(data.katalog) }] : []),
+    ...(opravila.length ? [{ ime: `${koren}/03-popis-opravil.md`, vsebina: mdPopisa(opravila, popisOdg, potiOdgovorov) }] : []),
     ...datoteke,
   ];
 }

@@ -502,6 +502,20 @@ router.post('/companies/:id/regenerate-ai', async (req, res) => {
   res.json({ ok: true, mode, questionnaire_id: qid, queued_at: new Date().toISOString() });
 });
 
+// POST /api/companies/:id/popis-koda — "Zamenjaj povezavo" na kartici Popis
+// opravil. Nova koda iz istega izraza kot privzetek v sql/016; stara povezava
+// takoj preneha delovati, ze oddani odgovori ostanejo.
+router.post('/companies/:id/popis-koda', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+  const r = await dbQuery(
+    `UPDATE companies SET popis_koda = substr(replace(gen_random_uuid()::text, '-', ''), 1, 12)
+      WHERE id = $1 RETURNING popis_koda`, [id]);
+  if (!r) return res.status(500).json({ error: 'db_error' });
+  if (!r.rows.length) return res.status(404).json({ error: 'not_found' });
+  res.json({ ok: true, popis_koda: r.rows[0].popis_koda });
+});
+
 // POST /api/companies/:id/merge — zlij dve podjetji
 // Body: { target_id: <id v katerega zlijemo source> }
 router.post('/companies/:id/merge', async (req, res) => {

@@ -25,7 +25,7 @@ docker run -d --name bazavp-test \
 
 # 4. Testi
 node test/reset-testne-baze.mjs      # VEDNO pred zagonom (tudi med nabori)
-node test/procesi-api.test.mjs       # 97 trditev
+node test/procesi-api.test.mjs       # 99 trditev
 node test/procesi-ui.test.mjs        # 87 trditev (pravi Chrome)
 node test/navigacija.test.mjs        # 126 trditev (vseh 9 admin strani, skupina Napredno)
 node test/claude.test.mjs            # 30 trditev (AI odjemalec z laznim fetch, brez baze in API kljuca)
@@ -42,6 +42,8 @@ node test/prodajni-predlog.test.mjs  # 47 trditev (jedro prodajnega predloga: vh
 node test/prodajni-predlog-api.test.mjs # 47 trditev (API pripravi/preberi/PDF, stran podjetja namizje+telefon, izbira podjetja pri zapisu sestanka)
 # prodajni-predlog-api rabi streznik BREZ AI (ANTHROPIC_API_KEY= in brez CLAUDE_SDK) in s
 # PUPPETEER_EXECUTABLE_PATH na Chrome (PDF). Pravi Opus samo na Maksovo besedo, prek CLAUDE_SDK=1.
+node test/popis.test.mjs             # 67 trditev (popis opravil: ure, preverjanje oddaje, oznake O1.., [ure: …] v predlogu z laznim AI, 03-popis-opravil.md; brez streznika)
+node test/popis-api.test.mjs         # 75 trditev (/popis/:koda, oddaje, zamenjava povezave, kartica na strani podjetja namizje+telefon, namig v predlogu, izvoz)
 ```
 
 ### AI Business Score (migracija 013)

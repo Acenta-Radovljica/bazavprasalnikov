@@ -35,6 +35,9 @@ await pool.query('DELETE FROM nastavitve');
 // 5. Prodajni predlogi (migracija 015).
 await pool.query('TRUNCATE prodajni_predlogi RESTART IDENTITY');
 
+// 6. Oddaje popisa opravil (migracija 016); vprasalnik sam ostane (seed).
+await pool.query(`DELETE FROM responses WHERE questionnaire_id IN (SELECT id FROM questionnaires WHERE slug = 'popis-opravil')`);
+
 const r = await pool.query(`
   SELECT (SELECT count(*) FROM process_sessions)::int AS sej,
          (SELECT count(*) FROM process_transcripts)::int AS transkriptov,

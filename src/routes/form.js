@@ -7,6 +7,7 @@ import { sproziPovzetek } from '../ai/queue.js';
 import { snapshotIzVrstice } from '../lib/snapshot.js';
 import { SCORE_SLUG, validirajOddajo } from '../score/oddaja.js';
 import { shraniOddajo } from '../score/shrani.js';
+import { POPIS_SLUG } from '../../public/admin/popis.js';
 import { sprozi as sproziScoreOutbox } from '../score/outbox.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
@@ -438,6 +439,12 @@ router.get('/:slug', async (req, res) => {
   if (!slug) return posljiInfo(res, 400, 'Manjkajoč podatek', 'V URL-ju manjka slug vprašalnika.');
   // AI Business Score ima svojo stran (vprasanja so v kodi, questions=[] bi dal 503).
   if (slug === SCORE_SLUG) return res.redirect(302, '/ai-business-score');
+  // Popis opravil ima za vsako podjetje svojo povezavo (/popis/:koda, routes/popis.js);
+  // brez kode ne vemo, cigav je odgovor.
+  if (slug === POPIS_SLUG) {
+    return posljiInfo(res, 404, 'Povezava ni popolna',
+      'Popis opravil ima za vsako podjetje svojo povezavo. Prosite vodstvo za povezavo vašega podjetja.');
+  }
 
   const r = await dbQuery(
     'SELECT slug, naziv_prikaz, opis, questions, aktivna, custom_html, namen FROM questionnaires WHERE slug = $1',
@@ -493,6 +500,7 @@ router.get('/:slug', async (req, res) => {
 router.post('/:slug', async (req, res) => {
   const slug = String(req.params.slug || '').trim().toLowerCase();
   if (!slug) return res.status(400).json({ ok: false, error: 'missing_slug' });
+  if (slug === POPIS_SLUG) return res.status(404).json({ ok: false, error: 'not_found' });
 
   // Najdi vprasalnik (mora biti aktiven)
   const r = await dbQuery(

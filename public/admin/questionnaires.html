@@ -280,9 +280,12 @@
       const jeProces = q.namen === 'proces';
       const url = publicFormUrl(esc(q.slug));
       // Process templates have no public form (/f/ answers "not public").
+      // Popis opravil has one link per company (/popis/<code>), copied on the company page.
       const naslov = jeProces
         ? 'brez javnega obrazca'
-        : `<a class="link" href="${url}" target="_blank" rel="noopener" title="Odpri javni obrazec">/f/${esc(q.slug)}${ikona('external', 'icon--sm')}</a>`;
+        : q.slug === 'popis-opravil'
+          ? 'povezava na strani podjetja'
+          : `<a class="link" href="${url}" target="_blank" rel="noopener" title="Odpri javni obrazec">/f/${esc(q.slug)}${ikona('external', 'icon--sm')}</a>`;
       const uporaba = jeProces
         ? sklon(q.st_sej ?? 0, SKLONI.seja)
         : (q.st_odgovorov > 0
@@ -299,7 +302,7 @@
           <div class="vp-side">
             ${namenChip(q.namen)}
             ${q.aktivna ? '<span class="chip chip--success">Aktivna</span>' : '<span class="chip">Ugasnjena</span>'}
-            ${jeProces ? '' : `<a class="link" href="${url}" target="_blank" rel="noopener">Predogled${ikona('external', 'icon--sm')}</a>`}
+            ${jeProces || q.slug === 'popis-opravil' ? '' : `<a class="link" href="${url}" target="_blank" rel="noopener">Predogled${ikona('external', 'icon--sm')}</a>`}
           </div>
         </li>`;
     }
@@ -400,11 +403,12 @@
       trenutniSlug = q.slug;
       trenutniNamen = q.namen || 'lead';
       const jeProces = trenutniNamen === 'proces';
+      const jePopis = q.slug === 'popis-opravil';
       $('editor-naslov').textContent = q.naziv_prikaz;
-      $('editor-podnaslov').textContent = `${jeProces ? 'brez javnega obrazca' : `/f/${q.slug}`} · posodobljeno ${formatDatum(q.updated_at)}`;
+      $('editor-podnaslov').textContent = `${jeProces ? 'brez javnega obrazca' : jePopis ? 'povezava na strani podjetja' : `/f/${q.slug}`} · posodobljeno ${formatDatum(q.updated_at)}`;
       document.title = `${q.naziv_prikaz} · Vprašalniki · Acenta baza`;
       $('editor-akcije').innerHTML = `
-        ${jeProces ? '' : `<a href="${publicFormUrl(esc(q.slug))}" target="_blank" rel="noopener" class="btn btn--secondary">${ikona('external')}<span>Predogled obrazca</span></a>`}
+        ${jeProces || jePopis ? '' : `<a href="${publicFormUrl(esc(q.slug))}" target="_blank" rel="noopener" class="btn btn--secondary">${ikona('external')}<span>Predogled obrazca</span></a>`}
         ${q.aktivna ? `<button type="button" class="btn btn--danger" onclick="ugasniVprasalnik(${q.id})">${ikona('power')}<span>Ugasni</span></button>` : ''}`;
       $('proces-opomba').hidden = !jeProces;
       if (jeProces) {
