@@ -821,7 +821,7 @@ kbd, .kbd { display: inline-grid; place-items: center; min-width: 18px; height: 
 a.qlink:hover { border-color: var(--border-strong); background: var(--bg-hover); color: var(--text); }
 
 /* Key-value list: <dl class="kv"><div><dt/><dd/></div></dl> */
-.kv { display: grid; margin: 0; }
+.kv { display: grid; grid-template-columns: minmax(0, 1fr); margin: 0; }
 .kv > div { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: 9px 0; border-bottom: 1px solid var(--border-subtle); font-size: var(--text-sm); }
 .kv > div:last-child { border-bottom: 0; }
 .kv dt { color: var(--text-muted); white-space: nowrap; }

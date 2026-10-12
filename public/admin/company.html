@@ -19,7 +19,10 @@
 
     .record {
       display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6);
-      grid-template-areas: "doc props" "work ." "answers meta";
+      /* props spans the first two rows: with a short (empty) proposal the side
+         column would otherwise stretch row 1 and leave a gap above the workshop. */
+      grid-template-areas: "doc props" "work props" "answers meta";
+      grid-template-rows: auto 1fr auto;
       align-items: start;
     }
     .a-doc { grid-area: doc; scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
@@ -80,10 +83,10 @@
     /* Management: normalized name below the actions */
     .kv--meta { margin-top: var(--space-4); border-top: 1px solid var(--border-subtle); }
     .kv--meta > div { padding-bottom: 0; font-size: var(--text-xs); }
-    .kv--meta dd { font-family: var(--font-mono); color: var(--text-secondary); }
+    .kv--meta dd { font-family: var(--font-mono); color: var(--text-secondary); white-space: normal; overflow-wrap: anywhere; }
 
     @media (max-width: 1100px) {
-      .record { grid-template-columns: minmax(0, 1fr); grid-template-areas: "doc" "props" "work" "answers" "meta"; }
+      .record { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "doc" "props" "work" "answers" "meta"; }
       .props { position: static; }
     }
     @media (max-width: 760px) {
