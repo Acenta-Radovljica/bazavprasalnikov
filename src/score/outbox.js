@@ -1,12 +1,15 @@
 // AI Business Score outbox worker: MailerLite upsert, the lead on the monday CRM board Leads
-// (Maja, 13. 10. 2026, via Acenta OS: crm.js) and AI prose, driven by rows in score_results
-// (not process memory), so a deploy or crash never loses work.
+// (Maja, 13. 10. 2026, via Acenta OS: crm.js), AI prose and the customer's mail with the report
+// as PDF (Maja, 13. 10. 2026: mail.js), driven by rows in score_results (not process memory), so
+// a deploy or crash never loses work.
 //
 // Claim: rows with an unfinished step whose next_attempt_at is due and that are not locked
 // (a lock older than 5 min counts as free: the process that held it died). FOR UPDATE SKIP
 // LOCKED keeps two workers from taking the same row.
 //
-// MailerLite and the CRM lead run first: neither must wait for the AI text.
+// MailerLite and the CRM lead run first: neither must wait for the AI text. The mail runs last and
+// only once the AI step is settled and SAVED: its PDF is the report page, which reads the text
+// from the database. The row stays locked between the two saves, so no other pass sends it twice.
 //
 // Rows run in parallel, up to VZPOREDNO at a time (1. 10. 2026): one AI text takes ~20 to 40 s and
 // the report page waits only 60 s, so a burst of submissions after a mailing must not queue
@@ -21,9 +24,11 @@ import { imaCrm, sestaviLead, posljiLead } from './crm.js';
 import { izracunajVzvode } from './vzvodi.js';
 import { izracunano } from './dejstva.js';
 import { sestaviPredlogo } from './predloga.js';
+import { imaMail, pdfPorocila, posljiMail } from './mail.js';
 
 const ML_BACKOFF_MIN = [1, 5, 30, 120, 720];  // then 'failed'
 const CRM_BACKOFF_MIN = [1, 5, 30, 120, 720]; // then 'failed'
+const MAIL_BACKOFF_MIN = [1, 5, 30, 120, 720]; // then 'failed'
 const AI_MAX = 3;
 const BREZ_KLJUCA_MIN = 60;                    // MailerLite key missing: look again in an hour
 
@@ -34,13 +39,14 @@ async function prevzemi(limit = 10) {
     `UPDATE score_results SET locked_at = NOW()
       WHERE id IN (
         SELECT id FROM score_results
-         WHERE (ai_status IN ('pending','retry') OR ml_status IN ('pending','retry') OR crm_status IN ('pending','retry'))
+         WHERE (ai_status IN ('pending','retry') OR ml_status IN ('pending','retry') OR crm_status IN ('pending','retry')
+                OR mail_status IN ('pending','retry'))
            AND next_attempt_at <= NOW()
            AND (locked_at IS NULL OR locked_at < NOW() - INTERVAL '5 minutes')
          ORDER BY id LIMIT $1
          FOR UPDATE SKIP LOCKED)
       RETURNING id, token, score_version, rezultat, marketing_soglasje, ai_status, ml_status, attempts_ai, attempts_ml,
-                crm_status, attempts_crm, created_at,
+                crm_status, attempts_crm, mail_status, attempts_mail, created_at,
                 (SELECT raw_data FROM responses WHERE responses.id = score_results.response_id) AS raw`,
     [limit],
   );
@@ -122,18 +128,57 @@ async function obdelajVrstico(v) {
     }
   }
 
+  // 4) is due once the AI step is settled; until then the AI step's own retry brings the row back.
+  const mailNaVrsti = ['pending', 'retry'].includes(v.mail_status) && !['pending', 'retry'].includes(upd.ai_status);
   const cez = naslednji.length ? Math.min(...naslednji) : 0;
   await dbQuery(
     `UPDATE score_results
         SET ml_status = $2, attempts_ml = $3, ai_status = $4, attempts_ai = $5,
             besedilo = COALESCE($6::jsonb, besedilo),
             next_attempt_at = NOW() + make_interval(mins => $7::int),
-            last_error = $8, locked_at = NULL,
+            last_error = $8, locked_at = CASE WHEN $12::boolean THEN NOW() ELSE NULL END,
             crm_status = $9, attempts_crm = $10, crm_item_id = COALESCE($11, crm_item_id)
       WHERE id = $1`,
     [v.id, upd.ml_status, upd.attempts_ml, upd.ai_status, upd.attempts_ai,
      upd.besedilo ? JSON.stringify(upd.besedilo) : null, cez, napake.join(' | ') || null,
-     upd.crm_status, upd.attempts_crm, upd.crm_item_id],
+     upd.crm_status, upd.attempts_crm, upd.crm_item_id, mailNaVrsti],
+  );
+  if (!mailNaVrsti) return;
+
+  // 4) The customer's mail with the report as PDF (after the save above: the PDF reads the text).
+  const m = { status: v.mail_status, attempts: v.attempts_mail, id: null };
+  if (!imaMail()) {
+    napake.push('Mail stranki ni nastavljen (SCORE_MAIL_RESEND_KEY)');
+    naslednji.push(BREZ_KLJUCA_MIN);   // stays pending, no attempt counted
+  } else if (!raw.email) {
+    m.status = 'failed';
+    napake.push('Mail stranki: oddaja nima e-naslova');
+  } else {
+    let res;
+    try {
+      const pdf = await pdfPorocila(v.token);
+      res = await posljiMail({ token: v.token, email: raw.email, podjetje: raw.podjetje, pdf });
+    } catch (e) {
+      res = { ok: false, error: `PDF: ${e.message}`.slice(0, 200), retry: true };
+    }
+    if (res.ok) { m.status = 'ok'; m.id = res.id; m.attempts++; }
+    else if (res.config) { napake.push(`Mail stranki: ${res.error} (preveri SCORE_MAIL_RESEND_KEY / domeno pri Resendu)`); naslednji.push(BREZ_KLJUCA_MIN); }
+    else {
+      m.attempts++;
+      napake.push(`Mail stranki: ${res.error}`);
+      if (!res.retry || m.attempts >= MAIL_BACKOFF_MIN.length) m.status = 'failed';
+      else { m.status = 'retry'; naslednji.push(MAIL_BACKOFF_MIN[m.attempts - 1]); }
+    }
+    console.log(`[score/outbox] vrstica ${v.id}: mail stranki ${res.ok ? `poslan (${res.id})` : `napaka ${res.error}`}`);
+  }
+  await dbQuery(
+    `UPDATE score_results
+        SET mail_status = $2, attempts_mail = $3, mail_id = COALESCE($4, mail_id),
+            mail_sent_at = CASE WHEN $2 = 'ok' THEN NOW() ELSE mail_sent_at END,
+            next_attempt_at = NOW() + make_interval(mins => $5::int),
+            last_error = $6, locked_at = NULL
+      WHERE id = $1`,
+    [v.id, m.status, m.attempts, m.id, naslednji.length ? Math.min(...naslednji) : 0, napake.join(' | ') || null],
   );
 }
 

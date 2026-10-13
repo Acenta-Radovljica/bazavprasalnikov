@@ -330,7 +330,7 @@ async function oddaj() {
       const i = vidna().findIndex(q => q.id === d.field);
       if (i >= 0) { st.korak = i; save(); renderQuiz(); }
     }
-    napaka(NAPAKE[d.error] || 'Oddaja ni uspela. Poskusite znova ali nas pokličite na 031 615 921.');
+    napaka(NAPAKE[d.error] || 'Oddaja ni uspela. Poskusite znova ali nas pokličite na 041 669 785.');
   } catch {
     calc.skrij();
     napaka('Povezava ni uspela. Preverite internet in poskusite znova.');

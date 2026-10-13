@@ -58,12 +58,14 @@ node test/score-v2.test.mjs          # 106 trditev (v2: vprasanja iz Matjazevega
 #   MAILERLITE_API_URL=http://127.0.0.1:3397 MAILERLITE_API_KEY=test-ml MAILERLITE_GROUP_ID=999
 #   SCORE_OUTBOX_MS=500 SCORE_MAX_V_OKNU=100 ANTHROPIC_API_KEY=
 #   WEB_LEAD_URL=http://127.0.0.1:3396/api/hooks/web-lead WEB_LEAD_SECRET=test-crm-secret-123  (lazni CRM na :3396)
+#   SCORE_MAIL_RESEND_KEY=test-mail-key-1234567890 SCORE_MAIL_API=http://127.0.0.1:3395/emails  (lazni Resend na :3395)
+#   PUPPETEER_EXECUTABLE_PATH=C:/Program Files/Google/Chrome/Application/chrome.exe  (PDF za mail stranki)
 # Test sam bere bazo iz DATABASE_URL (NE TEST_DB_URL; privzeto :5455). Nastavi ga na isto testno bazo.
-node test/score-api.test.mjs         # 66 trditev (oddaja v1 iz starega zavihka + oddaja v2, porocilo z vzvodi, outbox, lead v CRM, kvalifikacija, CSV)
+node test/score-api.test.mjs         # 78 trditev (oddaja v1 iz starega zavihka + oddaja v2, porocilo z vzvodi in kontaktom, outbox, lead v CRM, mail stranki s PDF, kvalifikacija, CSV)
 ```
 
-Zadnji zeleni zagon AI Business Score naborov: 13. 10. 2026 (cilj po oddelku): score 39, porocilo-besedilo 54,
-claude-sdk 14, vzvodi 19, score-v2 106, score-api 66. Prehod skozi kviz v Chromu (7 poti x racunalnik in telefon)
+Zadnji zeleni zagon AI Business Score naborov: 13. 10. 2026 (mail stranki s PDF): score 39, porocilo-besedilo 54,
+claude-sdk 14, vzvodi 19, score-v2 106, score-api 78. Prehod skozi kviz v Chromu (7 poti x racunalnik in telefon)
 je bil v scratchpadu seje (e2e-v2.cjs, 138/0), ni v repu.
 
 `test/porocilo-kakovost.mjs` NI del zagona: 6 pravih klicev Sonnet (pregled besedil na eni strani). Samo na Maksovo besedo in s streznikom na narocnini (CLAUDE_SDK=1).

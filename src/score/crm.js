@@ -40,10 +40,11 @@ export function sestaviLead({ raw = {}, rezultat = {}, reportUrl, marketing }) {
   return Object.fromEntries(Object.entries(polja).filter(([, v]) => v !== null && v !== undefined && v !== ''));
 }
 
-// The receiver's URL with the source and the salesperson (fixed lists on the OS side).
+// The receiver's URL with the source and the salesperson (fixed lists on the OS side), and
+// account=1: the company becomes the lead's Account on the CRM (Maja, 13. 10. 2026, found or created there).
 export function crmUrl(base = process.env.WEB_LEAD_URL) {
   const u = new URL(base);
-  u.search = new URLSearchParams({ src: 'AI Business Score', svc: 'AI', vir: 'email_marketing', prodajalec: 'matjaz' }).toString();
+  u.search = new URLSearchParams({ src: 'AI Business Score', svc: 'AI', vir: 'email_marketing', prodajalec: 'matjaz', account: '1' }).toString();
   return u.toString();
 }
 

@@ -16,13 +16,18 @@
 //  7. Qualification: an existing company qualification is NOT overwritten; an empty one is filled.
 //  8. Honeypot stores nothing; double submit returns the same report.
 //  9. CSV export: 401 without auth; BOM, ';' header and the row with auth.
+//  5b. Customer mail (13. 10. 2026): the Resend mock gets one mail per submission from Matjaž,
+//     Maja's subject and text, a blind copy to Matjaž, the idempotency key and the report as a
+//     real PDF (printed by local Chrome from /r/:token); 500 -> retry, 422 -> failed.
 // 10. Revoked report 410.
 // 11. v2 (2. 10.): a v2 submission is stored as v2 with only the chosen follow-up block, the
 //     report carries the goal and the computed hours, a missing block answer is a 400 on that
 //     field, the CSV has the 90-day process and goal. Sections 2 to 9 submit the v1 set, which
 //     is what a page opened before the v2 deploy sends: it must keep working.
 //
-// Run (see test/README): server with .env.test + the MAILERLITE_* / SCORE_* env below, then
+// Run (see test/README): server with .env.test + the MAILERLITE_* / SCORE_* env below, plus
+//   SCORE_MAIL_RESEND_KEY=test-mail-key-1234567890 SCORE_MAIL_API=http://127.0.0.1:3395/emails
+//   PUPPETEER_EXECUTABLE_PATH=<local Chrome>, then
 //   node test/score-api.test.mjs
 import http from 'node:http';
 import pg from 'pg';
@@ -30,7 +35,8 @@ import { izracunajScore } from '../src/score/izracunaj.js';
 
 const BASE = process.env.TEST_BASE || 'http://127.0.0.1:3398';
 const ML_PORT = 3397;
-const CRM_PORT = 3396;   // server env: WEB_LEAD_URL=http://127.0.0.1:3396/api/hooks/web-lead WEB_LEAD_SECRET=test-crm-secret-123
+const CRM_PORT = 3396;
+const MAIL_PORT = 3395;  // server env: SCORE_MAIL_API=http://127.0.0.1:3395/emails SCORE_MAIL_RESEND_KEY=test-mail-key-1234567890   // server env: WEB_LEAD_URL=http://127.0.0.1:3396/api/hooks/web-lead WEB_LEAD_SECRET=test-crm-secret-123
 const AUTH = 'Basic ' + Buffer.from('test@acenta.si:testgeslo123').toString('base64');
 const db = new pg.Pool({ connectionString: process.env.DATABASE_URL || 'postgres://postgres:test@127.0.0.1:5455/vprasalniki' });
 
@@ -65,6 +71,20 @@ const mockCrm = http.createServer((req, res) => {
     res.end(JSON.stringify({ ok: true, itemId: String(++crmId), existing: false }));
   });
 }).listen(CRM_PORT, '127.0.0.1');
+
+// ── mock Resend (answers like the real one: 200 + { id }; 'pade' -> 500, 'zavrni' -> 422) ──
+const mailKlici = [];
+let mailId = 0;
+const mockMail = http.createServer((req, res) => {
+  let b = ''; req.on('data', c => (b += c)); req.on('end', () => {
+    const body = JSON.parse(b || '{}');
+    mailKlici.push({ url: req.url, auth: req.headers.authorization, idem: req.headers['idempotency-key'], body });
+    const to = body.to?.[0] || '';
+    if (to.startsWith('pade')) { res.writeHead(500, { 'content-type': 'application/json' }); return res.end('{"name":"internal_server_error"}'); }
+    if (to.startsWith('zavrni')) { res.writeHead(422, { 'content-type': 'application/json' }); return res.end('{"name":"validation_error","message":"Invalid to"}'); }
+    res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ id: `re_test_${++mailId}` }));
+  });
+}).listen(MAIL_PORT, '127.0.0.1');
 
 const ODG = {
   panoga: 'proizvodnja', vloga: 'direktor', uporaba: 'posamezniki', sistematicnost: 'vsak_po_svoje',
@@ -130,7 +150,11 @@ t('glave: noindex, no-referrer, no-store',
   r.headers.get('x-robots-tag')?.includes('noindex') && r.headers.get('referrer-policy') === 'no-referrer' && r.headers.get('cache-control')?.includes('no-store'));
 const pds = JSON.stringify(pd);
 t('brez lead razreda, financnega potenciala, signalov in odgovorov',
-  !/"lead"|"financni"|"signali"|"odgovori"|"telefon"|"razlogi"/.test(pds), pds.slice(0, 200));
+  !/"lead"|"financni"|"signali"|"odgovori"|"razlogi"/.test(pds), pds.slice(0, 200));
+// 13. 10. 2026 (Maja): the contact step is shown under the title, exactly as typed.
+t('kontakt: ime in priimek, podjetje, e-posta, telefon, velikost',
+  pd.kontakt?.ime === 'Ana Novak' && pd.kontakt?.podjetje === `Kovinar Test ${sufiks}` && pd.kontakt?.email === `ana-${sufiks}@primer.si`
+  && pd.kontakt?.telefon === '041 123 456' && pd.kontakt?.velikost === '51–100', JSON.stringify(pd.kontakt));
 // Since 1. 10. no answer texts are echoed (Matjaž: "only what I ticked"); only the talk flag.
 t('brez besedil odgovorov, samo zeliPogovor',
   !('izbrano' in pd) && typeof pd.zeliPogovor === 'boolean'
@@ -141,7 +165,13 @@ t('vzvodi: najvec 3 z besedilom in tockami',
 t('skupno + 3 dimenzije + stopnja + proces', pd.skupno === pricakovano.skupno && Object.keys(pd.dimenzije).length === 3 && pd.stopnja?.naziv && pd.proces?.id === 'nabava');
 t('brez SCORE_BOOKING_URL ni gumba za rezervacijo', pd.rezervacija === null);
 r = await fetch(`${BASE}/r/${token}`);
-t('stran porocila 200 + noindex', r.status === 200 && r.headers.get('x-robots-tag')?.includes('noindex') && (await r.text()).includes('noindex'));
+const html = await r.text();
+t('stran porocila 200 + noindex', r.status === 200 && r.headers.get('x-robots-tag')?.includes('noindex') && html.includes('noindex'));
+t('stran porocila: Matjazev kontakt, brez 031 615 921 in ai@acenta.si, gumba tudi zgoraj',
+  html.includes('tel:+38641669785') && html.includes('mailto:matjaz@acenta.si') && !html.includes('615 921') && !html.includes('ai@acenta.si')
+  && (html.match(/data-kopiraj/g) || []).length === 2 && (html.match(/data-pdf/g) || []).length === 2 && html.includes('id="r-kontakt"'));
+const landing = await (await fetch(`${BASE}/ai-business-score/`)).text();
+t('pristajalna: brez telefona v glavi in ai@acenta.si v nogi', !landing.includes('615 921') && !landing.includes('ai@acenta.si'));
 t('neznan token 404', (await fetch(`${BASE}/r/AAAAAAAAAAAAAAAAAAAAAA/podatki`)).status === 404);
 t('neveljaven token 404', (await fetch(`${BASE}/r/..%2F..%2Fetc/podatki`)).status === 404);
 
@@ -157,8 +187,8 @@ const crmRow = await dokler(async () => (await db.query('SELECT crm_status, crm_
 t('crm_status ok + id leada', !!crmRow?.crm_item_id, JSON.stringify(crmRow));
 const lead = crmKlici.find(k => k.body.email === `ana-${sufiks}@primer.si`);
 const q = new URL(lead?.url || '/', 'http://x').searchParams;
-t('CRM mock: Bearer + Email marketing + Matjaž v URL', lead?.auth === 'Bearer test-crm-secret-123' && q.get('src') === 'AI Business Score'
-  && q.get('vir') === 'email_marketing' && q.get('prodajalec') === 'matjaz', `${lead?.auth} ${lead?.url}`);
+t('CRM mock: Bearer + Email marketing + Matjaž + Account v URL', lead?.auth === 'Bearer test-crm-secret-123' && q.get('src') === 'AI Business Score'
+  && q.get('vir') === 'email_marketing' && q.get('prodajalec') === 'matjaz' && q.get('account') === '1', `${lead?.auth} ${lead?.url}`);
 t('CRM mock: ime, kontakt, podjetje, rezultat, povezava do porocila', lead?.body.name === 'Ana Novak' && lead?.body.telefon === '041 123 456'
   && lead?.body.podjetje === `Kovinar Test ${sufiks}` && lead?.body['Velikost podjetja'] === '51–100 zaposlenih'
   && lead?.body.Rezultat?.startsWith(`${pricakovano.skupno} od 100, `) && lead?.body['Razred leada']?.startsWith('A')
@@ -184,6 +214,32 @@ const gotovo = await stanje();
 t('besediloStanje: AI gotov = ai, besedilo iz AI', gotovo.besediloStanje === 'ai' && gotovo.besedilo.odstavek === aiBes.odstavek && gotovo.besedilo.priloznosti[0] === 'c', JSON.stringify(gotovo.besedilo).slice(0, 120));
 await db.query(`UPDATE score_results SET ai_status = 'failed', besedilo = NULL, next_attempt_at = NOW() WHERE token = $1`, [token]);
 
+console.log('\n5b. Mail stranki s PDF');
+const mailRow = await dokler(async () => (await db.query('SELECT mail_status, attempts_mail, mail_id, mail_sent_at, last_error FROM score_results WHERE token = $1', [token])).rows.find(v => v.mail_status !== 'pending'), 45000);
+t('mail_status ok + id + cas', mailRow?.mail_status === 'ok' && /^re_test_/.test(mailRow?.mail_id || '') && !!mailRow?.mail_sent_at && mailRow?.attempts_mail === 1, JSON.stringify(mailRow));
+const ml = mailKlici.filter(k => k.body.to?.[0] === `ana-${sufiks}@primer.si`);
+const m1 = ml[0];
+t('en mail na oddajo', ml.length === 1, ml.length);
+t('od Matjaza, skrita kopija Matjazu, odgovori njemu', m1?.body.from === 'Matjaž Kristan <matjaz@acenta.si>' && JSON.stringify(m1?.body.bcc) === '["matjaz@acenta.si"]'
+  && m1?.body.reply_to === 'matjaz@acenta.si', JSON.stringify({ from: m1?.body.from, bcc: m1?.body.bcc, reply_to: m1?.body.reply_to }));
+t('kljuc + idempotency po tokenu', m1?.auth === 'Bearer test-mail-key-1234567890' && m1?.idem === `abs-rezultati-${token}`, `${m1?.auth} ${m1?.idem}`);
+t('zadeva in Majino besedilo s podpisom', m1?.body.subject === '[AI Business Score] Vaši rezultati'
+  && m1?.body.text.startsWith('Pozdravljeni,\n\nhvala, da ste izpolnili AI Business Score.')
+  && m1?.body.text.includes('v priloženem PDF dokumentu') && m1?.body.text.includes('prihraniti čas in denar.')
+  && m1?.body.text.includes('Matjaž Kristan\nVodja prodaje\nAcenta d.o.o.\nKranjska cesta 4, 4240 Radovljica\nTel: 041 669 785\nE-naslov: matjaz@acenta.si')
+  && m1?.body.html.includes('hvala, da ste izpolnili AI Business Score.') && m1?.body.html.includes('tel:+38641669785'), m1?.body.text);
+const pril = m1?.body.attachments?.[0];
+const pdfBuf = Buffer.from(pril?.content || '', 'base64');
+t('priloga: PDF z imenom podjetja', pril?.filename === `AI Business Score - Kovinar Test ${sufiks}.pdf` && pdfBuf.subarray(0, 5).toString() === '%PDF-' && pdfBuf.length > 20000,
+  `${pril?.filename} ${pdfBuf.length} B`);
+if (process.env.TEST_PDF_OUT) (await import('node:fs')).writeFileSync(process.env.TEST_PDF_OUT, pdfBuf);
+const privzetoMail = (await db.query(`SELECT column_default FROM information_schema.columns WHERE table_name = 'score_results' AND column_name = 'mail_status'`)).rows[0];
+t('nova oddaja dobi mail (privzeto pending; stare vrstice ob migraciji skipped)', /pending/.test(privzetoMail?.column_default || ''), privzetoMail?.column_default);
+const zav = await post(oddaja({ email: `zavrni-${sufiks}@primer.si`, podjetje: `Zavrni ${sufiks}` }));
+const tokZ = zav.d.reportUrl?.split('/').pop();
+const zavRow = await dokler(async () => (await db.query('SELECT mail_status, attempts_mail, last_error FROM score_results WHERE token = $1', [tokZ])).rows.find(v => v.mail_status !== 'pending'), 45000);
+t('422 (slab naslov) -> failed, brez ponavljanja', zavRow?.mail_status === 'failed' && zavRow?.attempts_mail === 1 && /Mail stranki: http_422/.test(zavRow?.last_error || ''), JSON.stringify(zavRow));
+
 console.log('\n6. Odpornost outboxa');
 const y = await post(oddaja({ email: `pade-${sufiks}@primer.si`, podjetje: `Pade ${sufiks}` }));
 const tokY = y.d.reportUrl?.split('/').pop();
@@ -194,6 +250,8 @@ const retry = await dokler(async () => {
 t('500 -> retry, 1 poskus, naslednji kasneje', retry?.attempts_ml === 1 && retry?.kasneje === true && /HTTP 500/.test(retry?.last_error || ''), JSON.stringify(retry));
 // Simulate a crashed worker: stale lock + due. The mock now succeeds for this e-mail.
 const crmY = (await db.query('SELECT crm_status, attempts_crm, last_error FROM score_results WHERE token = $1', [tokY])).rows[0];
+const mailY = await dokler(async () => (await db.query('SELECT mail_status, attempts_mail, last_error FROM score_results WHERE token = $1', [tokY])).rows.find(v => v.mail_status === 'retry'), 45000);
+t('mail: 500 -> retry, 1 poskus, napaka v last_error', mailY?.attempts_mail === 1 && /Mail stranki: http_500/.test(mailY?.last_error || ''), JSON.stringify(mailY));
 t('CRM: monday_failed -> retry, 1 poskus, napaka v last_error', crmY?.crm_status === 'retry' && crmY?.attempts_crm === 1 && /CRM: monday_failed/.test(crmY?.last_error || ''), JSON.stringify(crmY));
 await db.query(`UPDATE score_results SET ml_status = 'pending', locked_at = NOW() - INTERVAL '10 minutes', next_attempt_at = NOW() WHERE token = $1`, [tokY]);
 await db.query(`UPDATE responses SET raw_data = jsonb_set(raw_data, '{email}', to_jsonb($2::text)) WHERE id = (SELECT response_id FROM score_results WHERE token = $1)`, [tokY, `ok-${sufiks}@primer.si`]);
@@ -275,6 +333,6 @@ t('CRM v2: prvi projekt in glavni cilj nabave', lead2?.body['Prvi projekt'] === 
 
 // Cleanup: company delete cascades to responses and score_results.
 await db.query(`DELETE FROM companies WHERE naziv_prikaz LIKE $1 OR naziv_prikaz LIKE $2`, [`%${sufiks}`, `Pade ${sufiks}`]);
-mock.close(); mockCrm.close(); await db.end();
+mock.close(); mockCrm.close(); mockMail.close(); await db.end();
 console.log(`\n${ok} OK, ${fail} FAIL`);
 if (fail) { console.log('Padli:', padli.join(' | ')); process.exit(1); }

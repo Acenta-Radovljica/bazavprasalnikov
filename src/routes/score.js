@@ -45,6 +45,7 @@ javniRouter.get('/r/:token', (req, res) => {
 // Minimised data for the public report: no raw answer ids, no lead class, no financial
 // potential, no internal signals. Since 1. 10. no answer texts either: echoing them back was what
 // made the report read as "only what I ticked" (Matjaž); only the "wants a talk" flag is sent.
+// Since 13. 10. the contact step is shown back (kontakt): Maja wants it on the report.
 javniRouter.get('/r/:token/podatki', async (req, res) => {
   zasebneGlave(res);
   if (!TOKEN_RE.test(req.params.token)) return res.status(404).json({ error: 'not_found' });
@@ -69,6 +70,15 @@ javniRouter.get('/r/:token/podatki', async (req, res) => {
   res.json({
     podjetje: raw.podjetje || '',
     email: raw.email || '',
+    // What the customer typed on the contact step, shown under the title (Maja, 13. 10. 2026),
+    // so the report and its PDF say whose it is. Only their own data, nothing we derived.
+    kontakt: {
+      ime: [raw.ime, raw.priimek].filter(Boolean).join(' '),
+      podjetje: raw.podjetje || '',
+      email: raw.email || '',
+      telefon: raw.telefon || '',
+      velikost: VELIKOST.find(x => x.id === raw.velikost)?.text ?? '',
+    },
     datum: new Date(v.created_at).toLocaleDateString('sl-SI', { timeZone: 'Europe/Ljubljana' }),
     skupno: rez.skupno,
     dimenzije: { zrelost: rez.dimenzije.zrelost, potencial: rez.dimenzije.potencial, pripravljenost: rez.dimenzije.pripravljenost },

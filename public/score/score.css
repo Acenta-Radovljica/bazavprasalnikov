@@ -175,8 +175,6 @@ body.calc { overflow: hidden; }
 .rep-nav { position: relative; z-index: 2; }
 .rep-nav-in { display: flex; align-items: center; gap: 22px; height: 72px; }
 .rep-nav img { display: block; height: 20px; width: auto; }
-.rep-tel { color: var(--text); text-decoration: none; font: 500 15px var(--mono); white-space: nowrap; }
-.rep-tel:hover { color: var(--teal-hi); }
 
 .rep-hero { position: relative; padding: 40px 0 72px; }
 .rep-hero::before { content: ''; position: absolute; right: -10%; top: -20%; width: 70vw; height: 110%; pointer-events: none; background: radial-gradient(closest-side, rgb(0 171 154 / .16), transparent 70%); }
@@ -329,13 +327,20 @@ ul.pts li.skel:nth-child(2) { width: 82%; } ul.pts li.skel:nth-child(3) { width:
 .ghost:hover { border-color: rgb(47 211 192 / .6); background: rgb(47 211 192 / .06); }
 .ghost:focus-visible { outline: 2px solid var(--teal-hi); outline-offset: 3px; }
 .share-ok { color: var(--teal-hi); font-weight: 500; }
+/* Under "Izpolnjeno ..." in the report hero (Maja, 13. 10. 2026); two classes beat the mobile .share margin */
+.share.share-top { margin: 22px 0 0; }
+
+/* The contact step as typed, under the title (Maja, 13. 10. 2026) */
+.kontakt { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 20px; margin: 26px 0 0; padding-top: 20px; border-top: 1px solid var(--line); font-size: 14px; max-width: 34em; }
+.kontakt dt { color: var(--dim); }
+.kontakt dd { color: var(--text); overflow-wrap: anywhere; }
 
 /* Report entrance: words of the title rise, sections rise as they arrive */
 .rep-hero h1 .w { display: inline-block; overflow: clip; overflow-clip-margin: .12em; padding-bottom: .06em; margin-bottom: -.06em; vertical-align: top; }
 .rep-hero h1 .w > span { display: inline-block; }
 @media (prefers-reduced-motion: no-preference) {
   .rep.anim .rep-hero h1 .w > span { translate: 0 105%; animation: r-rise 1s var(--out) forwards; animation-delay: calc(80ms + var(--i) * 45ms); }
-  .rep.anim .rep-hero .eyebrow, .rep.anim .rep-hero .micro { opacity: 0; animation: r-fade .9s var(--out) .5s forwards; }
+  .rep.anim .rep-hero .eyebrow, .rep.anim .rep-hero .micro, .rep.anim .rep-hero .share-top, .rep.anim .rep-hero .kontakt { opacity: 0; animation: r-fade .9s var(--out) .5s forwards; }
   .rep.anim .meter { opacity: 0; translate: 0 30px; animation: r-fade 1.1s var(--out) .25s forwards; }
   .rep.anim [data-reveal] { opacity: 0; translate: 0 28px; transition: opacity .9s var(--out), translate 1.1s var(--out); transition-delay: calc(var(--d, 0) * 110ms); }
   .rep.anim [data-reveal].in { opacity: 1; translate: 0 0; }
@@ -391,7 +396,6 @@ ul.pts li.skel:nth-child(2) { width: 82%; } ul.pts li.skel:nth-child(3) { width:
   .form { grid-template-columns: 1fr; }
   .rep-nav-in { height: 62px; gap: 14px; }
   .rep-nav img { height: 17px; }
-  .rep-tel { font-size: 14px; }
   .rep-hero { padding: 20px 0 56px; }
   .meter { padding: 20px; }
   /* Dial and level name side by side, the long level description full width below */
@@ -420,6 +424,7 @@ ul.pts li.skel:nth-child(2) { width: 82%; } ul.pts li.skel:nth-child(3) { width:
   .vz-list li { grid-template-columns: auto minmax(0, 1fr); gap: 8px 14px; padding: 16px; }
   .vz-pts { grid-column: 2; justify-items: start; grid-auto-flow: column; align-items: baseline; gap: 8px; }
   .share { margin: -32px 0 56px; }
+  .kontakt { gap: 6px 14px; font-size: 13px; }
 }
 @media (max-width: 767px) and (prefers-reduced-motion: no-preference) {
   .rep.anim .levels li { scale: .15 1; }
@@ -428,7 +433,12 @@ ul.pts li.skel:nth-child(2) { width: 82%; } ul.pts li.skel:nth-child(3) { width:
 /* Saving the report as PDF: light paper, same layout */
 @media print {
   :root { color-scheme: light; --bg: #fff; --bg-2: #fff; --line: #dfe6e4; --line-2: #cfd9d6; --text: #0a1f1d; --muted: #41524f; --dim: #6a7a77; --teal-hi: #007e72; --on-teal: #fff; }
-  .rep-hero::before, .rep-nav .rep-tel, .closing .acts .btn, .share { display: none; }
+  .rep-hero::before, .closing .acts #r-booking, .share { display: none; }
+  .closing .acts #r-tel.btn { background: none; box-shadow: none; padding: 0; color: var(--text); font-size: 16px; }
+  .kontakt { break-inside: avoid; }
+  /* Tighter ending, so the footer does not spill onto a page of its own */
+  .closing { margin: 40px 0 20px; }
+  .foot { padding: 12px 0 0; break-before: avoid; }
   [data-reveal], .rep.anim [data-reveal], .rep.anim .meter, .rep.anim .scen-flow li, .rep.anim .vz-list li { opacity: 1 !important; translate: none !important; scale: none !important; }
   .meter, .card, .closing { box-shadow: none; background: #fff !important; break-inside: avoid; }
   .dial-val, .ticks i, .levels li { transition: none !important; }

@@ -108,8 +108,8 @@ function stej(node, cilj) {
 }
 
 const res = await fetch(`/r/${encodeURIComponent(token)}/podatki`).catch(() => null);
-if (!res || res.status === 404) napaka('Poročila ne najdemo. Preverite povezavo ali nas pokličite na 031 615 921.');
-else if (res.status === 410) napaka('To poročilo ni več na voljo. Za novo oceno nas pokličite na 031 615 921.');
+if (!res || res.status === 404) napaka('Poročila ne najdemo. Preverite povezavo ali nas pokličite na 041 669 785.');
+else if (res.status === 410) napaka('To poročilo ni več na voljo. Za novo oceno nas pokličite na 041 669 785.');
 else if (!res.ok) napaka('Poročila trenutno ne moremo prikazati. Poskusite znova čez nekaj minut.');
 else {
   const d = await res.json();
@@ -124,8 +124,18 @@ else {
     const s = el('span', '', w); s.style.setProperty('--i', i); o.append(s);
     return i ? [document.createTextNode(' '), o] : [o];
   }));
-  // No copy is e-mailed until MailerLite is configured, so do not promise one here.
-  $('#r-meta').textContent = `Izpolnjeno ${d.datum}. Povezavo si shranite, da se lahko k poročilu vrnete.`;
+  // "Povezavo si shranite ..." is gone (Maja, 13. 10.): the report now also arrives by mail as PDF.
+  $('#r-meta').textContent = `Izpolnjeno ${d.datum}.`;
+  // The contact step, as typed (Maja, 13. 10. 2026): whose report this is, also in the PDF.
+  const k = d.kontakt || {};
+  const vrstice = [
+    ['Kontakt', k.ime], ['Podjetje', k.podjetje], ['E-pošta', k.email], ['Telefon', k.telefon],
+    ['Število zaposlenih', k.velikost],
+  ].filter(([, v]) => v);
+  if (vrstice.length) {
+    $('#r-kontakt').replaceChildren(...vrstice.flatMap(([n, v]) => [el('dt', '', n), el('dd', '', v)]));
+    $('#r-kontakt').hidden = false;
+  }
   $('#r-levelh').textContent = d.stopnja.naziv;
   $('#r-levelp').textContent = d.stopnja.opis;   // Matjaž's level text, shown once, at the ladder
   // Each level in Matjaž's document ends with its recommendation. Without a first project the
@@ -228,21 +238,21 @@ else {
   // Booking button only when a real link is configured (no dead controls); otherwise the
   // phone number becomes the primary action.
   if (d.rezervacija) { const b = $('#r-booking'); b.href = d.rezervacija; b.hidden = false; }
-  else { const t = $('#r-tel'); t.textContent = 'Pokličite 031 615 921'; t.className = 'btn'; }
-  // A message instead of a call (Matjaž, 6. 10. 2026). The mail carries the report link, so we
-  // know who wrote; the address stays visible for anyone without a mail app.
+  else { const t = $('#r-tel'); t.textContent = 'Pokličite 041 669 785'; t.className = 'btn'; }
+  // A message instead of a call (Matjaž, 6. 10. 2026), to Matjaž himself (Maja, 13. 10.). The mail
+  // carries the report link, so we know who wrote; the address stays visible for anyone without a mail app.
   const zadeva = `AI Business Score${d.podjetje ? `: ${d.podjetje}` : ''}`;
-  $('#r-mail').href = `mailto:ai@acenta.si?subject=${encodeURIComponent(zadeva)}`
+  $('#r-mail').href = `mailto:matjaz@acenta.si?subject=${encodeURIComponent(zadeva)}`
     + `&body=${encodeURIComponent(`Pozdravljeni,\r\n\r\n\r\n\r\nMoje poročilo: ${location.href}`)}`;
 
-  // Share: copy the private link, or save as PDF (print styles are light)
-  $('#r-copy').addEventListener('click', async () => {
-    const ok = $('#r-copy-ok');
+  // Share, at the top and at the bottom: copy the private link, or save as PDF (print styles are light)
+  root.querySelectorAll('[data-kopiraj]').forEach(b => b.addEventListener('click', async () => {
+    const ok = b.parentElement.querySelector('.share-ok');
     try { await navigator.clipboard.writeText(location.href); ok.textContent = 'Povezava je kopirana.'; }
     catch { ok.textContent = `Kopirajte povezavo iz naslovne vrstice: ${location.href}`; }
     setTimeout(() => { ok.textContent = ''; }, 5000);
-  });
-  $('#r-pdf').addEventListener('click', () => window.print());
+  }));
+  root.querySelectorAll('[data-pdf]').forEach(b => b.addEventListener('click', () => window.print()));
 
   // Entrance: dial fills, ticks light, the number counts up, the ladder rises to your level.
   if (!reduce) root.classList.add('anim');
