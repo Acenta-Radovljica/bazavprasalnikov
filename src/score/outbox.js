@@ -1,11 +1,12 @@
-// AI Business Score outbox worker: MailerLite upsert and AI prose, driven by rows in
-// score_results (not process memory), so a deploy or crash never loses work.
+// AI Business Score outbox worker: MailerLite upsert, the lead on the monday CRM board Leads
+// (Maja, 13. 10. 2026, via Acenta OS: crm.js) and AI prose, driven by rows in score_results
+// (not process memory), so a deploy or crash never loses work.
 //
 // Claim: rows with an unfinished step whose next_attempt_at is due and that are not locked
 // (a lock older than 5 min counts as free: the process that held it died). FOR UPDATE SKIP
 // LOCKED keeps two workers from taking the same row.
 //
-// MailerLite runs first: the score e-mail must not wait for the AI text.
+// MailerLite and the CRM lead run first: neither must wait for the AI text.
 //
 // Rows run in parallel, up to VZPOREDNO at a time (1. 10. 2026): one AI text takes ~20 to 40 s and
 // the report page waits only 60 s, so a burst of submissions after a mailing must not queue
@@ -16,11 +17,13 @@ import { dbQuery } from '../db.js';
 import { besedilaOdgovorov } from './oddaja.js';
 import { generirajBesedilo, imaAI } from './besedilo.js';
 import { imaMailerLite, sestaviSubscriber, upsertSubscriber } from './mailerlite.js';
+import { imaCrm, sestaviLead, posljiLead } from './crm.js';
 import { izracunajVzvode } from './vzvodi.js';
 import { izracunano } from './dejstva.js';
 import { sestaviPredlogo } from './predloga.js';
 
 const ML_BACKOFF_MIN = [1, 5, 30, 120, 720];  // then 'failed'
+const CRM_BACKOFF_MIN = [1, 5, 30, 120, 720]; // then 'failed'
 const AI_MAX = 3;
 const BREZ_KLJUCA_MIN = 60;                    // MailerLite key missing: look again in an hour
 
@@ -31,12 +34,13 @@ async function prevzemi(limit = 10) {
     `UPDATE score_results SET locked_at = NOW()
       WHERE id IN (
         SELECT id FROM score_results
-         WHERE (ai_status IN ('pending','retry') OR ml_status IN ('pending','retry'))
+         WHERE (ai_status IN ('pending','retry') OR ml_status IN ('pending','retry') OR crm_status IN ('pending','retry'))
            AND next_attempt_at <= NOW()
            AND (locked_at IS NULL OR locked_at < NOW() - INTERVAL '5 minutes')
          ORDER BY id LIMIT $1
          FOR UPDATE SKIP LOCKED)
-      RETURNING id, token, score_version, rezultat, marketing_soglasje, ai_status, ml_status, attempts_ai, attempts_ml, created_at,
+      RETURNING id, token, score_version, rezultat, marketing_soglasje, ai_status, ml_status, attempts_ai, attempts_ml,
+                crm_status, attempts_crm, created_at,
                 (SELECT raw_data FROM responses WHERE responses.id = score_results.response_id) AS raw`,
     [limit],
   );
@@ -46,7 +50,10 @@ async function prevzemi(limit = 10) {
 async function obdelajVrstico(v) {
   const raw = v.raw || {};
   const kontakt = { ime: raw.ime, priimek: raw.priimek, email: raw.email, telefon: raw.telefon, podjetje: raw.podjetje };
-  const upd = { ml_status: v.ml_status, attempts_ml: v.attempts_ml, ai_status: v.ai_status, attempts_ai: v.attempts_ai, besedilo: undefined };
+  const upd = {
+    ml_status: v.ml_status, attempts_ml: v.attempts_ml, ai_status: v.ai_status, attempts_ai: v.attempts_ai, besedilo: undefined,
+    crm_status: v.crm_status, attempts_crm: v.attempts_crm, crm_item_id: null,
+  };
   const napake = [];
   const naslednji = [];  // minutes until the next needed attempt
 
@@ -70,7 +77,26 @@ async function obdelajVrstico(v) {
     }
   }
 
-  // 2) AI prose
+  // 2) CRM: the lead on board Leads (one per submission; a double submit returns the same row)
+  if (['pending', 'retry'].includes(v.crm_status)) {
+    if (!imaCrm()) {
+      napake.push('CRM ni nastavljen (WEB_LEAD_URL / WEB_LEAD_SECRET)');
+      naslednji.push(BREZ_KLJUCA_MIN);   // stays pending, no attempt counted
+    } else {
+      const res = await posljiLead(sestaviLead({ raw, rezultat: v.rezultat, reportUrl: javniUrl(v.token), marketing: v.marketing_soglasje }));
+      if (res.ok) { upd.crm_status = 'ok'; upd.crm_item_id = res.itemId; upd.attempts_crm = v.attempts_crm + 1; }
+      else if (res.config) { napake.push(`CRM: ${res.error} (preveri WEB_LEAD_URL / WEB_LEAD_SECRET)`); naslednji.push(BREZ_KLJUCA_MIN); }
+      else {
+        upd.attempts_crm = v.attempts_crm + 1;
+        napake.push(`CRM: ${res.error}`);
+        if (!res.retry || upd.attempts_crm >= CRM_BACKOFF_MIN.length) upd.crm_status = 'failed';
+        else { upd.crm_status = 'retry'; naslednji.push(CRM_BACKOFF_MIN[upd.attempts_crm - 1]); }
+      }
+      console.log(`[score/outbox] vrstica ${v.id}: CRM ${res.ok ? `lead ${res.itemId}` : `napaka ${res.error}`}`);
+    }
+  }
+
+  // 3) AI prose
   if (['pending', 'retry'].includes(v.ai_status)) {
     if (!imaAI()) {
       upd.ai_status = 'failed';            // report keeps the template text
@@ -102,10 +128,12 @@ async function obdelajVrstico(v) {
         SET ml_status = $2, attempts_ml = $3, ai_status = $4, attempts_ai = $5,
             besedilo = COALESCE($6::jsonb, besedilo),
             next_attempt_at = NOW() + make_interval(mins => $7::int),
-            last_error = $8, locked_at = NULL
+            last_error = $8, locked_at = NULL,
+            crm_status = $9, attempts_crm = $10, crm_item_id = COALESCE($11, crm_item_id)
       WHERE id = $1`,
     [v.id, upd.ml_status, upd.attempts_ml, upd.ai_status, upd.attempts_ai,
-     upd.besedilo ? JSON.stringify(upd.besedilo) : null, cez, napake.join(' | ') || null],
+     upd.besedilo ? JSON.stringify(upd.besedilo) : null, cez, napake.join(' | ') || null,
+     upd.crm_status, upd.attempts_crm, upd.crm_item_id],
   );
 }
 

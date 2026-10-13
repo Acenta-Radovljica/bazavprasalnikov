@@ -8,7 +8,9 @@
 //  4. Public report data is minimised (no lead, no financial, no raw answers) + private headers;
 //     unknown token 404, revoked 410, report page itself noindex.
 //  5. Outbox: MailerLite mock receives the upsert with the agreed fields and group; ml_status ok;
-//     no AI key -> ai_status failed and the report still has template text.
+//     no AI key -> ai_status failed and the report still has template text. The CRM mock (Acenta OS
+//     lead receiver) gets one lead: Bearer secret, Email marketing + Matjaž in the URL, the report
+//     link and the answers as fields; crm_status ok with the item id (13. 10. 2026).
 //  6. Outbox resilience: 500 from MailerLite -> retry with attempts 1 and a future next_attempt_at;
 //     a stale lock (process died) is picked up again.
 //  7. Qualification: an existing company qualification is NOT overwritten; an empty one is filled.
@@ -28,6 +30,7 @@ import { izracunajScore } from '../src/score/izracunaj.js';
 
 const BASE = process.env.TEST_BASE || 'http://127.0.0.1:3398';
 const ML_PORT = 3397;
+const CRM_PORT = 3396;   // server env: WEB_LEAD_URL=http://127.0.0.1:3396/api/hooks/web-lead WEB_LEAD_SECRET=test-crm-secret-123
 const AUTH = 'Basic ' + Buffer.from('test@acenta.si:testgeslo123').toString('base64');
 const db = new pg.Pool({ connectionString: process.env.DATABASE_URL || 'postgres://postgres:test@127.0.0.1:5455/vprasalniki' });
 
@@ -49,6 +52,19 @@ const mock = http.createServer((req, res) => {
     res.writeHead(200, { 'content-type': 'application/json' }); res.end('{"data":{"id":"1"}}');
   });
 }).listen(ML_PORT, '127.0.0.1');
+
+// ── mock Acenta OS lead receiver (answers like the real one: 200 + { ok, itemId } or { ok:false, error }) ──
+const crmKlici = [];
+let crmId = 7000;
+const mockCrm = http.createServer((req, res) => {
+  let b = ''; req.on('data', c => (b += c)); req.on('end', () => {
+    const body = JSON.parse(b || '{}');
+    crmKlici.push({ url: req.url, auth: req.headers.authorization, body });
+    res.writeHead(200, { 'content-type': 'application/json' });
+    if (body.email?.startsWith('pade')) return res.end('{"ok":false,"error":"monday_failed"}');
+    res.end(JSON.stringify({ ok: true, itemId: String(++crmId), existing: false }));
+  });
+}).listen(CRM_PORT, '127.0.0.1');
 
 const ODG = {
   panoga: 'proizvodnja', vloga: 'direktor', uporaba: 'posamezniki', sistematicnost: 'vsak_po_svoje',
@@ -137,6 +153,19 @@ t('mock: POST /api/subscribers z Bearer', klic?.url === '/api/subscribers' && kl
 t('mock: skupina + polja', JSON.stringify(klic?.body?.groups) === '["999"]' && klic?.body?.fields?.abs_score === pricakovano.skupno
   && klic?.body?.fields?.abs_lead === 'A' && klic?.body?.fields?.abs_marketing === 'da' && klic?.body?.fields?.phone === '041 123 456'
   && klic?.body?.fields?.abs_report_url?.endsWith(`/r/${token}`), JSON.stringify(klic?.body));
+const crmRow = await dokler(async () => (await db.query('SELECT crm_status, crm_item_id FROM score_results WHERE token = $1', [token])).rows.find(r => r.crm_status === 'ok'));
+t('crm_status ok + id leada', !!crmRow?.crm_item_id, JSON.stringify(crmRow));
+const lead = crmKlici.find(k => k.body.email === `ana-${sufiks}@primer.si`);
+const q = new URL(lead?.url || '/', 'http://x').searchParams;
+t('CRM mock: Bearer + Email marketing + Matjaž v URL', lead?.auth === 'Bearer test-crm-secret-123' && q.get('src') === 'AI Business Score'
+  && q.get('vir') === 'email_marketing' && q.get('prodajalec') === 'matjaz', `${lead?.auth} ${lead?.url}`);
+t('CRM mock: ime, kontakt, podjetje, rezultat, povezava do porocila', lead?.body.name === 'Ana Novak' && lead?.body.telefon === '041 123 456'
+  && lead?.body.podjetje === `Kovinar Test ${sufiks}` && lead?.body['Velikost podjetja'] === '51–100 zaposlenih'
+  && lead?.body.Rezultat?.startsWith(`${pricakovano.skupno} od 100, `) && lead?.body['Razred leada']?.startsWith('A')
+  && lead?.body['Novice in povabila'] === 'da' && lead?.body['Poročilo']?.endsWith(`/r/${token}`), JSON.stringify(lead?.body));
+t('CRM: en lead na oddajo', crmKlici.filter(k => k.body.email === `ana-${sufiks}@primer.si`).length === 1);
+const privzeto = (await db.query(`SELECT column_default FROM information_schema.columns WHERE table_name = 'score_results' AND column_name = 'crm_status'`)).rows[0];
+t('nova oddaja gre v CRM (privzeto pending; stare vrstice ob migraciji skipped)', /pending/.test(privzeto?.column_default || ''), privzeto?.column_default);
 const aiRow = (await db.query('SELECT ai_status, besedilo FROM score_results WHERE token = $1', [token])).rows[0];
 t('brez AI kljuca: ai_status failed, besedilo prazno', aiRow.ai_status === 'failed' && aiRow.besedilo === null);
 t('porocilo ima besedilo iz predloge (v2: 5 priloznosti, dobro in zatika vsaj 3)',
@@ -164,6 +193,8 @@ const retry = await dokler(async () => {
 });
 t('500 -> retry, 1 poskus, naslednji kasneje', retry?.attempts_ml === 1 && retry?.kasneje === true && /HTTP 500/.test(retry?.last_error || ''), JSON.stringify(retry));
 // Simulate a crashed worker: stale lock + due. The mock now succeeds for this e-mail.
+const crmY = (await db.query('SELECT crm_status, attempts_crm, last_error FROM score_results WHERE token = $1', [tokY])).rows[0];
+t('CRM: monday_failed -> retry, 1 poskus, napaka v last_error', crmY?.crm_status === 'retry' && crmY?.attempts_crm === 1 && /CRM: monday_failed/.test(crmY?.last_error || ''), JSON.stringify(crmY));
 await db.query(`UPDATE score_results SET ml_status = 'pending', locked_at = NOW() - INTERVAL '10 minutes', next_attempt_at = NOW() WHERE token = $1`, [tokY]);
 await db.query(`UPDATE responses SET raw_data = jsonb_set(raw_data, '{email}', to_jsonb($2::text)) WHERE id = (SELECT response_id FROM score_results WHERE token = $1)`, [tokY, `ok-${sufiks}@primer.si`]);
 const po = await dokler(async () => (await db.query('SELECT ml_status FROM score_results WHERE token = $1', [tokY])).rows[0]?.ml_status === 'ok');
@@ -238,9 +269,12 @@ const csv2 = await (await fetch(`${BASE}/api/score/export.csv`, { headers: { Aut
 t('CSV: stolpca Proces v 90 dneh in Glavni cilj', csv2.split('\r\n')[0].includes('Proces v 90 dneh;Glavni cilj'));
 const vr2 = csv2.split('\r\n').find(l => l.includes(`ana2-${sufiks}@primer.si`)) || '';
 t('CSV vrstica v2: Nabava + cilj nabave', vr2.includes(';Nabava;Nabava po ugodnejših cenah;'), vr2.slice(0, 220));
+await dokler(async () => crmKlici.some(k => k.body.email === `ana2-${sufiks}@primer.si`));
+const lead2 = crmKlici.find(k => k.body.email === `ana2-${sufiks}@primer.si`);
+t('CRM v2: prvi projekt in glavni cilj nabave', lead2?.body['Prvi projekt'] === 'Nabava' && lead2?.body['Glavni cilj'] === 'Nabava po ugodnejših cenah', JSON.stringify(lead2?.body));
 
 // Cleanup: company delete cascades to responses and score_results.
 await db.query(`DELETE FROM companies WHERE naziv_prikaz LIKE $1 OR naziv_prikaz LIKE $2`, [`%${sufiks}`, `Pade ${sufiks}`]);
-mock.close(); await db.end();
+mock.close(); mockCrm.close(); await db.end();
 console.log(`\n${ok} OK, ${fail} FAIL`);
 if (fail) { console.log('Padli:', padli.join(' | ')); process.exit(1); }

@@ -57,12 +57,13 @@ node test/score-v2.test.mjs          # 106 trditev (v2: vprasanja iz Matjazevega
 # score-api rabi streznik z lazno MailerLite (test sam odpre mock na :3397):
 #   MAILERLITE_API_URL=http://127.0.0.1:3397 MAILERLITE_API_KEY=test-ml MAILERLITE_GROUP_ID=999
 #   SCORE_OUTBOX_MS=500 SCORE_MAX_V_OKNU=100 ANTHROPIC_API_KEY=
+#   WEB_LEAD_URL=http://127.0.0.1:3396/api/hooks/web-lead WEB_LEAD_SECRET=test-crm-secret-123  (lazni CRM na :3396)
 # Test sam bere bazo iz DATABASE_URL (NE TEST_DB_URL; privzeto :5455). Nastavi ga na isto testno bazo.
-node test/score-api.test.mjs         # 59 trditev (oddaja v1 iz starega zavihka + oddaja v2, porocilo z vzvodi, outbox, kvalifikacija, CSV)
+node test/score-api.test.mjs         # 66 trditev (oddaja v1 iz starega zavihka + oddaja v2, porocilo z vzvodi, outbox, lead v CRM, kvalifikacija, CSV)
 ```
 
 Zadnji zeleni zagon AI Business Score naborov: 13. 10. 2026 (cilj po oddelku): score 39, porocilo-besedilo 54,
-claude-sdk 14, vzvodi 19, score-v2 106, score-api 59. Prehod skozi kviz v Chromu (7 poti x racunalnik in telefon)
+claude-sdk 14, vzvodi 19, score-v2 106, score-api 66. Prehod skozi kviz v Chromu (7 poti x racunalnik in telefon)
 je bil v scratchpadu seje (e2e-v2.cjs, 138/0), ni v repu.
 
 `test/porocilo-kakovost.mjs` NI del zagona: 6 pravih klicev Sonnet (pregled besedil na eni strani). Samo na Maksovo besedo in s streznikom na narocnini (CLAUDE_SDK=1).
