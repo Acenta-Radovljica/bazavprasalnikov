@@ -5,7 +5,7 @@
 // (besedilo.js: the computed numbers are the only numbers the AI may add) and nothing else.
 // v1 answers have no follow-up block, so every function returns nothing for them.
 
-import { izbranoPodrocje } from '../../public/score/razvejitev.js';
+import { izbranoPodrocje, vseMoznosti } from '../../public/score/razvejitev.js';
 import { javnaPodrocjaV2 } from './javna.js';
 import { PODROCJA } from './vprasanja-v1.js';
 import { VPRASANJA as V2 } from './vprasanja-v2.js';
@@ -88,6 +88,6 @@ export function primerjavaNalog(odgovori = {}) {
 
 // The goal of the first AI project (11.2) in lower case, for the project card, or null.
 export function cilj(odgovori = {}) {
-  const o = Q.cilj.moznosti.find(m => m.id === eno(odgovori, 'cilj'));
+  const o = vseMoznosti(Q.cilj).find(m => m.id === eno(odgovori, 'cilj'));
   return o ? o.text.charAt(0).toLowerCase() + o.text.slice(1) : null;
 }

@@ -212,13 +212,15 @@ const ODG2 = {
   odgovorna_oseba: 'neformalno', razumevanje: 'povprecno', pravila: 'potrebovali', ovira: 'kje_zaceti',
   izguba_casa: ['nabava', 'porocila', 'ponudbe'], stroski: ['nabava', 'zaloge'], proces90: 'nabava',
   nabavne_cene: 'obcasno', nabava_ure: '6-10', nabava_agent: 'cim_prej',
-  cilj: 'stroski', hitrost: 'cim_prej', pomoc: 'agent_nabava', interpretacija: 'pogovor',
+  cilj: 'nabava_cene', hitrost: 'cim_prej', pomoc: 'agent_nabava', interpretacija: 'pogovor',
   panoga: 'proizvodnja', vloga: 'direktor',
 };
 const oddaja2 = (o = {}) => oddaja({ email: `ana2-${sufiks}@primer.si`, podjetje: `Kovinar V2 ${sufiks}`, odgovori: ODG2, ...o });
 const brezUr = { ...ODG2 }; delete brezUr.nabava_ure;
 const x0 = await post(oddaja2({ odgovori: brezUr }));
 t('manjka vprasanje sklopa -> 400 field=nabava_ure', x0.status === 400 && x0.d.field === 'nabava_ure', JSON.stringify(x0));
+const x1 = await post(oddaja2({ odgovori: { ...ODG2, cilj: 'stroski' } }));
+t('splosni cilj pri nabavi -> 400 field=cilj', x1.status === 400 && x1.d.field === 'cilj', JSON.stringify(x1));
 // The marketing block was not shown for "Nabava": its answers must not be stored.
 const x2 = await post(oddaja2({ odgovori: { ...ODG2, marketing_izziv: 'cas' } }));
 t('v2 oddaja 200 + reportUrl', x2.status === 200 && /^\/r\/[A-Za-z0-9_-]{22}$/.test(x2.d.reportUrl || ''), JSON.stringify(x2));
@@ -229,13 +231,13 @@ const pric2 = izracunajScore({ ...ODG2, velikost: '51-100' }, 'v2');
 t('shranjeno kot v2, rezultat = cista funkcija v2', row2?.score_version === 'v2' && row2?.rezultat?.skupno === pric2.skupno && row2?.rezultat?.proces?.id === 'nabava', `${row2?.score_version} ${row2?.rezultat?.skupno} vs ${pric2.skupno}`);
 t('odgovori drugega sklopa niso shranjeni', row2 && !('marketing_izziv' in row2.raw_data.odgovori) && row2.raw_data.odgovori.nabava_ure === '6-10');
 const pd2 = await (await fetch(`${BASE}/r/${token2}/podatki`)).json();
-t('porocilo: cilj in prvi projekt', pd2.cilj === 'znižanje stroškov' && pd2.proces?.id === 'nabava', JSON.stringify({ cilj: pd2.cilj, proces: pd2.proces }));
+t('porocilo: cilj in prvi projekt', pd2.cilj === 'nabava po ugodnejših cenah' && pd2.proces?.id === 'nabava', JSON.stringify({ cilj: pd2.cilj, proces: pd2.proces }));
 t('porocilo: izracunane ure v besedilu (predloga)', (pd2.besedilo?.odstavek || '').includes('72 do 120 ur na leto'), pd2.besedilo?.odstavek);
 t('porocilo v2: koraki za visjo zrelost', Array.isArray(pd2.vzvodi) && pd2.vzvodi.length > 0);
 const csv2 = await (await fetch(`${BASE}/api/score/export.csv`, { headers: { Authorization: AUTH } })).text();
 t('CSV: stolpca Proces v 90 dneh in Glavni cilj', csv2.split('\r\n')[0].includes('Proces v 90 dneh;Glavni cilj'));
 const vr2 = csv2.split('\r\n').find(l => l.includes(`ana2-${sufiks}@primer.si`)) || '';
-t('CSV vrstica v2: Nabava + Znižanje stroškov', vr2.includes(';Nabava;Znižanje stroškov;'), vr2.slice(0, 220));
+t('CSV vrstica v2: Nabava + cilj nabave', vr2.includes(';Nabava;Nabava po ugodnejših cenah;'), vr2.slice(0, 220));
 
 // Cleanup: company delete cascades to responses and score_results.
 await db.query(`DELETE FROM companies WHERE naziv_prikaz LIKE $1 OR naziv_prikaz LIKE $2`, [`%${sufiks}`, `Pade ${sufiks}`]);

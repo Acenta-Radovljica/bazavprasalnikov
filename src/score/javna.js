@@ -14,6 +14,11 @@ function javnoVprasanje(q, v2) {
   return {
     id: q.id, tip: q.tip, max: q.max ?? null, text: q.text,
     ...(v2 && q.podrocje ? { podrocje: q.podrocje } : {}),
+    // The goal (11.2) per process picked at 11.1: texts only, no points on these answers.
+    ...(v2 && q.poProcesu ? {
+      poProcesu: Object.fromEntries(Object.entries(q.poProcesu).map(([k, v]) =>
+        [k, { text: v.text, moznosti: v.moznosti.map(o => ({ id: o.id, text: o.text })) }])),
+    } : {}),
     moznosti: q.moznosti.map(o => {
       const podrocje = !v2 ? null : q.id === 'proces90' ? o.podrocje : SIGNAL_V_JAVNO.has(q.id) ? o.sig : null;
       return { id: o.id, text: o.text, ...(o.nevtralno ? { nevtralno: true } : {}), ...(podrocje ? { podrocje } : {}) };

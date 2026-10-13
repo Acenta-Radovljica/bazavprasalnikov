@@ -6,7 +6,7 @@
 import { vidnaVprasanja } from './razvejitev.js';
 
 const $ = (s) => document.querySelector(s);
-const KEY = 'abs-kviz-v3';           // v2 stored the v1 question set (29. 9.); do not reuse it
+const KEY = 'abs-kviz-v4';           // v3 had one goal list for all (until 13. 10.); do not reuse old keys
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let st = load() || { korak: 0, kontakt: {}, odg: {} };
 function load() { try { return JSON.parse(sessionStorage.getItem(KEY)); } catch { return null; } }
@@ -68,6 +68,12 @@ const skupajVprasanj = () => vidna().length + (cakaPodrocje() ? BLOK : 0);
 function pocistiSkrite() {
   const vid = new Set(vidna().map(q => q.id));
   for (const q of VPRASANJA) if (q.podrocje && !vid.has(q.id)) delete st.odg[q.id];
+  // The goal (11.2) has other answers per process: a pick made for another process is dropped.
+  for (const q of vidna()) {
+    const v = st.odg[q.id];
+    const ima = (id) => q.moznosti.some(m => m.id === id);
+    if (v !== undefined && !(Array.isArray(v) ? v.every(ima) : ima(v))) delete st.odg[q.id];
+  }
 }
 function paintProgress(k) {
   $('#qprog').querySelectorAll('.seg').forEach((el, i) => {

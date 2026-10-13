@@ -6,7 +6,8 @@
 //
 // Input is the public question set from /ai-business-score/vprasanja.json: a question with
 // `podrocje` belongs to that area's follow-up block; options of `proces90` carry the area they
-// pick; options of the time and cost questions carry the area they point to.
+// pick; options of the time and cost questions carry the area they point to; the goal question
+// carries its per-process variants (`poProcesu`).
 
 // The area whose follow-up block is shown, or null (no block).
 // 1. The area picked at "one process in the next 90 days".
@@ -29,8 +30,23 @@ export function izbranoPodrocje(vprasanja, odgovori, vrstniRed) {
   return vrstniRed.reduce((best, p) => ((stej[p] || 0) > (best ? stej[best] : 0) ? p : best), null);
 }
 
-// Questions the respondent sees, in order: every common question plus the chosen area's block.
+// A question with `poProcesu` (the goal, 11.2) takes its text and answers from the process
+// picked at "one process in 90 days"; Operativa, Ne vem or no pick keep its own. Own keys only,
+// so an answer like "constructor" cannot reach Object.prototype.
+export function razresi(q, odgovori) {
+  if (!q.poProcesu) return q;
+  const { poProcesu, ...osnova } = q;
+  const k = odgovori?.proces90;
+  const v = typeof k === 'string' && Object.hasOwn(poProcesu, k) ? poProcesu[k] : null;
+  return v ? { ...osnova, text: v.text, moznosti: v.moznosti } : osnova;
+}
+
+// Every answer a question can have under any process (for answer texts of stored rows).
+export const vseMoznosti = (q) => [...q.moznosti, ...Object.values(q.poProcesu || {}).flatMap(v => v.moznosti)];
+
+// Questions the respondent sees, in order: every common question plus the chosen area's block,
+// each with the text and answers for the picked process.
 export function vidnaVprasanja(vprasanja, odgovori, vrstniRed) {
   const p = izbranoPodrocje(vprasanja, odgovori, vrstniRed);
-  return vprasanja.filter(q => !q.podrocje || q.podrocje === p);
+  return vprasanja.filter(q => !q.podrocje || q.podrocje === p).map(q => razresi(q, odgovori));
 }

@@ -181,6 +181,70 @@ const SKLOPI = {
 };
 export const POGLOBLJENI = Object.fromEntries(Object.entries(SKLOPI).map(([p, qs]) => [p, qs.map(q => q.id)]));
 
+// Goal of the first AI project (11.2) per department, as Matjaž confirmed and added to them
+// (13. 10. 2026). Ids are unique across these lists and the general one, so an answer id alone
+// says which text it is.
+const CILJ_NABAVA = [
+  { id: 'nabava_cene', text: 'Nabava po ugodnejših cenah' },
+  { id: 'nabava_primerjava', text: 'Manj časa za primerjavo ponudb' },
+  { id: 'nabava_alternative', text: 'Iskanje alternativnih dobaviteljev' },
+  { id: 'nabava_odvisnost', text: 'Manjša odvisnost od obstoječih dobaviteljev' },
+  { id: 'nabava_pogajanja', text: 'Boljša izhodišča za pogajanja' },
+  { id: 'nabava_povprasevanja', text: 'Manj ročnega dela pri povpraševanjih dobaviteljem' },
+  { id: 'nabava_zaloge', text: 'Boljše načrtovanje zalog' },
+  { id: 'nabava_narocanje', text: 'Poenostavitev in avtomatizacija naročanja' },
+  { id: 'nabava_svetovalec', text: 'Pomoč strokovnega svetovalca za nabavo iz vaše panoge' },
+];
+const CILJ_PRODAJA = [
+  { id: 'prodaja_odziv', text: 'Hitrejši odziv na povpraševanja' },
+  { id: 'prodaja_ponudbe', text: 'Hitrejša priprava ponudb' },
+  { id: 'prodaja_kakovost', text: 'Kakovostnejše ponudbe in prodajni argumenti' },
+  { id: 'prodaja_komunikacija', text: 'Redna komunikacija s stranko po ponudbi' },
+  { id: 'prodaja_prednost', text: 'Prednost povpraševanjem z največjo vrednostjo' },
+  { id: 'prodaja_vec', text: 'Več povpraševanj' },
+  { id: 'prodaja_sistem', text: 'Bolj sistematična prodaja' },
+  { id: 'prodaja_odprta', text: 'Redno sledenje, kdaj stranka odpre ponudbo' },
+  { id: 'prodaja_svetovalec', text: 'Pomoč strokovnega svetovalca za prodajo iz vaše panoge' },
+];
+const CILJ_MARKETING = [
+  { id: 'marketing_cas', text: 'Manj časa za pripravo vsebin' },
+  { id: 'marketing_ideje', text: 'Več idej za vsebine' },
+  { id: 'marketing_kanali', text: 'Dosledna komunikacija na vseh kanalih' },
+  { id: 'marketing_skupine', text: 'Vsebine, prilagojene posameznim ciljnim skupinam' },
+  { id: 'marketing_povprasevanja', text: 'Več povpraševanj iz marketinga' },
+  { id: 'marketing_merjenje', text: 'Boljše merjenje rezultatov' },
+  { id: 'marketing_nacrt', text: 'Jasen načrt vsebin in kampanj' },
+  { id: 'marketing_mnenja', text: 'Analiza in odgovarjanje na mnenja' },
+  { id: 'marketing_svetovalec', text: 'Pomoč strokovnega svetovalca za marketing iz vaše panoge' },
+];
+// Shared by "Administracija" and "Interno znanje" (one list in the Word, two question texts).
+const CILJ_ADMINISTRACIJA = [
+  { id: 'admin_zapisniki', text: 'Manj časa za zapisnike, povzetke in poročila' },
+  { id: 'admin_iskanje', text: 'Hitro iskanje internih informacij in dokumentov' },
+  { id: 'admin_baza', text: 'Urejena baza znanja, ki jo zaposleni res uporabljajo' },
+  { id: 'admin_vprasanja', text: 'Manj ponavljajočih se vprašanj med zaposlenimi' },
+  { id: 'admin_oddelki', text: 'Boljša komunikacija med oddelki' },
+  { id: 'admin_termini', text: 'Manj časa za usklajevanje terminov' },
+  { id: 'admin_svetovalec', text: 'Pomoč strokovnega svetovalca za administracijo iz vaše panoge' },
+];
+const CILJ_VODSTVO = [
+  { id: 'vodstvo_podatki', text: 'Odločanje na podlagi podatkov' },
+  { id: 'vodstvo_svetovalec', text: 'Pomoč strokovnega svetovalca za vodstvo iz vaše panoge, npr. finančnega ali investicijskega' },
+  { id: 'vodstvo_informacije', text: 'Hitrejši dostop do jasnih informacij za odločanje' },
+  { id: 'vodstvo_porocila', text: 'Uporabna poročila s ključnimi kazalniki' },
+  { id: 'vodstvo_pregled', text: 'Manj časa za pregled poročil in analizo rezultatov' },
+  { id: 'vodstvo_sestanki', text: 'Boljša priprava sestankov in odločitev' },
+  { id: 'vodstvo_tveganja', text: 'Pravočasno prepoznavanje tveganj' },
+];
+const CILJ_PODPORA = [
+  { id: 'podpora_hitrost', text: 'Hitrejši odgovori strankam in gostom' },
+  { id: 'podpora_samodejno', text: 'Samodejni odgovori na ponavljajoča se vprašanja' },
+  { id: 'podpora_osebno', text: 'Bolj osebni odgovori strankam' },
+  { id: 'podpora_kanali', text: 'Boljši pregled nad sporočili strank z vseh kanalov' },
+  { id: 'podpora_izven', text: 'Odgovori tudi zunaj delovnega časa' },
+  { id: 'podpora_izkusnja', text: 'Boljša izkušnja strank in gostov' },
+];
+
 // Order is the order on screen (approved plan, 2. 10. 2026). The follow-up block sits right
 // after `proces90`; the browser shows only the block of the chosen area (public/score/razvejitev.js).
 export const VPRASANJA = [
@@ -232,6 +296,18 @@ export const VPRASANJA = [
     id: 'cilj', word: '11.2', tip: 'ena',
     text: 'Kaj bi moral biti glavni cilj prve uvedbe AI?',
     // Not scored: the report measures the first project against this goal.
+    // Matjaž, 13. 10. 2026 (Word "vprašanje 14 po oddelkih"): the text and answers follow the
+    // process picked at 11.1 (`poProcesu`, keyed by its option id; razvejitev.js picks it).
+    // Operativa and Ne vem name no department, so they get this general list.
+    poProcesu: {
+      nabava: { text: 'Kaj bi moral biti glavni cilj prve uvedbe AI v nabavi?', moznosti: CILJ_NABAVA },
+      prodaja: { text: 'Kaj bi moral biti glavni cilj prve uvedbe AI v prodaji?', moznosti: CILJ_PRODAJA },
+      marketing: { text: 'Kaj bi moral biti glavni cilj prve uvedbe AI v marketingu?', moznosti: CILJ_MARKETING },
+      administracija: { text: 'Kaj bi moral biti glavni cilj prve uvedbe AI v administraciji?', moznosti: CILJ_ADMINISTRACIJA },
+      znanje: { text: 'Kaj bi moral biti glavni cilj prve uvedbe AI pri upravljanju znanja v podjetju?', moznosti: CILJ_ADMINISTRACIJA },
+      vodstvo: { text: 'Kaj bi moral biti glavni cilj prve uvedbe AI pri vodenju podjetja?', moznosti: CILJ_VODSTVO },
+      podpora: { text: 'Kaj bi moral biti glavni cilj prve uvedbe AI pri podpori strankam?', moznosti: CILJ_PODPORA },
+    },
     moznosti: [
       { id: 'cas', text: 'Prihranek časa' },
       { id: 'stroski', text: 'Znižanje stroškov' },

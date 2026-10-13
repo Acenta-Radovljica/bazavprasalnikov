@@ -46,7 +46,12 @@ const SKLOP = {
   vodstvo: { informacije_hitrost: 'pocasi', kpi_porocila: 'neuporabna', direktor_pomocnik: 'zelo' },
   podpora: { vprasanja_pogostost: 'veckrat_dnevno', komunikacija_cas: 'ponavljajoca', podpora_pomocnik: 'mogoce' },
 };
-const pot = (podrocje) => ({ ...JEDRO, proces90: podrocje, ...SKLOP[podrocje] });
+// Goal (11.2) per department (Matjaž, 13. 10.); JEDRO keeps a general one for Operativa/Ne vem.
+const CILJ = {
+  nabava: 'nabava_cene', prodaja: 'prodaja_odziv', marketing: 'marketing_cas',
+  administracija: 'admin_iskanje', vodstvo: 'vodstvo_podatki', podpora: 'podpora_hitrost',
+};
+const pot = (podrocje) => ({ ...JEDRO, proces90: podrocje, ...SKLOP[podrocje], cilj: CILJ[podrocje] ?? JEDRO.cilj });
 const kontakt = { ime: 'Ana', priimek: 'Novak', email: 'ana@primer.si', telefon: '041 123 456', podjetje: 'Kovinar', velikost: '51-100' };
 
 console.log('\n1. Nabor vprašanj');
@@ -83,6 +88,45 @@ t('»Operativa«: področje z največ oznakami pri času in stroških', izbranoP
 t('»Ne vem«: neodločeno odloči vrstni red (nabava pred prodajo)', izbranoPodrocje(JAVNO.vprasanja,
   { ...JEDRO, proces90: 'ne_vem', izguba_casa: ['ponudbe'], stroski: ['nabava'] }, PODR) === 'nabava');
 t('»Ne vem« brez oznak: brez sklopa, 16 vprašanj', vidni({ ...JEDRO, proces90: 'ne_vem', izguba_casa: ['ne_vem'], stroski: ['ne_vem'] }).length === 16);
+
+console.log('\n3b. Glavni cilj po oddelku (vprašanje 14)');
+const ciljZa = (proces90) => vidnaVprasanja(JAVNO.vprasanja, { ...JEDRO, proces90 }, PODR).find(q => q.id === 'cilj');
+const QC = VPRASANJA.find(q => q.id === 'cilj');
+const vsiId = [...QC.moznosti, ...Object.values(QC.poProcesu).flatMap(v => v.moznosti)].map(o => o.id);
+t('oddelki iz Worda + Interno znanje', Object.keys(QC.poProcesu).join() === 'nabava,prodaja,marketing,administracija,znanje,vodstvo,podpora');
+// "Interno znanje" reuses the administration list (7 ids), so those appear twice.
+t('id-ji odgovorov so edinstveni čez vse sezname', new Set(vsiId).size === vsiId.length - 7, vsiId.length);
+const PRICAKOVANO = {
+  nabava: ['v nabavi?', 9, 'Nabava po ugodnejših cenah', 'Pomoč strokovnega svetovalca za nabavo iz vaše panoge'],
+  prodaja: ['v prodaji?', 9, 'Hitrejši odziv na povpraševanja', 'Pomoč strokovnega svetovalca za prodajo iz vaše panoge'],
+  marketing: ['v marketingu?', 9, 'Manj časa za pripravo vsebin', 'Pomoč strokovnega svetovalca za marketing iz vaše panoge'],
+  administracija: ['v administraciji?', 7, 'Manj časa za zapisnike, povzetke in poročila', 'Pomoč strokovnega svetovalca za administracijo iz vaše panoge'],
+  znanje: ['pri upravljanju znanja v podjetju?', 7, 'Manj časa za zapisnike, povzetke in poročila', 'Pomoč strokovnega svetovalca za administracijo iz vaše panoge'],
+  vodstvo: ['pri vodenju podjetja?', 7, 'Odločanje na podlagi podatkov', 'Pravočasno prepoznavanje tveganj'],
+  podpora: ['pri podpori strankam?', 6, 'Hitrejši odgovori strankam in gostom', 'Boljša izkušnja strank in gostov'],
+};
+for (const [p, [konec, n, prvi, zadnji]] of Object.entries(PRICAKOVANO)) {
+  const q = ciljZa(p);
+  t(`${p}: besedilo in ${n} odgovorov`, q.text.endsWith(konec) && q.moznosti.length === n && q.moznosti[0].text === prvi && q.moznosti[n - 1].text === zadnji,
+    [q.text, q.moznosti.length, q.moznosti[0]?.text, q.moznosti[n - 1]?.text].join(' | '));
+}
+t('Matjaževi popravki besedila', ciljZa('prodaja').moznosti.some(o => o.text === 'Redna komunikacija s stranko po ponudbi')
+  && ciljZa('vodstvo').moznosti[1].text.startsWith('Pomoč strokovnega svetovalca za vodstvo') && ciljZa('marketing').moznosti.some(o => o.text === 'Analiza in odgovarjanje na mnenja'));
+for (const p of ['operativa', 'ne_vem']) {
+  const q = ciljZa(p);
+  t(`${p}: splošni seznam 8 odgovorov`, q.text === 'Kaj bi moral biti glavni cilj prve uvedbe AI?' && q.moznosti.length === 8 && q.moznosti[0].id === 'cas');
+}
+t('brez 11.1 ali z nenavadnim id: splošni seznam, brez napake', ciljZa(undefined).moznosti.length === 8 && ciljZa('constructor').moznosti.length === 8 && ciljZa('__proto__').moznosti.length === 8);
+t('javni JSON nosi sezname po procesu brez točk', JSON.stringify(JAVNO.vprasanja.find(q => q.id === 'cilj').poProcesu.nabava.moznosti[0]) === '{"id":"nabava_cene","text":"Nabava po ugodnejših cenah"}');
+const zSplosnim = validirajOddajo({ ...kontakt, odgovori: { ...pot('nabava'), cilj: 'stroski' } });
+t('nabava + splošni cilj je zavrnjen (polje cilj)', !zSplosnim.ok && zSplosnim.field === 'cilj', JSON.stringify(zSplosnim));
+const oper = { ...JEDRO, proces90: 'operativa', ...SKLOP.nabava };
+t('Operativa: splošni cilj je sprejet, tudi ko sklop izbere nabavo', validirajOddajo({ ...kontakt, odgovori: oper }).ok);
+t('Operativa: cilj nabave ni sprejet', validirajOddajo({ ...kontakt, odgovori: { ...oper, cilj: 'nabava_cene' } }).field === 'cilj');
+const znanje = validirajOddajo({ ...kontakt, odgovori: { ...JEDRO, proces90: 'znanje', ...SKLOP.administracija, cilj: 'admin_baza' } });
+t('Interno znanje: cilj iz administracije je sprejet', znanje.ok && besedilaOdgovorov(znanje.odgovori).cilj === 'Urejena baza znanja, ki jo zaposleni res uporabljajo');
+t('besedilo cilja za CSV in AI vhod', besedilaOdgovorov(pot('prodaja')).cilj === 'Hitrejši odziv na povpraševanja');
+t('constructor pri 11.1 vrne polje proces90, ne napake', validirajOddajo({ ...kontakt, odgovori: { ...pot('nabava'), proces90: 'constructor' } }).field === 'proces90');
 
 console.log('\n4. Preverjanje oddaje');
 const ok2 = validirajOddajo({ ...kontakt, odgovori: { ...pot('nabava'), ...SKLOP.marketing } });
@@ -135,7 +179,8 @@ t('v1 odgovori: brez sklopa in brez dejstev', podrocjeSklopa(V1ODG) === null && 
 t('vsako področje ima stavek posledice', PODR.every(p => stavekPodrocja(pot(p))?.stavek), PODR.filter(p => !stavekPodrocja(pot(p))).join());
 t('AI za e-pošto, čas gre v nabavo: vrzel', primerjavaNalog(pot('nabava')) === 'vrzel');
 t('AI pri nabavi, čas gre v nabavo: ujemanje', primerjavaNalog({ ...pot('nabava'), naloge: ['nabava'] }) === 'ujemanje');
-t('cilj z malo začetnico', cilj(pot('nabava')) === 'znižanje stroškov');
+t('cilj z malo začetnico', cilj(pot('nabava')) === 'nabava po ugodnejših cenah', cilj(pot('nabava')));
+t('shranjen splošni cilj (pred 13. 10.) se še prebere', cilj({ cilj: 'stroski' }) === 'znižanje stroškov');
 
 const ECHO = /\bste (označili|navedli|izbrali|povedali|odgovorili)\b/i;
 for (const p of PODR) {

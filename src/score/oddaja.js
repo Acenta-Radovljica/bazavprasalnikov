@@ -10,7 +10,7 @@
 import * as V1 from './vprasanja-v1.js';
 import * as V2 from './vprasanja-v2.js';
 import { javnaVprasanja, javnaPodrocjaV2 } from './javna.js';
-import { vidnaVprasanja } from '../../public/score/razvejitev.js';
+import { vidnaVprasanja, razresi, vseMoznosti } from '../../public/score/razvejitev.js';
 
 export { javnaVprasanja };
 export const SCORE_SLUG = 'ai-business-score';
@@ -60,9 +60,10 @@ export function validirajOddajo(payload = {}) {
   const vhod = payload.odgovori && typeof payload.odgovori === 'object' ? payload.odgovori : {};
   const marketing = payload.marketing_consent === true || payload.marketing_consent === 'on';
 
-  // v2: the visible set is decided by the public rule, the option ids by the full definitions.
+  // v2: the visible set is decided by the public rule, the option ids by the full definitions
+  // (the goal's answers by the process picked at 11.1, same rule as in the browser).
   const vidni = new Set(vidnaVprasanja(javnaPodrocjaV2(), vhod, V1.PODROCJA).map(q => q.id));
-  const r2 = preveriOdgovore(V2.VPRASANJA.filter(q => vidni.has(q.id)), vhod);
+  const r2 = preveriOdgovore(V2.VPRASANJA.filter(q => vidni.has(q.id)).map(q => razresi(q, vhod)), vhod);
   if (r2.odgovori) return { ok: true, kontakt, odgovori: r2.odgovori, marketing, verzija: V2.SCORE_VERSION };
 
   // A page loaded before the v2 deploy sends the v1 set (it has v1's "potencial" list).
@@ -85,7 +86,7 @@ export function besedilaOdgovorov(odgovori) {
     const v = odgovori?.[q.id];
     if (v === undefined) continue;
     const ids = Array.isArray(v) ? v : [v];
-    out[q.id] = ids.map(id => q.moznosti.find(o => o.id === id)?.text).filter(Boolean).join('; ');
+    out[q.id] = ids.map(id => vseMoznosti(q).find(o => o.id === id)?.text).filter(Boolean).join('; ');
   }
   return out;
 }
