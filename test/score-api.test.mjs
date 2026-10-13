@@ -226,7 +226,7 @@ t('kljuc + idempotency po tokenu', m1?.auth === 'Bearer test-mail-key-1234567890
 t('zadeva in Majino besedilo s podpisom', m1?.body.subject === '[AI Business Score] Vaši rezultati'
   && m1?.body.text.startsWith('Pozdravljeni,\n\nhvala, da ste izpolnili AI Business Score.')
   && m1?.body.text.includes('v priloženem PDF dokumentu') && m1?.body.text.includes('prihraniti čas in denar.')
-  && m1?.body.text.includes('Matjaž Kristan\nVodja prodaje\nAcenta d.o.o.\nKranjska cesta 4, 4240 Radovljica\nTel: 041 669 785\nE-naslov: matjaz@acenta.si')
+  && m1?.body.text.includes('Matjaž Kristan\nVodja prodaje\n\nAcenta d.o.o.\nKranjska cesta 4, 4240 Radovljica\nTel: 041 669 785\nE-naslov: matjaz@acenta.si')
   && m1?.body.html.includes('hvala, da ste izpolnili AI Business Score.') && m1?.body.html.includes('tel:+38641669785'), m1?.body.text);
 const pril = m1?.body.attachments?.[0];
 const pdfBuf = Buffer.from(pril?.content || '', 'base64');

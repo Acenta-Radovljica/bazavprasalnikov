@@ -37,7 +37,8 @@ const ODSTAVKI = [
   'Če bi želeli rezultate skupaj pregledati ali se pogovoriti o naslednjih korakih, se lahko obrnete neposredno name. Z veseljem vam bom pomagal poiskati priložnosti, ki bodo vašemu podjetju pomagale prihraniti čas in denar.',
   'Lep pozdrav,',
 ];
-const PODPIS = ['Matjaž Kristan', 'Vodja prodaje', 'Acenta d.o.o.', 'Kranjska cesta 4, 4240 Radovljica', 'Tel: 041 669 785', 'E-naslov: matjaz@acenta.si'];
+// The empty entry is a blank line between the title and the company (Maks, 13. 10. 2026).
+const PODPIS = ['Matjaž Kristan', 'Vodja prodaje', '', 'Acenta d.o.o.', 'Kranjska cesta 4, 4240 Radovljica', 'Tel: 041 669 785', 'E-naslov: matjaz@acenta.si'];
 
 const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
