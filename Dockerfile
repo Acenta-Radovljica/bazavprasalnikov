@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:22-alpine
 
 # Chromium za Puppeteer (PDF render). Alpine paket je manjsi od puppeteer-jevega
 # bundled Chromium-a (~300MB → ~150MB), zato uporabimo puppeteer-core in pokazemo
