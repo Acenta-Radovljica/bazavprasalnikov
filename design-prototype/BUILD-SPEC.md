@@ -302,13 +302,13 @@ z izbiro vprašalnika in `.metrics` 4×, panel grafa, panel »Aktivnost podjetij
 |---|---|---|---|
 | Statistika | `#btn-statistika` onclick `preklopiStatistiko()` | preklopi razred `hidden` na `#statistika`, preimenuje v »Skrij statistiko«, drsi do nje | `.btn--secondary` + `i-bars` + `<span>` z oznako |
 | Nov sestanek | `a.btn-dark` | `/admin/procesi.html#nov` | `a.btn.btn--primary` + `i-plus` |
-| Kazalniki | `#s-podjetja #d-podjetja #s-odgovori #spark-odgovori #d-odgovori #s-seje #d-seje #s-brez #s-zastarela` | `/api/stats`, `/api/procesi/seje`; `deltaBadge()`, `renderSparkline()` | `.metric` (`.metric__value`, `.metric__note`, `svg.spark`); »Brez priporočil« in »Zastarela« z `.dot--warning` v oznaki; `deltaBadge` piše `.delta-up/.delta-down` |
+| Kazalniki | `#s-podjetja #d-podjetja #s-odgovori #spark-odgovori #d-odgovori #s-seje #d-seje #s-brez` | `/api/stats`, `/api/procesi/seje`; `deltaBadge()`, `renderSparkline()` | `.metric` (`.metric__value`, `.metric__note`, `svg.spark`); »Brez prodajnega predloga« (od 27. 10. 2026 namesto »Brez priporočil« in »Zastarela«) z `.dot--warning` v oznaki; `deltaBadge` piše `.delta-up/.delta-down` |
 | Poudarek dneva | `#h-num #h-naslov #h-opis #h-caka #h-zakljuceno` | `/api/naloge` `skupno`; `izrisiHero()` (sklon, 0 = »Nič ni na tebi«, ≥ 5 poudarek) | `.focus__num` (modifikatorja za 0 in ≥ 5 v stranskem CSS: `--success-text` / `--warning-text`) |
 | Vedra | `#v-ukrepaj #v-caka #v-zakljuceno`, `#c-*` | `/api/naloge`; `opisNaloge()`, `izrisiVedro()` | `li.task.naloga`; ton: nujno `.dot--danger`, opozorilo `.dot--warning`, mirno `.dot--accent`; glavni gumb `a.btn.btn--soft.btn--sm`, ostali `a.btn.btn--secondary.btn--sm`; značka Poslano `.chip--accent`, Zaključeno `.chip--success` |
 | Gumbi nalog | `a.btn-mini` | `proces-seja.html?id=…` (+ `#kartaPosiljanje` / `#kartaTranskript`), `podjetja.html`, `company.html?id=…` | povezave in hashi NESPREMENJENI (prototip ima `#posiljanje`, to ni prav) |
 | Filter vprašalnika | `#filter-q` onchange `spremeniFilter()` | hash `#q=ID`, `/api/companies?questionnaire_id=ID` | `.select-wrap` + `select.select.select--sm` |
 | Graf 30 dni | `#timeline-chart`, `#timeline-meta` | `stats.timeline`; `renderTimelineChart()` | SVG z razredi `.grid .axis .area .line .pt` iz prototipa (brez hex barv v JS) |
-| Aktivnost podjetij | `#aktivnost` vrstice | `company.html?id=…`; značka AI ✓ / zastarela / — | `ul.rows > li > a.row` (`.avatar`, `.row__txt`, `.chip`) |
+| Aktivnost podjetij | `#aktivnost` vrstice | `company.html?id=…`; značka predloga: pripravljen / se pripravlja / brez (od 27. 10. 2026) | `ul.rows > li > a.row` (`.avatar`, `.row__txt`, `.chip`) |
 | Odpri seznam | `a` | `/admin/podjetja.html` | `a.link` |
 
 **Odstrani:** `toggleSub()` in del `renderiraj_seznam()`, ki piše v `#sub` / `#chev-ovoj` (sicer JS

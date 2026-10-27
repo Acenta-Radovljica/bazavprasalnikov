@@ -45,7 +45,7 @@ node test/prodajni-predlog-api.test.mjs # 47 trditev (API pripravi/preberi/PDF, 
 node test/popis.test.mjs             # 67 trditev (popis opravil: ure, preverjanje oddaje, oznake O1.., [ure: …] v predlogu z laznim AI, 03-popis-opravil.md; brez streznika)
 node test/popis-api.test.mjs         # 75 trditev (/popis/:koda, oddaje, zamenjava povezave, kartica na strani podjetja namizje+telefon, namig v predlogu, izvoz)
 node test/pred.test.mjs              # 46 trditev (raven znanja pred delavnico brez AI, besedila za teme, preverjanje tem in en popravek z laznim AI; brez streznika in baze)
-node test/pred-api.test.mjs          # del vprasalnika (pred/po/drugo), zavihki na strani podjetja, Pregled pred delavnico, predlog brez odgovorov pred, teme z laznim AI v testni bazi, telefon
+node test/pred-api.test.mjs          # 86 trditev (del vprasalnika pred/po/drugo, zavihki na strani podjetja, Pregled pred delavnico, predlog brez odgovorov pred, teme z laznim AI v testni bazi, telefon; Danes: »Brez prodajnega predloga« namesto priporocil)
 # pred-api rabi streznik BREZ AI (kot prodajni-predlog-api) in TEST_DB_URL: teme z laznim AI zapise
 # neposredno v testno bazo (DATABASE_URL nastavi sam na TEST_DB_URL).
 ```

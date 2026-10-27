@@ -48,7 +48,7 @@
 
     /* Statistics (hidden; the top bar button opens it) */
     .stats { margin-top: var(--space-6); display: grid; gap: var(--space-4); scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
-    .stats .metrics { --metrics-cols: 4; margin: 0; border: 0; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+    .stats .metrics { --metrics-cols: 3; margin: 0; border: 0; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
     .stats .panel__head .select-wrap { max-width: 280px; min-width: 0; }
     .chart { padding: var(--space-3) var(--space-4) var(--space-4); }
     .chart svg { width: 100%; height: 190px; overflow: visible; }
@@ -65,9 +65,7 @@
     .rows > li > a.row:hover { background: var(--bg-hover); }
 
     @media (max-width: 1100px) {
-      #kpi-vrh { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-      #kpi-vrh > .metric:nth-child(-n+2) { grid-column: span 3; }
-      #kpi-vrh > .metric:nth-child(n+3) { grid-column: span 2; }
+      #kpi-vrh { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .buckets { grid-template-columns: minmax(0, 1fr); }
     }
     @media (max-width: 760px) {
@@ -76,9 +74,10 @@
       .focus__stats { width: 100%; gap: 0; padding-top: var(--space-3); border-top: 1px solid var(--accent-border); }
       .focus__stats div { flex: 1; border-left: 0; padding-left: 0; }
       .focus__stats div + div { padding-left: var(--space-4); border-left: 1px solid var(--accent-border); }
-      #kpi-vrh { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      #kpi-vrh > .metric:nth-child(n) { grid-column: span 1; }
+      /* Answers (with the sparkline) and the proposal count get full rows. */
       #kpi-vrh > .metric:nth-child(2) { grid-column: 1 / -1; order: -1; }
+      #kpi-vrh > .metric:nth-child(4),
+      .stats .metrics > .metric:last-child { grid-column: 1 / -1; }
       .task { padding: 14px; }
       .metric__note { white-space: normal; }
       .task__actions .btn { flex: 1; }
@@ -117,7 +116,7 @@
           </dl>
         </section>
 
-        <section class="metrics" id="kpi-vrh" style="--metrics-cols:5" aria-label="Kazalniki">
+        <section class="metrics" id="kpi-vrh" aria-label="Kazalniki">
           <div class="metric">
             <span class="metric__label">Podjetja</span>
             <span class="metric__value" id="s-podjetja">—</span>
@@ -138,14 +137,9 @@
             <span class="metric__note" id="d-seje">&nbsp;</span>
           </div>
           <div class="metric">
-            <span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Brez priporočil</span>
+            <span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Brez prodajnega predloga</span>
             <span class="metric__value" id="s-brez">—</span>
-            <span class="metric__note">imajo odgovore, AI ni tekel</span>
-          </div>
-          <div class="metric">
-            <span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Zastarela priporočila</span>
-            <span class="metric__value" id="s-zastarela">—</span>
-            <span class="metric__note">novejši odgovor po generaciji</span>
+            <span class="metric__note">imajo odgovore po delavnici</span>
           </div>
         </section>
 
@@ -194,8 +188,7 @@
             <div class="metrics">
               <div class="metric"><span class="metric__label">Podjetja skupaj</span><span class="metric__value" id="stat-podjetja">—</span><span class="metric__note" id="delta-podjetja">&nbsp;</span></div>
               <div class="metric"><span class="metric__label">Odgovori skupaj</span><span class="metric__value" id="stat-odgovori">—</span><span class="metric__note" id="delta-odgovori">&nbsp;</span></div>
-              <div class="metric"><span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Zastarela priporočila</span><span class="metric__value" id="stat-zastarela">—</span><span class="metric__note">regeneriraj v podjetju</span></div>
-              <div class="metric"><span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Brez priporočil</span><span class="metric__value" id="stat-brez">—</span><span class="metric__note">še nikoli generirana</span></div>
+              <div class="metric"><span class="metric__label"><span class="dot dot--warning" aria-hidden="true"></span>Brez prodajnega predloga</span><span class="metric__value" id="stat-brez">—</span><span class="metric__note">pripravi ga na strani podjetja</span></div>
             </div>
           </article>
 
@@ -355,13 +348,9 @@
         case 'za_zakljucit':
           return { ton: 'opozorilo', naslov: esc(n.stranka_naziv), opis: `Osnutek${proces}${odst != null ? ` · izpolnjeno ${PROCENT(odst)}` : ''}`,
                    gumbi: [['Nadaljuj', `/admin/proces-seja.html?id=${n.session_id}`, true]], kdaj: starost(n.updated_at) };
-        case 'brez_priporocil':
-          return { ton: 'opozorilo', naslov: `${sklon(n.stevilo, ['podjetje', 'podjetji', 'podjetja', 'podjetij'])} brez priporočil`,
-                   opis: 'Imajo odgovore, AI priporočila še niso bila generirana',
-                   gumbi: [['Odpri seznam', '/admin/podjetja.html', true]], kdaj: '' };
-        case 'zastarela_priporocila':
-          return { ton: 'opozorilo', naslov: sklon(n.stevilo, ['zastarelo priporočilo', 'zastareli priporočili', 'zastarela priporočila', 'zastarelih priporočil']),
-                   opis: 'Po zadnji generaciji je prišel novejši odgovor',
+        case 'brez_predloga':
+          return { ton: 'opozorilo', naslov: `${sklon(n.stevilo, ['podjetje', 'podjetji', 'podjetja', 'podjetij'])} brez prodajnega predloga`,
+                   opis: 'Imajo odgovore po delavnici, predlog še ni pripravljen',
                    gumbi: [['Odpri seznam', '/admin/podjetja.html', true]], kdaj: '' };
         case 'neocenjen_odgovor':
           return { ton: 'opozorilo', naslov: esc(n.naziv_prikaz), opis: 'Nov odgovor, brez kvalifikacije',
@@ -515,12 +504,11 @@
       }
 
       el.innerHTML = aktivni.map(p => {
-        const zastarela = p.has_priporocila && p.priporocila_updated_at && p.zadnji_odgovor
-          && new Date(p.zadnji_odgovor) > new Date(p.priporocila_updated_at);
+        // Sales proposal, the same three states as on Podjetja.
         let znacka;
-        if (!p.has_priporocila) znacka = '<span class="chip">AI ni pripravljeno</span>';
-        else if (zastarela)     znacka = '<span class="chip chip--warning">AI zastarela</span>';
-        else                    znacka = '<span class="chip chip--success">AI pripravljeno</span>';
+        if (p.prodajni_predlog_tece)     znacka = '<span class="chip chip--accent">Predlog se pripravlja</span>';
+        else if (p.ima_prodajni_predlog) znacka = '<span class="chip chip--success">Predlog pripravljen</span>';
+        else                             znacka = '<span class="chip">Brez predloga</span>';
         return `
           <li><a class="row" href="/admin/company.html?id=${p.id}">
             <span class="avatar" aria-hidden="true">${esc(zacetnice(p.naziv_prikaz))}</span>
@@ -570,8 +558,7 @@
       document.getElementById('s-podjetja').textContent = t.podjetja_total;
       document.getElementById('s-odgovori').textContent = t.odgovori_7d;
       document.getElementById('s-seje').textContent = vseSeje.length;
-      document.getElementById('s-brez').textContent = t.brez_priporocil;
-      document.getElementById('s-zastarela').textContent = stats.zastarela;
+      document.getElementById('s-brez').textContent = t.brez_predloga;
       // Companies: how many are new this week (count, as in the prototype).
       const novih = t.podjetja_7d ?? 0;
       document.getElementById('d-podjetja').innerHTML = novih > 0
@@ -608,8 +595,7 @@
 
       document.getElementById('stat-podjetja').textContent = t.podjetja_total;
       document.getElementById('stat-odgovori').textContent = t.odgovori_total;
-      document.getElementById('stat-zastarela').textContent = stats.zastarela;
-      document.getElementById('stat-brez').textContent = t.brez_priporocil;
+      document.getElementById('stat-brez').textContent = t.brez_predloga;
       deltaBadge('delta-podjetja', t.podjetja_7d, t.podjetja_prej_7d);
       deltaBadge('delta-odgovori', t.odgovori_7d, t.odgovori_prej_7d);
 

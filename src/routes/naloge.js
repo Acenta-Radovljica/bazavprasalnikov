@@ -4,7 +4,7 @@
 // razvrscen v tri vedra:
 //
 //   ukrepaj     — na nas, blokira napredek (seja brez transkripta, zakljucena
-//                 seja, ki ni poslana, odgovor brez priporocil ...)
+//                 seja, ki ni poslana, podjetje brez prodajnega predloga ...)
 //   caka        — se premika brez nas (zastala seja tujega svetovalca, poslano
 //                 stranki brez odziva)
 //   zakljuceno  — kaj je bilo v zadnjih 7 dneh dejansko konec (potrditev, da
@@ -19,6 +19,16 @@ import { dbQuery } from '../db.js';
 import { izracunajNapredek } from '../procesi/schema.js';
 
 const router = express.Router();
+
+// Podjetja z vsaj enim odgovorom po delavnici, ki nimajo prodajnega predloga
+// (ne pripravljenega ne v pripravi). Samo odgovori pred delavnico predloga ne
+// sprozijo (Maks, 27. 10. 2026). Isto steje /api/stats.
+export const SQL_BREZ_PREDLOGA = `(SELECT count(*) FROM companies c
+   WHERE EXISTS (SELECT 1 FROM responses r JOIN questionnaires q ON q.id = r.questionnaire_id
+                  WHERE r.company_id = c.id AND q.faza = 'po')
+     AND NOT EXISTS (SELECT 1 FROM prodajni_predlogi pp
+                      WHERE pp.company_id = c.id AND pp.status IN ('ok', 'pripravlja'))
+  )::int`;
 
 // Koliko dni brez posodobitve pomeni, da je osnutek "zastal".
 const ZASTALO_DNI = 3;
@@ -55,25 +65,9 @@ async function naloziSeje() {
   });
 }
 
-// Lead stran: podjetja, ki cakajo na AI ali na oceno.
+// Lead stran: podjetja, ki cakajo na prodajni predlog.
 async function naloziLeade() {
-  const r = await dbQuery(`
-    SELECT
-      -- Ima odgovore, nima nobenega priporocila.
-      (SELECT count(*) FROM companies c
-        WHERE NOT EXISTS (SELECT 1 FROM company_priporocila cp WHERE cp.company_id = c.id)
-          AND EXISTS (SELECT 1 FROM responses r WHERE r.company_id = c.id)
-      )::int AS brez_priporocil,
-      -- Priporocila obstajajo, a je za njimi prisel novejsi odgovor.
-      (SELECT count(*) FROM company_priporocila cp
-        WHERE EXISTS (
-          SELECT 1 FROM responses r
-           WHERE r.company_id = cp.company_id
-             AND r.questionnaire_id = cp.questionnaire_id
-             AND r.submitted_at > cp.updated_at
-        )
-      )::int AS zastarela_priporocila
-  `);
+  const r = await dbQuery(`SELECT ${SQL_BREZ_PREDLOGA} AS brez_predloga`);
   if (!r) return null;
   return r.rows[0];
 }
@@ -188,11 +182,8 @@ router.get('/', async (_req, res) => {
   }
 
   // Agregirani vnosi: en element na vrsto, ne 8 enakih vrstic.
-  if (leadi.brez_priporocil > 0) {
-    ukrepaj.push({ tip: 'brez_priporocil', prioriteta: 5, stevilo: leadi.brez_priporocil });
-  }
-  if (leadi.zastarela_priporocila > 0) {
-    ukrepaj.push({ tip: 'zastarela_priporocila', prioriteta: 5, stevilo: leadi.zastarela_priporocila });
+  if (leadi.brez_predloga > 0) {
+    ukrepaj.push({ tip: 'brez_predloga', prioriteta: 5, stevilo: leadi.brez_predloga });
   }
   for (const c of neocenjeni) {
     ukrepaj.push({

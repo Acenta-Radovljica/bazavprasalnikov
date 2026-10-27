@@ -11,6 +11,7 @@ import { vprasalnikVBesedilo } from '../procesi/schema.js';
 import { besediloVprasanja, besedilaOdgovorov } from '../score/oddaja.js';
 import { VELIKOST } from '../score/vprasanja-v1.js';
 import { naloziKatalog } from './katalog.js';
+import { SQL_BREZ_PREDLOGA } from './naloge.js';
 
 // ── DEL 2: Konstante ──────────────────────────────────────────────────────
 const router = express.Router();
@@ -673,34 +674,18 @@ router.post('/companies/:id/merge', async (req, res) => {
 
 // GET /api/stats — agregacije za dashboard (totals + timeline)
 router.get('/stats', async (_req, res) => {
-  // Skupne vrednosti — "brez_priporocil" pomeni podjetje ima vsaj 1 odgovor,
-  // ampak nima nobenega priporocila v company_priporocila.
+  // Skupne vrednosti — "brez_predloga" je isti stevec kot na seznamu Ukrepaj
+  // (SQL_BREZ_PREDLOGA v naloge.js).
   const totals = await dbQuery(`
     SELECT
       (SELECT count(*) FROM companies)::int AS podjetja_total,
       (SELECT count(*) FROM responses)::int AS odgovori_total,
-      (SELECT count(*) FROM companies c
-        WHERE NOT EXISTS (SELECT 1 FROM company_priporocila cp WHERE cp.company_id = c.id)
-          AND EXISTS (SELECT 1 FROM responses r WHERE r.company_id = c.id)
-      )::int AS brez_priporocil,
+      ${SQL_BREZ_PREDLOGA} AS brez_predloga,
       (SELECT count(*) FROM responses WHERE submitted_at > NOW() - INTERVAL '7 days')::int AS odgovori_7d,
       (SELECT count(*) FROM responses WHERE submitted_at > NOW() - INTERVAL '14 days' AND submitted_at <= NOW() - INTERVAL '7 days')::int AS odgovori_prej_7d,
       (SELECT count(*) FROM companies WHERE created_at > NOW() - INTERVAL '7 days')::int AS podjetja_7d,
       (SELECT count(*) FROM companies WHERE created_at > NOW() - INTERVAL '14 days' AND created_at <= NOW() - INTERVAL '7 days')::int AS podjetja_prej_7d,
       (SELECT count(*) FROM questionnaires WHERE aktivna)::int AS vprasalniki_aktivni
-  `);
-
-  // Zastarela = priporocila obstajajo, ampak je novejsi response za isto
-  // (podjetje x vprasalnik) prisel po generaciji.
-  const zastarela = await dbQuery(`
-    SELECT count(*)::int AS n
-      FROM company_priporocila cp
-     WHERE EXISTS (
-       SELECT 1 FROM responses r
-        WHERE r.company_id = cp.company_id
-          AND r.questionnaire_id = cp.questionnaire_id
-          AND r.submitted_at > cp.updated_at
-     )
   `);
 
   // Timeline: stevilo responsov po dnevu zadnjih 30 dni
@@ -740,7 +725,6 @@ router.get('/stats', async (_req, res) => {
 
   res.json({
     totals: totals?.rows?.[0] ?? {},
-    zastarela: zastarela?.rows?.[0]?.n ?? 0,
     po_statusu: poStatusu,
     po_kvalifikaciji: poKvalifikaciji,
     timeline: timeline?.rows ?? [],

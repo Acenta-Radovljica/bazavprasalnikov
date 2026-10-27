@@ -369,6 +369,76 @@ await page.waitForSelector('#sumNaslov', { timeout: 5000 }).catch(() => {});
 v = await page.evaluate(() => ({ gumb: !!document.querySelector('#btn-povzetek'), besedilo: document.querySelector('.a-sum .empty__title')?.textContent }));
 t('shramba: brez gumba, »Brez AI povzetka«', !v.gumb && v.besedilo === 'Brez AI povzetka', JSON.stringify(v));
 
+// ── 7. Danes: Brez prodajnega predloga ──────────────────────────────────
+// Replaces "Brez priporočil" and "Zastarela priporočila". Counted as a delta,
+// other suites may leave companies in the test database.
+console.log('\n=== 7. Danes: brez prodajnega predloga ===');
+async function brezPredloga() {
+  const [s, n] = await Promise.all([api('/api/stats'), api('/api/naloge')]);
+  const ukrepaj = n.telo.ukrepaj || [];
+  return {
+    stats: s.telo.totals?.brez_predloga,
+    naloga: ukrepaj.find(x => x.tip === 'brez_predloga')?.stevilo ?? 0,
+    stari: ukrepaj.some(x => /priporocil/.test(x.tip)) || 'zastarela' in s.telo || 'brez_priporocil' in (s.telo.totals || {}),
+  };
+}
+const b0 = await brezPredloga();
+t('stats in Ukrepaj stejeta isto, starih stevcev ni', Number.isInteger(b0.stats) && b0.stats === b0.naloga && !b0.stari, JSON.stringify(b0));
+const cDanes = await novo(`Kmetija Hrast ${oznaka}`);
+await odgovor(cDanes, 'pred-delavnico', pred([2, 2, 2, 2, 'Vsak dan'], 'racuni'));
+let b = await brezPredloga();
+t('samo odgovori pred: ne steje', b.stats === b0.stats, JSON.stringify(b));
+await odgovor(cDanes, 'moj-ai-nacrt', { '1_ime_priimek': 'Iva Hrast', email: 'iva@hrast.si' });
+b = await brezPredloga();
+t('odgovor po delavnici, predloga ni: +1 (stats in Ukrepaj)', b.stats === b0.stats + 1 && b.naloga === b.stats, JSON.stringify(b));
+const ppId = (await pool.query(`INSERT INTO prodajni_predlogi (company_id, status) VALUES ($1, 'pripravlja') RETURNING id`, [cDanes])).rows[0].id;
+b = await brezPredloga();
+t('predlog v pripravi: ne steje', b.stats === b0.stats, JSON.stringify(b));
+await pool.query(`UPDATE prodajni_predlogi SET status = 'napaka', napaka = 'test' WHERE id = $1`, [ppId]);
+b = await brezPredloga();
+t('neuspela priprava: spet steje', b.stats === b0.stats + 1, JSON.stringify(b));
+const brez = b.stats;
+
+await odpri('/admin/index.html');
+await page.waitForFunction(() => /\d/.test(document.getElementById('s-brez')?.textContent || ''), { timeout: 5000 }).catch(() => {});
+v = await page.evaluate(() => {
+  const kpi = document.getElementById('kpi-vrh');
+  const besedilo = document.querySelector('main')?.innerText || document.body.innerText;
+  return {
+    kartic: kpi.querySelectorAll('.metric').length,
+    oznaka: kpi.querySelector('.metric:last-child .metric__label')?.textContent.trim(),
+    vrednost: document.getElementById('s-brez')?.textContent,
+    stat: document.getElementById('stat-brez')?.textContent,
+    naloga: [...document.querySelectorAll('#v-ukrepaj .task__title')].map(x => x.textContent).find(x => x.includes('prodajnega predloga')),
+    priporocila: /priporočil/i.test(besedilo + document.getElementById('statistika').innerText),
+    znacke: [...document.querySelectorAll('#aktivnost .chip')].map(x => x.textContent.trim()),
+    preliv: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  };
+});
+t('Danes: 4 kazalniki, zadnji »Brez prodajnega predloga«', v.kartic === 4 && v.oznaka === 'Brez prodajnega predloga', JSON.stringify(v));
+t('Danes: stevilka kot v API-ju (vrh in statistika)', v.vrednost === String(brez) && v.stat === String(brez), JSON.stringify(v));
+t('Ukrepaj: »N podjetij brez prodajnega predloga«', !!v.naloga && v.naloga.startsWith(String(brez)), v.naloga);
+t('Danes: nikjer vec »priporočil«', !v.priporocila);
+t('Aktivnost: znacke predloga, ne AI', v.znacke.length > 0 && v.znacke.every(z => /predlog/i.test(z)), JSON.stringify(v.znacke));
+t('Danes 1400: brez prelivanja', v.preliv <= 1, `${v.preliv}px`);
+for (const sirina of [900, 390]) {
+  await page.setViewport({ width: sirina, height: 900 });
+  await pocakaj(200);
+  v = await page.evaluate(() => {
+    const k = [...document.querySelectorAll('#kpi-vrh .metric')].map(m => m.getBoundingClientRect());
+    const vrh = document.getElementById('kpi-vrh').getBoundingClientRect();
+    const oznaka = document.querySelector('#kpi-vrh .metric:last-child .metric__label');
+    return {
+      preliv: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      // every row of cards fills the strip: no empty cell at the end
+      polno: Math.abs(Math.max(...k.map(r => r.right)) - vrh.right) <= 2 && Math.abs(k[k.length - 1].right - vrh.right) <= 2,
+      oznakaCela: oznaka.scrollWidth <= oznaka.clientWidth + 1,
+    };
+  });
+  t(`Danes ${sirina}: kazalniki brez praznega polja, oznaka cela, brez prelivanja`, v.polno && v.oznakaCela && v.preliv <= 1, JSON.stringify(v));
+}
+await page.setViewport({ width: 1400, height: 1000 });
+
 t('brez JS napak na straneh', napake.length === 0, JSON.stringify(napake.slice(0, 3)));
 await browser.close();
 
