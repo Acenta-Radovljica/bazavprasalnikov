@@ -140,6 +140,15 @@
                   </select></span>
                   <p class="field__hint">Pri shrambi AI navodila niso potrebna: obrazec se le shrani in je dostopen v pregledu.</p>
                 </div>
+                <div class="field span-all" id="polje-faza">
+                  <label class="field__label field__label--sm" for="f-faza">Del delavnice</label>
+                  <span class="select-wrap"><select id="f-faza" class="select">
+                    <option value="pred">Pred delavnico</option>
+                    <option value="po">Po delavnici</option>
+                    <option value="">Drugo</option>
+                  </select></span>
+                  <p class="field__hint">Na strani podjetja so odgovori razdeljeni na Pred delavnico in Po delavnici. Prodajni predlog ne bere odgovorov pred delavnico.</p>
+                </div>
                 <div class="span-all">
                   <label class="check"><input id="f-aktivna" type="checkbox">Aktivna: obrazec sprejema oddaje</label>
                 </div>
@@ -300,6 +309,7 @@
             <span class="vp-meta">${naslov} · ${sklon(q.st_vprasanj, SKLONI.vprasanje)} · ${uporaba}</span>
           </div>
           <div class="vp-side">
+            ${q.faza === 'pred' ? '<span class="chip chip--accent">Pred delavnico</span>' : q.faza === 'po' ? '<span class="chip chip--accent">Po delavnici</span>' : ''}
             ${namenChip(q.namen)}
             ${q.aktivna ? '<span class="chip chip--success">Aktivna</span>' : '<span class="chip">Ugasnjena</span>'}
             ${jeProces || q.slug === 'popis-opravil' ? '' : `<a class="link" href="${url}" target="_blank" rel="noopener">Predogled${ikona('external', 'icon--sm')}</a>`}
@@ -378,6 +388,7 @@
         $('f-naziv').value = '';
         $('f-opis').value = '';
         $('f-aktivna').checked = true;
+        $('f-faza').value = '';
         nastaviNamen('lead');
         $('f-povzetek-sys').value = 'Si AI asistent agencije Acenta.si. Pripraviš kratke povzetke odgovorov udeležencev delavnice. Piši v slovenščini, jedrnato, brez fraz.';
         $('f-povzetek-usr').value = 'Naredi kratek povzetek (3-5 stavkov) naslednjih odgovorov udeleženca delavnice:\n\n{podatki}';
@@ -418,6 +429,7 @@
       $('f-naziv').value = q.naziv_prikaz || '';
       $('f-opis').value = q.opis || '';
       $('f-aktivna').checked = !!q.aktivna;
+      $('f-faza').value = q.faza || '';
       nastaviNamen(trenutniNamen);
       $('f-povzetek-sys').value = q.povzetek_system_prompt || '';
       $('f-povzetek-usr').value = q.povzetek_user_template || '';
@@ -436,11 +448,13 @@
       nalozi();
     }
 
-    // With namen='shramba' the AI prompt panels are not needed.
+    // With namen='shramba' the AI prompt panels are not needed. A process
+    // template has no answers on the company page, so it has no part.
     function osveziNamen() {
       const shramba = $('f-namen').value === 'shramba';
       $('card-povzetek').hidden = shramba;
       $('card-priporocila').hidden = shramba;
+      $('polje-faza').hidden = $('f-namen').value === 'proces';
     }
 
     // ── Questions ─────────────────────────────────────────────────────────
@@ -556,6 +570,7 @@
       missing_povzetek_prompt: 'Lead vprašalnik potrebuje oba poziva za povzetek.',
       missing_priporocila_prompt: 'Lead vprašalnik potrebuje oba poziva za priporočila.',
       invalid_namen: 'Namen vprašalnika ni veljaven.',
+      invalid_faza: 'Del delavnice ni veljaven.',
     };
     function opisNapake(data, status) {
       if (data.error === 'invalid_questions' && data.detail) {
@@ -583,6 +598,7 @@
         opis: $('f-opis').value.trim(),
         aktivna: $('f-aktivna').checked,
         namen: $('f-namen').value,
+        ...($('f-namen').value === 'proces' ? {} : { faza: $('f-faza').value }),
         povzetek_system_prompt: $('f-povzetek-sys').value,
         povzetek_user_template: $('f-povzetek-usr').value,
         priporocila_system_prompt: $('f-priporocila-sys').value,

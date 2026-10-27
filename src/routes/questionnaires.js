@@ -21,6 +21,15 @@ const SLUG_REGEX = /^[a-z0-9](?:[a-z0-9-]{0,48}[a-z0-9])?$/;
 //               se prek /admin/procesi (glej src/routes/procesi.js)
 const VELJAVNI_NAMENI = new Set(['lead', 'shramba', 'proces']);
 
+// Part of the workshop (sql/019): 'pred' / 'po'; empty string or null = drugo.
+// The company page splits answers by it, the sales proposal skips 'pred'.
+const VELJAVNE_FAZE = new Set(['pred', 'po']);
+function preberiFazo(v) {
+  if (v === null || v === '' || v === 'drugo') return { ok: true, faza: null };
+  const f = typeof v === 'string' ? v.trim().toLowerCase() : v;
+  return VELJAVNE_FAZE.has(f) ? { ok: true, faza: f } : { ok: false };
+}
+
 // ── DEL 3: Helper funkcije ────────────────────────────────────────────────
 
 // Validira polje "questions" — mora biti array, vsak element objekt s polji:
@@ -96,7 +105,7 @@ function pripraviPolja(body) {
 // GET /api/questionnaires — seznam vseh (z metrikami)
 router.get('/', async (_req, res) => {
   const r = await dbQuery(`
-    SELECT q.id, q.slug, q.naziv_prikaz, q.opis, q.aktivna, q.namen,
+    SELECT q.id, q.slug, q.naziv_prikaz, q.opis, q.aktivna, q.namen, q.faza,
            q.created_at, q.updated_at,
            jsonb_array_length(q.questions) AS st_vprasanj,
            (SELECT count(*) FROM responses r WHERE r.questionnaire_id = q.id)::int AS st_odgovorov,
@@ -149,20 +158,23 @@ router.post('/', async (req, res) => {
   const v = validirajQuestions(f.questions, f.namen);
   if (!v.ok) return res.status(400).json({ error: 'invalid_questions', detail: v.error });
 
+  const faza = preberiFazo(req.body?.faza ?? null);
+  if (!faza.ok) return res.status(400).json({ error: 'invalid_faza' });
+
   try {
     const r = await dbQuery(`
       INSERT INTO questionnaires (
         slug, naziv_prikaz, opis, questions,
         povzetek_system_prompt, povzetek_user_template,
         priporocila_system_prompt, priporocila_user_template,
-        aktivna, namen, custom_html
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-      RETURNING id, slug, naziv_prikaz, aktivna, namen, created_at
+        aktivna, namen, custom_html, faza
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      RETURNING id, slug, naziv_prikaz, aktivna, namen, faza, created_at
     `, [
       f.slug, f.naziv_prikaz, f.opis, JSON.stringify(f.questions),
       f.povzetek_system_prompt ?? '', f.povzetek_user_template ?? '',
       f.priporocila_system_prompt ?? '', f.priporocila_user_template ?? '',
-      f.aktivna, f.namen, f.custom_html,
+      f.aktivna, f.namen, f.custom_html, faza.faza,
     ]);
     res.status(201).json({ ok: true, questionnaire: r?.rows?.[0] ?? null });
   } catch (err) {
@@ -232,16 +244,23 @@ router.patch('/:id', async (req, res) => {
   if (typeof body.custom_html === 'string') {
     maybeAdd('custom_html', body.custom_html.trim() === '' ? null : body.custom_html);
   }
+  // The part is not content: on its own it does not bump updated_at (that
+  // would mark every old answer as "vprasalnik urejen po oddaji").
+  const vsebinskih = updates.length;
+  if ('faza' in body) {
+    const faza = preberiFazo(body.faza);
+    if (!faza.ok) return res.status(400).json({ error: 'invalid_faza' });
+    maybeAdd('faza', faza.faza);
+  }
 
   if (updates.length === 0) return res.status(400).json({ error: 'no_fields_to_update' });
 
-  // Vedno bumpamo updated_at
-  updates.push(`updated_at = NOW()`);
+  if (vsebinskih > 0) updates.push(`updated_at = NOW()`);
   params.push(id);
 
   try {
     const r = await dbQuery(
-      `UPDATE questionnaires SET ${updates.join(', ')} WHERE id = $${p} RETURNING id, slug, naziv_prikaz, aktivna, updated_at`,
+      `UPDATE questionnaires SET ${updates.join(', ')} WHERE id = $${p} RETURNING id, slug, naziv_prikaz, aktivna, faza, updated_at`,
       params
     );
     res.json({ ok: true, questionnaire: r?.rows?.[0] ?? null });

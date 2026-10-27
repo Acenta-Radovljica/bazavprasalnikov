@@ -4,6 +4,7 @@ import { generirajPriporocila } from './generate_priporocila.js';
 import { generirajInsights } from './generate_insights.js';
 import { generirajKvalifikacija } from './generate_kvalifikacija.js';
 import { generirajProdajniPredlog } from './generate_prodajni_predlog.js';
+import { generirajPredTeme } from './generate_pred_teme.js';
 import { posljiObvestiloOdgovor } from '../lib/mailer.js';
 import { dbQuery } from '../db.js';
 
@@ -18,6 +19,12 @@ const PRIPOROCILA_DEBOUNCE_MS = 60 * 1000;  // 60 sekund
 // Ker tece samo en Node proces, je dovolj. Ce bo kdaj scale-out, premaknemo
 // na Redis ali BullMQ.
 const debounceTimers = new Map();
+
+// Themes before the workshop ("Kaj jim vzame najvec casa"): answers arrive
+// in a burst during the workshop, so one run waits for the burst to settle.
+const PRED_TEME_DEBOUNCE_MS = 30 * 1000;
+const predTemeTimers = new Map();   // companyId -> timer
+const predTemeTece = new Map();     // companyId -> { ponovi }
 
 // ── DEL 3: Helper funkcije ────────────────────────────────────────────────
 
@@ -132,5 +139,51 @@ function sproziProdajniPredlog(predlogId, companyId, datoteke) {
   });
 }
 
+// Themes before the workshop for one company. One run at a time per
+// company; a trigger during a run asks for one more run afterwards, so the
+// latest answers are always included.
+function zazeniPredTeme(companyId) {
+  const tek = predTemeTece.get(companyId);
+  if (tek) { tek.ponovi = true; return; }
+  const stanje = { ponovi: false };
+  predTemeTece.set(companyId, stanje);
+  vOzadju(`pred-teme(c=${companyId})`, async () => {
+    try {
+      do {
+        stanje.ponovi = false;
+        await generirajPredTeme(companyId);
+      } while (stanje.ponovi);
+    } finally {
+      predTemeTece.delete(companyId);
+    }
+  });
+}
+
+// takoj: the page asked for it (no themes yet, or the button); otherwise a
+// new answer arrived and the run waits for the rest of the burst.
+function sproziPredTeme(companyId, { takoj = false } = {}) {
+  if (!companyId) return;
+  clearTimeout(predTemeTimers.get(companyId));
+  predTemeTimers.delete(companyId);
+  if (takoj) { zazeniPredTeme(companyId); return; }
+  predTemeTimers.set(companyId, setTimeout(() => {
+    predTemeTimers.delete(companyId);
+    zazeniPredTeme(companyId);
+  }, PRED_TEME_DEBOUNCE_MS));
+}
+
+// After a submission: only answers to a questionnaire from before the
+// workshop change the themes.
+function sproziPredTemeZaOdgovor(companyId, questionnaireId) {
+  if (!companyId || !questionnaireId) return;
+  vOzadju(`pred-teme-vrata(q=${questionnaireId})`, async () => {
+    const r = await dbQuery('SELECT faza FROM questionnaires WHERE id = $1', [questionnaireId]);
+    if (r?.rows?.[0]?.faza === 'pred') sproziPredTeme(companyId);
+  });
+}
+
 // ── DEL 5: Named exports ─────────────────────────────────────────────────
-export { sproziPovzetek, sproziPriporocila, sproziInsights, sproziKvalifikacija, sproziProdajniPredlog };
+export {
+  sproziPovzetek, sproziPriporocila, sproziInsights, sproziKvalifikacija, sproziProdajniPredlog,
+  sproziPredTeme, sproziPredTemeZaOdgovor,
+};

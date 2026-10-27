@@ -3,7 +3,8 @@ import express from 'express';
 import { dbQuery } from '../db.js';
 import { generirajPovzetek } from '../ai/generate_povzetek.js';
 import { generirajPriporocila } from '../ai/generate_priporocila.js';
-import { sproziPovzetek, sproziPriporocila, sproziInsights, sproziProdajniPredlog } from '../ai/queue.js';
+import { sproziPovzetek, sproziPriporocila, sproziInsights, sproziProdajniPredlog, sproziPredTeme } from '../ai/queue.js';
+import { oznaciPripravo } from '../ai/generate_pred_teme.js';
 import { sestaviVhod, MAX_ZNAKOV } from '../ai/generate_prodajni_predlog.js';
 import { renderiraj as renderirajPdf } from '../pdf/render.js';
 import { vprasalnikVBesedilo } from '../procesi/schema.js';
@@ -65,6 +66,7 @@ router.get('/companies/:id', async (req, res) => {
 
   const responses = await dbQuery(
     `SELECT r.id, r.questionnaire_id, q.slug AS q_slug, q.naziv_prikaz AS q_naziv,
+            q.faza AS q_faza,
             r.submitted_at, r.raw_data, r.ai_povzetek, r.ai_processed_at, r.consent_gdpr,
             -- Za ime izpolnjevalca na kartici: kopija ob oddaji, sicer danasnja.
             CASE WHEN COALESCE(jsonb_array_length(r.questions_snapshot), 0) > 0
@@ -105,6 +107,11 @@ router.get('/companies/:id', async (req, res) => {
 // GET /api/companies/:id/izvoz — vse, kar vemo o podjetju, v enem odzivu.
 // Iz tega stran podjetja sestavi ZIP za Claude (predlog AI procesov).
 //
+// Answers from before the workshop (questionnaires.faza = 'pred') and the
+// recommendations made from them are left out: the proposal is prepared
+// from what the company said after the workshop (Matjaz, 26. 10. 2026).
+// The page shows the before-workshop answers separately.
+//
 // Streznik vrne PODATKE, besedila Markdown sestavi brskalnik: vprasanja
 // custom_html obrazcev se dajo izlusciti samo z DOMParserjem (app.js), ista
 // koda, ki jih prikazuje na strani odgovora. Kar zna strezik sam (procesne
@@ -134,13 +141,13 @@ router.get('/companies/:id/izvoz', async (req, res) => {
         FROM responses r
         JOIN questionnaires q ON q.id = r.questionnaire_id
         LEFT JOIN score_results sr ON sr.response_id = r.id
-       WHERE r.company_id = $1
+       WHERE r.company_id = $1 AND q.faza IS DISTINCT FROM 'pred'
        ORDER BY r.submitted_at`, [id]),
     dbQuery(`
       SELECT cp.questionnaire_id, q.naziv_prikaz, cp.vsebina, cp.updated_at
         FROM company_priporocila cp
         JOIN questionnaires q ON q.id = cp.questionnaire_id
-       WHERE cp.company_id = $1
+       WHERE cp.company_id = $1 AND q.faza IS DISTINCT FROM 'pred'
        ORDER BY cp.updated_at`, [id]),
     dbQuery(`
       SELECT s.id, q.naziv_prikaz AS q_naziv, s.stranka_naziv, s.proces, s.oddelek,
@@ -197,7 +204,7 @@ router.get('/companies/:id/izvoz', async (req, res) => {
 // izlusciti samo DOMParser; streznik ga le prebere in poslje modelu.
 
 const STOLPCI_PREDLOGA = `id, status, za_direktorja, za_matjaza, opozorila, vhod, napaka, model,
-  created_at, koncano_at`;
+  created_at, koncano_at, brez_pred`;
 
 // Priprava, ki tece dlje od tega, je obticala (Opus z enim popravkom traja
 // najvec ~18 minut: dva klica po 9 min). Brez tega bi stran za vedno kazala
@@ -219,8 +226,9 @@ router.get('/companies/:id/prodajni-predlog', async (req, res) => {
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
 
   await pospraviObticano(id);
-  // Gradivo steje isto kot izvoz (vsi odgovori in vse seje podjetja), da
-  // prazno stanje pove, iz cesa bo predlog nastal.
+  // Gradivo steje isto kot izvoz (odgovori razen tistih pred delavnico in
+  // vse seje podjetja), da prazno stanje pove, iz cesa bo predlog nastal.
+  // pred: answers left out, so the page can say why there is nothing yet.
   const [r, gradivo] = await Promise.all([
     dbQuery(
       `SELECT ${STOLPCI_PREDLOGA} FROM prodajni_predlogi
@@ -228,7 +236,10 @@ router.get('/companies/:id/prodajni-predlog', async (req, res) => {
       [id],
     ),
     dbQuery(
-      `SELECT (SELECT count(*) FROM responses WHERE company_id = $1)::int AS odgovori,
+      `SELECT (SELECT count(*) FROM responses r JOIN questionnaires q ON q.id = r.questionnaire_id
+                WHERE r.company_id = $1 AND q.faza IS DISTINCT FROM 'pred')::int AS odgovori,
+              (SELECT count(*) FROM responses r JOIN questionnaires q ON q.id = r.questionnaire_id
+                WHERE r.company_id = $1 AND q.faza = 'pred')::int AS pred,
               (SELECT count(*) FROM process_sessions WHERE company_id = $1)::int AS seje`,
       [id],
     ),
@@ -264,9 +275,11 @@ router.post('/companies/:id/prodajni-predlog', async (req, res) => {
   };
   // Delni unikatni indeks (sql/015) dovoli eno pripravo naenkrat; drugi
   // vstavek vrne null (dbQuery napako pogoltne), zato preverimo, zakaj.
+  // brez_pred: the package comes from /izvoz, which leaves out the answers
+  // from before the workshop.
   const ins = await dbQuery(
-    `INSERT INTO prodajni_predlogi (company_id, status, vhod)
-     VALUES ($1, 'pripravlja', $2::jsonb)
+    `INSERT INTO prodajni_predlogi (company_id, status, vhod, brez_pred)
+     VALUES ($1, 'pripravlja', $2::jsonb, TRUE)
      RETURNING ${STOLPCI_PREDLOGA}`,
     [id, JSON.stringify(opisVhoda)],
   );
@@ -324,6 +337,63 @@ router.get('/companies/:id/prodajni-predlog/pdf', async (req, res) => {
     console.error('[api/prodajni-predlog/pdf] napaka:', err);
     res.status(500).json({ error: 'render_failed', message: err.message });
   }
+});
+
+// ── Before the workshop: themes "Kaj jim vzame najvec casa" ──────────────
+// Sonnet groups the free-text answers into themes (src/ai/generate_pred_teme.js).
+// A run that takes longer than this got stuck (restart during a run).
+const PRED_TEME_OBTICALO_MIN = 10;
+
+async function stanjePredTem(companyId) {
+  const [t, o] = await Promise.all([
+    dbQuery(
+      `SELECT status, teme, odgovori, brez_opravil, napaka, model, zacetek_at, koncano_at,
+              (status = 'pripravlja' AND zacetek_at < NOW() - make_interval(mins => $2)) AS obticalo
+         FROM pred_teme WHERE company_id = $1`,
+      [companyId, PRED_TEME_OBTICALO_MIN],
+    ),
+    dbQuery(
+      `SELECT r.id FROM responses r JOIN questionnaires q ON q.id = r.questionnaire_id
+        WHERE r.company_id = $1 AND q.faza = 'pred' ORDER BY r.id`,
+      [companyId],
+    ),
+  ]);
+  if (!t || !o) return null;
+  const ids = o.rows.map(x => x.id);
+  let teme = t.rows[0] || null;
+  if (teme?.obticalo) {
+    teme = { ...teme, status: 'napaka', napaka: 'Priprava je trajala predolgo in je bila prekinjena. Poskusite znova.' };
+  }
+  if (teme) delete teme.obticalo;
+  // Current = made from exactly the answers before the workshop there are now.
+  const iz = [...(teme?.odgovori || [])].sort((a, b) => a - b);
+  const aktualno = !!teme?.koncano_at && iz.length === ids.length && iz.every((x, i) => x === ids[i]);
+  return { teme, odgovori_pred: ids.length, aktualno };
+}
+
+// GET /api/companies/:id/pred-teme
+router.get('/companies/:id/pred-teme', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+  const s = await stanjePredTem(id);
+  if (!s) return res.status(500).json({ error: 'db_error' });
+  res.json(s);
+});
+
+// POST /api/companies/:id/pred-teme — prepare (again). The page calls it by
+// itself when there are no themes yet or they are out of date.
+router.post('/companies/:id/pred-teme', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+  const s = await stanjePredTem(id);
+  if (!s) return res.status(500).json({ error: 'db_error' });
+  if (!s.odgovori_pred) return res.status(400).json({ error: 'ni_odgovorov_pred' });
+  if (s.teme?.status === 'pripravlja') return res.status(409).json({ error: 'ze_pripravlja' });
+  // The row is marked before answering, so the page that polls right after
+  // sees "pripravlja" and not the previous state.
+  await oznaciPripravo(id);
+  sproziPredTeme(id, { takoj: true });
+  res.status(202).json(await stanjePredTem(id));
 });
 
 // AI Business Score: vprasanja zivijo v kodi (questions je prazen), odgovori so
@@ -439,6 +509,7 @@ router.get('/responses/:id', async (req, res) => {
   const r = await dbQuery(`
     SELECT r.*, c.naziv_prikaz, c.id AS company_id_full,
            q.slug AS q_slug, q.naziv_prikaz AS q_naziv,
+           q.faza AS q_faza, q.namen AS q_namen,
            q.questions AS q_questions,
            -- Danasnji obrazec je tu zato, da tudi stare vrstice brez kopije
            -- pokazejo odgovore pod besedili vprasanj in ne pod surovimi kljuci.
@@ -462,6 +533,23 @@ router.get('/responses/:id', async (req, res) => {
     : vrstica.q_questions;
 
   res.json({ response: vrstica });
+});
+
+// POST /api/responses/:id/povzetek — prepare the AI summary of one answer
+// again (answer page, when the summary is missing). Only lead questionnaires
+// get a summary (gate in generate_povzetek.js).
+router.post('/responses/:id/povzetek', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'invalid_id' });
+  const r = await dbQuery(
+    `SELECT q.namen FROM responses r JOIN questionnaires q ON q.id = r.questionnaire_id WHERE r.id = $1`, [id]);
+  if (!r) return res.status(500).json({ error: 'db_error' });
+  if (!r.rows.length) return res.status(404).json({ error: 'not_found' });
+  if (r.rows[0].namen !== 'lead') return res.status(400).json({ error: 'brez_povzetka' });
+  // Directly, not through sproziPovzetek: that one also mails the agency
+  // about a new answer, and this answer is not new.
+  generirajPovzetek(id).catch(err => console.error(`[api/povzetek] response=${id}:`, err.message));
+  res.status(202).json({ ok: true, queued_at: new Date().toISOString() });
 });
 
 // POST /api/companies/:id/regenerate-ai — rocno sprozi AI priporocila za en vprasalnik.
@@ -569,6 +657,10 @@ router.post('/companies/:id/merge', async (req, res) => {
   for (const qid of qids) {
     sproziPriporocila(targetId, qid);
   }
+  // Themes before the workshop now come from the answers of both companies.
+  const pred = qids.length ? await dbQuery(
+    `SELECT 1 FROM questionnaires WHERE id = ANY($1::int[]) AND faza = 'pred' LIMIT 1`, [qids]) : null;
+  if (pred?.rows?.length) sproziPredTeme(targetId);
 
   res.json({
     ok: true,

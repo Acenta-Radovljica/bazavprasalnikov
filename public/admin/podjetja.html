@@ -18,7 +18,6 @@
     .ctable col.c-status { width: 160px; }
     .ctable col.c-odg { width: 96px; }
     .ctable col.c-pp { width: 152px; }
-    .ctable col.c-prip { width: 148px; }
     .ctable col.c-zadnji { width: 128px; }
     .ctable col.c-go { width: 44px; }
     .ctable td.c-name { white-space: normal; }
@@ -26,21 +25,19 @@
     .ctable td.c-go { color: var(--text-faint); text-align: right; }
     .ctable tr.is-link:hover td.c-go { color: var(--accent); }
     .ni { color: var(--text-muted); }
-    .prip-ok { color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; }
     #content > .callout { margin: var(--space-4); }
     /* .table__sub (display:block) comes after .only-m in admin.css and wins */
     .ctable .only-m { display: none; }
 
     /* Phone: rows become cards (admin.css .table--stack); this sets the order:
-       name + arrow, status across, then score, proposal, recommendations. */
+       name + arrow, status across, then score and proposal. */
     @media (max-width: 760px) {
       .ctable td.c-name { order: 0; flex: 1 1 0; min-width: 0; }
       .ctable td.c-go { order: 1; flex: none; }
       .ctable td.c-status { order: 2; flex: 1 1 100%; }
       .ctable td.c-ocena { order: 3; }
       .ctable td.c-pp { order: 4; }
-      .ctable td.c-prip { order: 5; }
-      .ctable td.c-odg, .ctable td.c-zadnji, .ctable td.c-prip.is-ok { display: none; }
+      .ctable td.c-odg, .ctable td.c-zadnji { display: none; }
       .ctable .only-m { display: block; }
     }
   </style>
@@ -125,18 +122,6 @@
       return '<span class="ni">ni</span>';
     }
 
-    // Workshop recommendations: color only when action is needed
-    // (none yet, or a newer answer arrived after the last generation).
-    function jeZastarelo(p) {
-      return !!(p.has_priporocila && p.priporocila_updated_at && p.zadnji_odgovor
-        && new Date(p.zadnji_odgovor) > new Date(p.priporocila_updated_at));
-    }
-    function priporocilaChip(p) {
-      if (!p.has_priporocila) return '<span class="chip chip--warning" title="Priporočila še niso generirana">Brez priporočil</span>';
-      if (jeZastarelo(p)) return '<span class="chip chip--warning" title="Nov odgovor po zadnji generaciji">Zastarelo</span>';
-      return '<span class="prip-ok" title="Priporočila so posodobljena">pripravljeno</span>';
-    }
-
     // Status select inside the row. Clicking it does not open the company.
     function statusSelect(p) {
       const opts = STATUSI.map(s =>
@@ -192,7 +177,6 @@
       const vrstice = podjetja.map(p => {
         const zadnji = p.zadnji_odgovor ? formatDan(p.zadnji_odgovor) : '';
         const podMob = `${odgovorov(p.st_odgovorov)}${zadnji ? ` · zadnji ${zadnji}` : ''}`;
-        const zastarelo = !p.has_priporocila || jeZastarelo(p);
         return `
           <tr class="is-link" data-href="/admin/company.html?id=${p.id}" tabindex="0">
             <td class="c-name">
@@ -204,7 +188,6 @@
             <td class="c-status">${statusSelect(p)}</td>
             <td class="c-odg is-num" data-label="Odgovori:">${p.st_odgovorov}</td>
             <td class="c-pp" data-label="Predlog:">${predlogChip(p)}</td>
-            <td class="c-prip${zastarelo ? '' : ' is-ok'}">${priporocilaChip(p)}</td>
             <td class="c-zadnji is-num" data-label="Zadnji:">${zadnji || '<span class="ni">—</span>'}</td>
             <td class="c-go">${ikona('chev-right')}</td>
           </tr>`;
@@ -212,10 +195,10 @@
 
       el.innerHTML = `
         <table class="table table--fixed table--stack ctable">
-          <colgroup><col class="c-name"><col class="c-ocena"><col class="c-status"><col class="c-odg"><col class="c-pp"><col class="c-prip"><col class="c-zadnji"><col class="c-go"></colgroup>
+          <colgroup><col class="c-name"><col class="c-ocena"><col class="c-status"><col class="c-odg"><col class="c-pp"><col class="c-zadnji"><col class="c-go"></colgroup>
           <thead><tr>
             <th>Podjetje</th><th>Ocena</th><th>Status</th><th class="is-num">Odgovori</th>
-            <th>Prodajni predlog</th><th>Priporočila</th><th class="is-num">Zadnji odgovor</th><th><span class="sr-only">Odpri</span></th>
+            <th>Prodajni predlog</th><th class="is-num">Zadnji odgovor</th><th><span class="sr-only">Odpri</span></th>
           </tr></thead>
           <tbody>${vrstice}</tbody>
         </table>`;

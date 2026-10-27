@@ -293,6 +293,31 @@
     }
 
     // Build the CSV and download it. UTF-8 BOM so Excel shows the letters right.
+    // Missing AI summary: prepare it for this answer only, then show it
+    // (the page reloads once the summary is there).
+    async function pripraviPovzetek(responseId, gumb) {
+      const oznaka = gumb.querySelector('span');
+      gumb.disabled = true;
+      oznaka.textContent = 'Pripravljam …';
+      const res = await fetch(`/api/responses/${responseId}/povzetek`, { method: 'POST' }).catch(() => null);
+      if (res?.status !== 202) {
+        gumb.disabled = false;
+        oznaka.textContent = 'Pripravi povzetek';
+        alert('Priprave povzetka ni bilo mogoče začeti. Poskusite znova.');
+        return;
+      }
+      const konec = Date.now() + 120000;
+      const preveri = async () => {
+        const d = await apiFetch(`/api/responses/${responseId}`);
+        if (d?.response?.ai_povzetek) { location.reload(); return; }
+        if (Date.now() < konec) { setTimeout(preveri, 3000); return; }
+        gumb.disabled = false;
+        oznaka.textContent = 'Pripravi povzetek';
+        document.getElementById('povzetek-opis').textContent = 'Povzetek v dveh minutah ni prišel. Poskusite znova ali osvežite stran pozneje.';
+      };
+      setTimeout(preveri, 3000);
+    }
+
     function prenesiCsv(r) {
       const vrstice = zberiVrstice(r.raw_data, vprasanjaZaPrikaz(r));
       const lines = [
@@ -364,7 +389,9 @@
       const oseba = izpolnjevalec(r.raw_data, vprasanja);
       const vpr = renderVprasalnik(r.raw_data, vprasanja);
       const odstotek = vpr.vse ? Math.round((vpr.odgovorjeno / vpr.vse) * 100) : 0;
-      const podjetjeUrl = `/admin/company.html?id=${r.company_id}`;
+      // With q= the company page opens the part (before / after the workshop)
+      // and the questionnaire of this answer.
+      const podjetjeUrl = `/admin/company.html?id=${r.company_id}&amp;q=${r.questionnaire_id}`;
       const naziv = r.naziv_prikaz || 'Podjetje';
 
       document.getElementById('crumbs').innerHTML = `
@@ -384,12 +411,19 @@
              ${r.ai_processed_at ? `<p>pripravljeno ${danObUri(r.ai_processed_at)}</p>` : ''}
            </div>
            <div class="sum__body"><div class="doc">${md(r.ai_povzetek)}</div></div>`
-        : `<div class="sum__head"><h2 id="sumNaslov">AI povzetek odgovora</h2></div>
+        : r.q_namen === 'lead'
+          ? `<div class="sum__head"><h2 id="sumNaslov">AI povzetek odgovora</h2></div>
            <div class="empty">
              <span class="empty__icon" aria-hidden="true">${ikona('sparkles', 'icon--lg')}</span>
              <p class="empty__title">AI povzetek še ni generiran</p>
-             <p class="empty__text">Povzetek pripravi AI po oddaji. Če ga ni, ga pripravite na strani podjetja z »Regeneriraj vse« v Pripravi na delavnico. Odgovori spodaj so popolni tudi brez povzetka.</p>
-             <a class="btn btn--secondary" href="${podjetjeUrl}&amp;q=${r.questionnaire_id}#delavnica"><span>Odpri pripravo na delavnico</span>${ikona('arrow-right', 'icon--sm')}</a>
+             <p class="empty__text" id="povzetek-opis">Povzetek pripravi AI po oddaji. Če ga ni, ga pripravite tukaj; traja nekaj sekund. Odgovori spodaj so popolni tudi brez povzetka.</p>
+             <button class="btn btn--secondary" type="button" id="btn-povzetek">${ikona('sparkles')}<span>Pripravi povzetek</span></button>
+           </div>`
+          : `<div class="sum__head"><h2 id="sumNaslov">AI povzetek odgovora</h2></div>
+           <div class="empty">
+             <span class="empty__icon" aria-hidden="true">${ikona('sparkles', 'icon--lg')}</span>
+             <p class="empty__title">Brez AI povzetka</p>
+             <p class="empty__text">Ta vprašalnik se samo shrani, AI povzetka zanj ne pripravljamo. Odgovori so spodaj.</p>
            </div>`;
       const izpolnjenost = vpr.vse
         ? `${vpr.odgovorjeno} od ${vpr.vse} ${vpr.vse === 1 ? 'vprašanja' : 'vprašanj'} odgovorjenih${vpr.obveznihBrez ? ` · ${sklon(vpr.obveznihBrez, ['obvezno', 'obvezni', 'obvezna', 'obveznih'])} brez odgovora` : ''}`
@@ -456,6 +490,7 @@
       const csv = document.getElementById('btn-csv');
       csv.hidden = false;
       csv.addEventListener('click', () => prenesiCsv(r));
+      document.getElementById('btn-povzetek')?.addEventListener('click', (e) => pripraviPovzetek(r.id, e.currentTarget));
 
       // Technical field keys only on request; they get in the way of reading.
       document.getElementById('kljuci').addEventListener('change', (e) =>

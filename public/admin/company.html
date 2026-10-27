@@ -19,19 +19,28 @@
 
     .record {
       display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6);
-      /* props spans the first two rows: with a short (empty) proposal the side
-         column would otherwise stretch row 1 and leave a gap above the workshop. */
-      grid-template-areas: "doc props" "popis props" "work props" "answers meta";
-      grid-template-rows: auto auto 1fr auto;
+      /* props spans the first two rows; the 1fr row takes the extra height of
+         a tall side column, so a short (empty) proposal gets no gap below it. */
+      grid-template-areas: "doc props" "popis props" "answers meta";
+      grid-template-rows: auto 1fr auto;
       align-items: start;
     }
+    /* Part "Pred delavnico": the overview card instead of proposal + inventory.
+       Part "Drugo": only the answers. */
+    .record.is-pred { grid-template-areas: "doc props" "answers meta"; grid-template-rows: auto auto; }
+    .record.is-drugo { grid-template-areas: "answers props" "answers meta"; grid-template-rows: auto 1fr; }
+    .record > [hidden] { display: none !important; }
     .a-doc { grid-area: doc; scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
     .a-popis { grid-area: popis; scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
     .a-props { grid-area: props; align-self: stretch; min-width: 0; }
-    .a-work { grid-area: work; }
-    .a-answers { grid-area: answers; }
+    .a-answers { grid-area: answers; scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
     .a-meta { grid-area: meta; }
     .props { position: sticky; top: calc(var(--topbar-h) + var(--space-4)); }
+
+    /* Parts of the workshop: before / after (questionnaires.faza) */
+    .faze { margin: calc(-1 * var(--space-2)) 0 var(--space-6); }
+    .faze .tabs { gap: var(--space-6); }
+    .faze .tab { height: 44px; font-size: var(--text-md); font-weight: var(--weight-semibold); }
 
     /* Sales proposal: reading surface */
     .docp__note { padding: 0 var(--space-6) var(--space-3); }
@@ -71,20 +80,35 @@
     .seg-dot--warm { background: var(--lead-warm); }
     .seg-dot--cold { background: var(--lead-cold); }
 
-    /* Workshop preparation: secondary, folded */
-    .work { scroll-margin-top: calc(var(--topbar-h) + var(--space-4)); }
-    .work > summary.work__sum { padding: var(--space-4) var(--space-6); }
-    .work[open] > summary { border-bottom: 0; }
-    .work__sum h2 { font-size: var(--text-md); white-space: nowrap; }
-    .work__sum p { font-size: var(--text-sm); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-    .work__sum > div { min-width: 0; flex: 1; }
-    .work__tabs { padding: 0 var(--space-6); }
-    .work__tabs .tab { height: 44px; }
-    .work__tools { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; padding: var(--space-3) var(--space-6); border-bottom: 1px solid var(--border-subtle); }
-    .work__status { margin-bottom: var(--space-4); max-width: var(--prose-max); }
-    .work > .empty-line { padding: var(--space-4) var(--space-6) var(--space-6); text-align: left; }
+    /* Before the workshop: level (computed) and what takes their time (AI) */
+    .pred__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); padding: var(--space-4) var(--space-6) var(--space-6); }
+    .pred__blok { min-width: 0; }
+    .pred__h { font-size: var(--text-base); font-weight: var(--weight-semibold); margin-bottom: var(--space-3); }
+    .pred__h4 { font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--text-secondary); margin: var(--space-5) 0 var(--space-2); }
+    .pred__raven { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+    .pred__ocena { font-size: 2rem; font-weight: var(--weight-semibold); letter-spacing: -0.02em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .pred__od { font-size: var(--text-sm); color: var(--text-muted); margin-right: var(--space-2); }
+    .pred__raven .chip { align-self: center; }
+    .pred__opis { font-size: var(--text-sm); color: var(--text-secondary); margin: var(--space-2) 0 var(--space-4); line-height: 1.5; }
+    .pred .bar-row { grid-template-columns: minmax(0, 1fr) 96px 28px; }
+    .pred__vir { font-size: var(--text-sm); color: var(--text-muted); margin: calc(-1 * var(--space-2)) 0 var(--space-3); line-height: 1.5; }
+    .pred__prazno { font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.5; }
+    .pred__stanje { margin-bottom: var(--space-3); }
+    .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chips .chip b { font-weight: var(--weight-semibold); margin-left: 4px; font-variant-numeric: tabular-nums; }
+    .chip--off { opacity: .55; }
+    .teme { list-style: none; margin: 0; padding: 0; }
+    .teme li { padding: var(--space-3) 0; border-top: 1px solid var(--border-subtle); }
+    .teme li:first-child { border-top: 0; padding-top: 0; }
+    .teme__vrh { display: flex; align-items: center; gap: var(--space-2); }
+    .teme__vrh b { font-weight: var(--weight-semibold); font-size: var(--text-base); min-width: 0; }
+    .teme__vrh .count { margin-left: auto; flex: none; }
+    .teme__citat { display: block; margin-top: 4px; font-size: var(--text-sm); color: var(--text-secondary); line-height: 1.5; text-decoration: none; overflow-wrap: anywhere; }
+    .teme__citat:hover { color: var(--text); text-decoration: underline; text-underline-offset: 3px; }
+    .pred__foot { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; padding: var(--space-3) var(--space-6); border-top: 1px solid var(--border-subtle); font-size: var(--text-sm); color: var(--text-muted); }
+    .pred__foot .spacer { flex: 1; }
+    .pred > .empty { padding: var(--space-4) var(--space-6) var(--space-8); }
     .actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
-    .empty .work__status { margin: var(--space-3) 0 0; }
 
     /* Answers */
     .odg-tabs { padding: 0 var(--space-4); }
@@ -113,8 +137,13 @@
     .kv--meta dd { font-family: var(--font-mono); color: var(--text-secondary); white-space: normal; overflow-wrap: anywhere; }
 
     @media (max-width: 1100px) {
-      .record { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "doc" "popis" "props" "work" "answers" "meta"; }
+      .record { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-template-areas: "doc" "popis" "props" "answers" "meta"; }
+      .record.is-pred { grid-template-areas: "doc" "props" "answers" "meta"; grid-template-rows: none; }
+      .record.is-drugo { grid-template-areas: "answers" "props" "meta"; grid-template-rows: none; }
       .props { position: static; }
+    }
+    @media (max-width: 900px) {
+      .pred__grid { grid-template-columns: minmax(0, 1fr); }
     }
     @media (max-width: 760px) {
       .ident__meta > span:first-child { flex: 1 1 100%; }
@@ -139,19 +168,14 @@
       .popis__opis { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow-wrap: anywhere; }
       .popis__enota { display: block; font-size: var(--text-xs); color: var(--text-muted); font-weight: var(--weight-regular); }
       .popis .table__sub.only-m { display: block; }
-      .work__sum p { white-space: normal; }
-      .work > summary.work__sum { padding: var(--space-4); }
-      .work__tabs { padding: 0 var(--space-4); gap: var(--space-6); }
-      .work__tools { padding: var(--space-3) var(--space-4); }
-      .work__tools .btn { flex: 1 1 auto; }
-      .work > .empty-line { padding: var(--space-4); }
+      .faze .tabs { gap: var(--space-5); }
+      .faze .tab { font-size: var(--text-base); }
+      .pred__grid { padding: var(--space-3) var(--space-4) var(--space-4); }
+      .pred__foot { padding: var(--space-3) var(--space-4); }
+      .pred > .empty { padding: var(--space-4); }
     }
     @media print {
-      .ident, .dvojnik, .a-props, .a-work, .a-answers, .a-meta, .docp__actions, .docp__tabs, .docp__note, .docp__body > .callout { display: none !important; }
-      /* "Natisni" in the workshop prints only the recommendations */
-      body.tisk-delavnica .a-doc { display: none !important; }
-      body.tisk-delavnica .a-work { display: block !important; border: 0; }
-      body.tisk-delavnica .work__tabs, body.tisk-delavnica .work__tools, body.tisk-delavnica .disclosure__chev, body.tisk-delavnica #workStale { display: none !important; }
+      .ident, .dvojnik, .faze, .a-props, .a-answers, .a-meta, .pred__foot .btn, .docp__actions, .docp__tabs, .docp__note, .docp__body > .callout { display: none !important; }
       .record { display: block; }
       .panel { border: 0; }
       .page { padding: 0; }
@@ -171,7 +195,7 @@
         <span class="spacer"></span>
         <div class="topbar__actions">
           <button class="btn btn--secondary" type="button" id="btn-izvoz" hidden
-            title="Vsi odgovori, zapisi sestankov in transkripti tega podjetja v enem ZIP-u, z navodili za prodajni predlog AI procesov"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg><span>Izvoz za Claude (ZIP)</span></button>
+            title="Odgovori (brez tistih pred delavnico), zapisi sestankov in transkripti tega podjetja v enem ZIP-u, z navodili za prodajni predlog AI procesov"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg><span>Izvoz za Claude (ZIP)</span></button>
         </div>
       </header>
 
@@ -190,9 +214,9 @@
 
     // ── State ─────────────────────────────────────────────────────────────
     let podjetje = null;
-    let odgovori = [];        // [{id, questionnaire_id, q_slug, q_naziv, submitted_at, raw_data, ai_povzetek, vprasanja}]
-    let priporocila = [];     // [{questionnaire_id, slug, naziv_prikaz, vsebina, updated_at}]
-    let aktivniTab = null;    // questionnaire_id for the workshop AND the answers (one choice)
+    let odgovori = [];        // [{id, questionnaire_id, q_slug, q_naziv, q_faza, submitted_at, raw_data, ai_povzetek, vprasanja}]
+    let aktivnaFaza = null;   // 'pred' | 'po' | 'drugo'; null = the company has no workshop answers (no tabs)
+    let aktivniTab = null;    // questionnaire_id in the answers list of the active part
     let vsiOdgovori = false;  // "Pokaži vse" in the answers list
     let mozniDvojnik = null;  // {id, naziv_prikaz}: matching on submit did not merge it automatically
 
@@ -222,15 +246,44 @@
       return besede.slice(0, 2).map(b => b.match(/[\p{L}\d]/u)[0].toUpperCase()).join('') || '?';
     }
 
-    // Questionnaires of the company: every one with answers OR recommendations.
-    function vprasalniki() {
+    // ── Parts: before / after the workshop ──────────────────────────────
+    // The questionnaire decides (questionnaires.faza, set in Vprašalniki).
+    // Before: the overview card. After: the sales proposal (prepared only
+    // from answers that are not before the workshop) and the task inventory.
+    // Drugo: AI Business Score, intake forms. A company without any workshop
+    // answer has no tabs and looks as before.
+    const FAZE = [
+      { id: 'pred', naziv: 'Pred delavnico', odgovori: 'Odgovori pred delavnico', prazno: 'Pred delavnico to podjetje ni oddalo nobenega odgovora.' },
+      { id: 'po', naziv: 'Po delavnici', odgovori: 'Odgovori po delavnici', prazno: 'Po delavnici to podjetje še ni oddalo nobenega odgovora.' },
+      { id: 'drugo', naziv: 'Drugo', odgovori: 'Drugi odgovori', prazno: 'Drugih odgovorov ni.' },
+    ];
+    const fazaOdgovora = (o) => (o.q_faza === 'pred' || o.q_faza === 'po' ? o.q_faza : 'drugo');
+    const odgovoriFaze = (f) => (f ? odgovori.filter(o => fazaOdgovora(o) === f) : odgovori);
+    const imaDelavnico = () => odgovori.some(o => o.q_faza === 'pred' || o.q_faza === 'po');
+
+    // Both workshop parts always (an empty one says what is missing), Drugo
+    // only when there is something in it.
+    function vidneFaze() {
+      if (!imaDelavnico()) return [];
+      return FAZE.filter(f => f.id !== 'drugo' || odgovoriFaze('drugo').length);
+    }
+
+    function privzetaFaza() {
+      const vidne = vidneFaze().map(f => f.id);
+      if (!vidne.length) return null;
+      const iz = location.hash.slice(1);
+      if (vidne.includes(iz)) return iz;
+      if (odgovoriFaze('po').length) return 'po';
+      if (odgovoriFaze('pred').length) return 'pred';
+      return vidne.includes('drugo') ? 'drugo' : 'po';
+    }
+
+    // Questionnaires with answers in one part (all of them for null).
+    function vprasalniki(faza = aktivnaFaza) {
       const m = new Map();
-      for (const o of odgovori) {
-        if (!m.has(o.questionnaire_id)) m.set(o.questionnaire_id, { qid: o.questionnaire_id, slug: o.q_slug, naziv: o.q_naziv, st: 0 });
+      for (const o of odgovoriFaze(faza)) {
+        if (!m.has(o.questionnaire_id)) m.set(o.questionnaire_id, { qid: o.questionnaire_id, slug: o.q_slug, naziv: o.q_naziv, faza: fazaOdgovora(o), st: 0 });
         m.get(o.questionnaire_id).st++;
-      }
-      for (const p of priporocila) {
-        if (!m.has(p.questionnaire_id)) m.set(p.questionnaire_id, { qid: p.questionnaire_id, slug: p.slug, naziv: p.naziv_prikaz, st: 0 });
       }
       return [...m.values()].sort((a, b) => b.st - a.st || a.naziv.localeCompare(b.naziv));
     }
@@ -240,7 +293,9 @@
       stran.innerHTML = `
         <div id="dvojnik-mesto"></div>
         <header class="ident" id="ident"></header>
-        <div class="record">
+        <nav class="faze" id="faze" aria-label="Del" hidden></nav>
+        <div class="record" id="record">
+          <section class="panel a-doc pred" id="pred-pregled" aria-labelledby="predNaslov" hidden></section>
           <section class="panel a-doc" id="prodajni-predlog" aria-labelledby="ppNaslov"></section>
           <section class="panel a-popis popis" id="popis-opravil" aria-labelledby="popNaslov"></section>
           <div class="a-props pp-stran">
@@ -250,7 +305,6 @@
               <section class="prop e-sidecard" id="prop-status"></section>
             </aside>
           </div>
-          <details class="disclosure a-work work" id="delavnica"></details>
           <section class="panel a-answers" id="odgovori-section" aria-labelledby="odgNaslov"></section>
           <div class="stack a-meta" id="meta"></div>
         </div>`;
@@ -268,14 +322,50 @@
       renderPopis();
       renderKval();
       renderStatus();
-      renderDelavnica();
-      renderOdgovori();
+      renderFaze();
       renderMeta();
+    }
+
+    // Tabs Pred delavnico / Po delavnici (/ Drugo) and what each shows.
+    function renderFaze() {
+      const nav = document.getElementById('faze');
+      const vidne = vidneFaze();
+      nav.hidden = !vidne.length;
+      nav.innerHTML = vidne.length ? `
+        <div class="tabs" role="tablist" aria-label="Del">
+          ${vidne.map(f => `<button class="tab${f.id === aktivnaFaza ? ' active' : ''}" type="button" role="tab" aria-selected="${f.id === aktivnaFaza}" data-del="${f.id}">${f.naziv} <span class="count">${odgovoriFaze(f.id).length}</span></button>`).join('')}
+        </div>` : '';
+
+      const f = aktivnaFaza;
+      const record = document.getElementById('record');
+      record.classList.toggle('is-pred', f === 'pred');
+      record.classList.toggle('is-drugo', f === 'drugo');
+      // No tabs: proposal and inventory as before. Po: the same. Pred: the overview.
+      document.getElementById('pred-pregled').hidden = f !== 'pred';
+      document.getElementById('prodajni-predlog').hidden = !(f === null || f === 'po');
+      document.getElementById('popis-opravil').hidden = !(f === null || f === 'po');
+      if (f === 'pred') renderPredPregled();
+      renderOdgovori();
+    }
+
+    // A link to #pred / #po / #drugo on the same page switches the part too.
+    window.addEventListener('hashchange', () => {
+      const f = location.hash.slice(1);
+      if (podjetje && f !== aktivnaFaza && vidneFaze().some(x => x.id === f)) izberiFazo(f);
+    });
+
+    function izberiFazo(f, { qid = null } = {}) {
+      aktivnaFaza = f;
+      const vpr = vprasalniki();
+      aktivniTab = qid && vpr.some(v => v.qid === qid) ? qid : (vpr[0]?.qid ?? null);
+      vsiOdgovori = false;
+      if (f) history.replaceState(null, '', `${location.pathname}${location.search}#${f}`);
+      renderFaze();
     }
 
     // ── Header ────────────────────────────────────────────────────────────
     function renderIdent() {
-      const vpr = vprasalniki();
+      const vpr = vprasalniki(null);
       document.title = `${podjetje.naziv_prikaz} · Acenta baza`;
       document.getElementById('crumb-ime').textContent = podjetje.naziv_prikaz;
       const povzetek = odgovori.length
@@ -288,7 +378,7 @@
           <div class="ident__meta">
             <span>${povzetek}</span>
             ${vpr.length ? '<span class="ident__sep" aria-hidden="true"></span>' : ''}
-            ${vpr.map(v => `<a class="qlink" href="#delavnica" data-tab="${v.qid}" title="Priprava na delavnico za ${esc(v.naziv)}"><span>${esc(v.naziv)}</span><span class="count">${v.st}</span></a>`).join('')}
+            ${vpr.map(v => `<a class="qlink" href="#odgovori-section" data-q="${v.qid}" title="Odgovori: ${esc(v.naziv)}"><span>${esc(v.naziv)}</span><span class="count">${v.st}</span></a>`).join('')}
           </div>
         </div>`;
     }
@@ -337,7 +427,7 @@
     // Opus reads the whole package (same as the ZIP for Claude) and writes a
     // process list for the director and a sales sheet for Matjaz. It takes a
     // few minutes on the server; the page follows it by reloading every 5 s.
-    let predlogStanje = { predlog: null, tek: null, gradivo: { odgovori: 0, seje: 0 }, nalozeno: false };
+    let predlogStanje = { predlog: null, tek: null, gradivo: { odgovori: 0, pred: 0, seje: 0 }, nalozeno: false };
     let predlogDok = 'direktor';      // 'direktor' | 'matjaz'
     let predlogCasovnik = null;
 
@@ -391,6 +481,16 @@
           </div>`;
       }
 
+      // Prepared before the split (sql/019) from all answers, including the
+      // ones from before the workshop. Matjaz prepares it again when he wants.
+      const predPred = gradivo.pred ?? 0;
+      if (p && !p.brez_pred && predPred > 0 && !tece) {
+        html += `
+          <div class="docp__note" id="pp-iz-vseh">
+            <div class="callout callout--warning">${ikona('alert')}<div class="pp-novi"><span><b>Pripravljeno še iz vseh odgovorov.</b> Ta predlog upošteva tudi ${sklon(predPred, ['odgovor', 'odgovora', 'odgovore', 'odgovorov'])} pred delavnico. Pripravite ga znova, da bo samo iz odgovorov po delavnici; traja nekaj minut.</span><span class="spacer"></span><button type="button" class="link" id="pp-pripravi-brez-pred">Pripravi znova</button></div></div>
+          </div>`;
+      }
+
       // New task inventories since this proposal was prepared: one line, the
       // regeneration stays Matjaz's choice (it takes a few minutes).
       const novi = p && !tece ? noviPopisi(p) : 0;
@@ -433,12 +533,23 @@
             <p class="empty__title">Prodajni predlog se pripravlja</p>
             <p class="empty__text">Ko bo pripravljen, se tu pokažeta seznam procesov za direktorja in prodajni list za Matjaža.</p>
           </div>`;
+      } else if (!imaGradivo && predPred > 0) {
+        // Only answers from before the workshop: they are not used for the proposal.
+        html += `
+          <div class="empty e-reco-prazno" id="pp-caka-po">
+            <span class="empty__icon" aria-hidden="true">${ikona('sparkles', 'icon--lg')}</span>
+            <b class="empty__title">Predlog se pripravi iz odgovorov po delavnici</b>
+            <p class="empty__text">To podjetje jih še nima. Odgovori pred delavnico (${predPred}) so v zavihku Pred delavnico.</p>
+          </div>`;
       } else {
+        const odgBesedilo = predPred > 0
+          ? `odgovore po delavnici (${gradivo.odgovori})`
+          : `vse odgovore tega podjetja (${gradivo.odgovori})`;
         html += `
           <div class="empty e-reco-prazno">
             <span class="empty__icon" aria-hidden="true">${ikona('sparkles', 'icon--lg')}</span>
             <b class="empty__title">Prodajni predlog še ni pripravljen</b>
-            <p class="empty__text">AI prebere vse odgovore tega podjetja (${gradivo.odgovori}), zapise sestankov (${gradivo.seje}), interne opombe in katalog rešitev ter pripravi seznam procesov za direktorja in prodajni list za Matjaža. Traja nekaj minut.</p>
+            <p class="empty__text">AI prebere ${odgBesedilo}, zapise sestankov (${gradivo.seje}), interne opombe in katalog rešitev ter pripravi seznam procesov za direktorja in prodajni list za Matjaža. Traja nekaj minut.</p>
             ${imaGradivo
               ? `<button class="btn btn--primary" type="button" id="pp-pripravi">${ikona('sparkles')}<span>Pripravi prodajni predlog</span></button>`
               : '<p class="empty__text">Za predlog potrebujemo vsaj en odgovor ali zapis sestanka.</p>'}
@@ -449,6 +560,7 @@
       document.getElementById('pp-pripravi')?.addEventListener('click', (e) => pripraviPredlog(e.currentTarget));
       document.getElementById('pp-kopiraj')?.addEventListener('click', (e) => kopirajPredlog(e.currentTarget));
       document.getElementById('pp-pripravi-novi')?.addEventListener('click', () => document.getElementById('pp-pripravi')?.click());
+      document.getElementById('pp-pripravi-brez-pred')?.addEventListener('click', () => document.getElementById('pp-pripravi')?.click());
     }
 
     async function naloziPredlog() {
@@ -751,130 +863,173 @@
       document.getElementById('status').addEventListener('change', (e) => nastaviStatus(e.target.value, e.target));
     }
 
-    // ── Workshop preparation (AI recommendations per questionnaire) ───────
-    // Too general for selling, still useful to prepare a workshop, so they
-    // stay below the proposal, folded.
-    function renderDelavnica() {
-      const vpr = vprasalniki();
-      const el = document.getElementById('delavnica');
-      const chev = ikona('chev-right', 'disclosure__chev');
-      if (!vpr.length) {
-        el.innerHTML = `
-          <summary class="work__sum">${chev}<div><h2>Priprava na delavnico</h2><p class="desc">AI priporočila · podjetje še nima odgovorov</p></div></summary>
-          <p class="empty-line">Podjetje še nima odgovorov ali priporočil.</p>`;
+    // ── Before the workshop: overview card ───────────────────────────────
+    // Left: how advanced they are, computed in public/admin/pred.js from the
+    // self-ratings (no AI). Right: what takes their time, themes prepared by
+    // AI on the server; the page asks for them by itself when they are
+    // missing or made from other answers than there are now.
+    let R = null;   // public/admin/pred.js, loaded at start
+    let predTeme = { nalozeno: false, teme: null, odgovori_pred: 0, aktualno: false };
+    let predTemeCasovnik = null;
+    let predTemeSamodejno = false;   // asked once per page view
+
+    // "21.–24. 8. 2026", "28. 8.–3. 9. 2026", one day as "24. 8. 2026".
+    function obdobje(datumi) {
+      const d = datumi.map(x => new Date(x)).filter(x => !Number.isNaN(x.getTime())).sort((a, b) => a - b);
+      if (!d.length) return '';
+      const [a, b] = [d[0], d.at(-1)];
+      const dan = (x) => `${x.getDate()}.`;
+      const mes = (x) => `${x.getMonth() + 1}.`;
+      if (a.toDateString() === b.toDateString()) return `${dan(a)} ${mes(a)} ${a.getFullYear()}`;
+      if (a.getFullYear() !== b.getFullYear()) return `${dan(a)} ${mes(a)} ${a.getFullYear()}–${dan(b)} ${mes(b)} ${b.getFullYear()}`;
+      if (a.getMonth() !== b.getMonth()) return `${dan(a)} ${mes(a)}–${dan(b)} ${mes(b)} ${b.getFullYear()}`;
+      return `${dan(a)}–${dan(b)} ${mes(b)} ${b.getFullYear()}`;
+    }
+
+    function ravenHtml(raven) {
+      if (!raven) {
+        return `
+          <h3 class="pred__h">Kako napredni so</h3>
+          <p class="pred__prazno">Raven se izračuna iz samoocen v anketi »AI delavnica — pred izobraževanjem«. To podjetje nanjo ni odgovarjalo.</p>`;
+      }
+      const vrstica = (p) => p.povprecje === null ? '' : `
+        <div class="bar-row"><span class="ellipsis">${esc(p.naziv)}</span><span class="progress"><span class="progress__fill${p.povprecje < 2.5 ? ' progress__fill--low' : ''}" style="width:${Math.round(p.povprecje / 4 * 100)}%"></span></span><b>${R.decimalno(p.povprecje)}</b></div>`;
+      const cip = (x, off = false) => `<span class="chip${off ? ' chip--off' : ''}">${esc(x.naziv)}<b>${x.st}</b></span>`;
+      const kdo = raven.ocenilo === 1 ? '1 udeleženca' : `${raven.ocenilo} udeležencev`;
+      return `
+        <h3 class="pred__h">Kako napredni so</h3>
+        <div class="pred__raven">
+          <span class="pred__ocena">${R.decimalno(raven.povprecje)}</span><span class="pred__od">od 4</span>
+          <span class="chip chip--${raven.ton}">${esc(raven.stopnja)}</span>
+        </div>
+        <p class="pred__opis">Povprečje samoocen ${kdo} (1 = slabo, 4 = zelo dobro).${raven.najsibkejsa.length ? ` ${esc(R.besediloNajsibkejsih(raven.najsibkejsa))}` : ''}</p>
+        ${raven.podrocja.map(vrstica).join('')}
+        <h4 class="pred__h4">Kako pogosto uporabljajo AI</h4>
+        <div class="chips">${raven.pogostost.map(p => cip(p, p.st === 0)).join('')}</div>
+        <h4 class="pred__h4">Orodja, ki jih omenjajo</h4>
+        ${raven.orodja.length ? `<div class="chips">${raven.orodja.map(o => cip(o)).join('')}</div>` : '<p class="pred__prazno">Nobenega orodja niso omenili.</p>'}`;
+    }
+
+    function temeHtml() {
+      const { nalozeno, teme: t } = predTeme;
+      const glava = `
+        <h3 class="pred__h">Kaj jim vzame največ časa</h3>
+        <p class="pred__vir">Kar bi najraje prepustili AI, združeno po temah. Številka pove, koliko ljudi je to navedlo.</p>`;
+      if (!nalozeno) return `${glava}<div class="loading" role="status"><span class="spinner" aria-hidden="true"></span>Nalagam …</div>`;
+
+      const tece = !t || t.status === 'pripravlja';
+      const imaStare = !!t?.koncano_at;
+      let stanje = '';
+      if (tece) {
+        stanje = `<div class="callout callout--info pred__stanje" role="status" id="pred-teme-tece"><span class="pulse" style="margin-top:6px" aria-hidden="true"></span><div>${imaStare ? 'Pripravljam novo različico iz vseh odgovorov.' : 'AI pripravlja teme iz odgovorov.'} Traja nekaj sekund, stran se osveži sama.</div></div>`;
+      } else if (t.status === 'napaka') {
+        stanje = `<div class="callout callout--danger pred__stanje" role="alert" id="pred-teme-napaka">${ikona('alert')}<div><b>Priprava tem ni uspela:</b> ${esc(piko(t.napaka || 'neznana napaka'))}</div></div>`;
+      }
+      if (!imaStare) return glava + stanje;
+
+      const seznam = t.teme?.length
+        ? `<ol class="teme">${t.teme.map(x => `
+            <li>
+              <div class="teme__vrh"><b>${esc(x.naziv)}</b><span class="count" title="Toliko ljudi je to navedlo">${x.odgovori.length}</span></div>
+              <a class="teme__citat" href="/admin/response.html?id=${x.citat_odgovor}" title="Odpri odgovor">»${esc(x.citat)}«</a>
+            </li>`).join('')}</ol>`
+        : '<p class="pred__prazno">Nihče ni navedel opravila, ki bi ga lahko prepustili AI.</p>';
+      return glava + stanje + seznam;
+    }
+
+    function renderPredPregled() {
+      const el = document.getElementById('pred-pregled');
+      if (!el || !R) return;
+      const odg = odgovoriFaze('pred');
+      const glava = (pod) => `
+        <header class="docp__head">
+          <div class="docp__title">
+            <h2 class="lbl" id="predNaslov">Pregled pred delavnico</h2>
+            ${pod ? `<p>${pod}</p>` : ''}
+          </div>
+        </header>`;
+      if (!odg.length) {
+        el.innerHTML = glava('') + `
+          <div class="empty">
+            <span class="empty__icon" aria-hidden="true">${ikona('inbox', 'icon--lg')}</span>
+            <b class="empty__title">Ni odgovorov pred delavnico</b>
+            <p class="empty__text">Ko zaposleni izpolnijo anketo pred delavnico, se tu pokaže, kako napredni so in kaj jim vzame največ časa.</p>
+          </div>`;
         return;
       }
-      if (aktivniTab === null || !vpr.some(v => v.qid === aktivniTab)) aktivniTab = vpr[0].qid;
-      const tab = vpr.find(v => v.qid === aktivniTab);
-      const p = priporocila.find(x => x.questionnaire_id === aktivniTab);
-      const odgZaTab = odgovori.filter(o => o.questionnaire_id === aktivniTab);
+      const imena = [...new Set(odg.map(o => o.q_naziv))].map(x => `»${esc(x)}«`).join(' in ');
+      const pod = `Iz ${sklon(odg.length, ['odgovora', 'odgovorov', 'odgovorov', 'odgovorov'])} na ${imena} · ${obdobje(odg.map(o => o.submitted_at))}`;
+      const t = predTeme.teme;
+      const brez = t?.koncano_at && t.status !== 'pripravlja' ? t.brez_opravil : null;
+      const noga = predTeme.nalozeno && t?.koncano_at ? `
+        <footer class="pred__foot">
+          <span>${brez ? `${brez} od ${t.odgovori.length} ${t.odgovori.length === 1 ? 'odgovora ni' : 'odgovorov ni'} v nobeni temi. ` : ''}Teme je pripravil AI ${danUra(t.koncano_at)}.</span>
+          <span class="spacer"></span>
+          <button class="btn btn--secondary btn--sm" type="button" id="pred-teme-znova"${t.status === 'pripravlja' ? ' disabled' : ''}>${ikona('refresh')}<span>Pripravi znova</span></button>
+        </footer>` : (predTeme.nalozeno && t?.status === 'napaka' ? `
+        <footer class="pred__foot"><span class="spacer"></span><button class="btn btn--secondary btn--sm" type="button" id="pred-teme-znova">${ikona('refresh')}<span>Pripravi znova</span></button></footer>` : '');
 
-      // Stale = there is an answer newer than the last generation.
-      const nove = p ? odgZaTab.filter(o => new Date(o.submitted_at) > new Date(p.updated_at)) : [];
-      const novejsi = nove.length;
-      const izKoliko = odgZaTab.length - novejsi;   // answers that existed when it was generated
-      const opis = `AI priporočila · ${esc(tab.naziv)} · ${p ? `generirano ${formatDan(p.updated_at)} iz ${izOdgovorov(izKoliko)}` : 'še ni generirano'}`;
-
-      const zavihki = vpr.map(v => `<button class="tab${v.qid === aktivniTab ? ' active' : ''}" type="button" role="tab" aria-selected="${v.qid === aktivniTab}" data-tab="${v.qid}">${esc(v.naziv)} <span class="count">${v.st}</span></button>`).join('');
-      const status = '<div class="callout callout--info work__status" data-status role="status" hidden></div>';
-
-      let telo;
-      if (p) {
-        telo = `
-          <div class="work__tools">
-            <button class="btn btn--secondary" type="button" data-regen="priporocila">${ikona('refresh')}<span>Regeneriraj priporočila</span></button>
-            ${odgZaTab.length ? '<button class="btn btn--secondary" type="button" data-regen="vse"><span>Regeneriraj vse</span></button>' : ''}
-            <a class="btn btn--ghost" href="/api/companies/${id}/pdf?questionnaire_id=${aktivniTab}" download>${ikona('download')}<span>Izvozi PDF</span></a>
-            <button class="btn btn--ghost" type="button" data-natisni>${ikona('printer')}<span>Natisni</span></button>
-          </div>
-          <div class="docp__body">
-            ${status}
-            ${novejsi ? `<div class="callout callout--warning" id="workZastarelo">${ikona('alert')}<div>${besediloZastarelo(p, nove)}</div></div>` : ''}
-            <article class="doc" id="dokDelavnica">${md(p.vsebina)}</article>
-          </div>`;
-      } else {
-        telo = `
-          <div class="empty" style="padding:var(--space-6)">
-            <span class="empty__icon" aria-hidden="true">${ikona('sparkles', 'icon--lg')}</span>
-            <p class="empty__title">Priporočila še niso pripravljena</p>
-            <p class="empty__text">AI prebere ${odgZaTab.length === 1 ? 'odgovor' : `vseh ${odgZaTab.length} odgovorov`} na ta vprašalnik in pripravi povzetek skupine, agendo delavnice, predloge po oddelkih in naslednje korake. Generiranje traja okoli 70 sekund.</p>
-            <div class="actions" style="margin-top:var(--space-2)">
-              <button class="btn btn--secondary" type="button" data-regen="priporocila">${ikona('sparkles')}<span>Generiraj priporočila</span></button>
-              ${odgZaTab.length ? '<button class="btn btn--secondary" type="button" data-regen="vse"><span>Regeneriraj vse</span></button>' : ''}
-            </div>
-            ${status}
-          </div>`;
-      }
-
-      el.innerHTML = `
-        <summary class="work__sum">
-          ${chev}
-          <div>
-            <h2>Priprava na delavnico</h2>
-            <p class="desc" id="workDesc">${opis}</p>
-          </div>
-          ${novejsi ? '<span class="chip chip--warning" id="workStale">Zastarelo</span>' : ''}
-        </summary>
-        <div class="tabs work__tabs" role="tablist" aria-label="Vprašalnik">${zavihki}</div>
-        ${telo}`;
+      el.innerHTML = glava(pod) + `
+        <div class="pred__grid">
+          <section class="pred__blok" aria-label="Kako napredni so">${ravenHtml(R.ravenZnanja(odg))}</section>
+          <section class="pred__blok" aria-label="Kaj jim vzame največ časa">${temeHtml()}</section>
+        </div>${noga}`;
+      document.getElementById('pred-teme-znova')?.addEventListener('click', (e) => pripraviPredTeme(e.currentTarget));
     }
 
-    // "After generation on D, 2 new answers came (A and B, D) ..." with
-    // Slovenian dual and plural.
-    function besediloZastarelo(p, nove) {
-      const n = nove.length;
-      const glagol = n === 1 ? 'je prišel 1 nov odgovor'
-        : n === 2 ? 'sta prišla 2 nova odgovora'
-        : n <= 4 ? `so prišli ${n} novi odgovori` : `je prišlo ${n} novih odgovorov`;
-      const zaimek = n === 1 ? 'ga' : n === 2 ? 'ju' : 'jih';
-      const imena = nove.map(o => izpolnjevalec(o.raw_data, o.vprasanja)).filter(x => x.imaIme).map(x => x.ime);
-      const dnevi = [...new Set(nove.map(o => formatDan(o.submitted_at)))];
-      let oklepaj = '';
-      if (n <= 3) {
-        const seznam = imena.length > 1 ? `${imena.slice(0, -1).join(', ')} in ${imena.at(-1)}` : (imena[0] || '');
-        const kdaj = dnevi.length === 1 ? dnevi[0] : `zadnji ${formatDan(nove[0].submitted_at)}`;
-        oklepaj = ` (${seznam ? `${esc(seznam)}, ` : ''}${kdaj})`;
+    async function naloziPredTeme() {
+      if (!odgovoriFaze('pred').length) return;
+      const r = await apiFetch(`/api/companies/${id}/pred-teme`);
+      if (!r) return;
+      predTeme = { ...r, nalozeno: true };
+      // Automatic: no themes yet, or made from other answers than there are now.
+      const t = r.teme;
+      const zastarele = t && t.status === 'ok' && !r.aktualno;
+      if (!predTemeSamodejno && r.odgovori_pred > 0 && (!t || zastarele)) {
+        predTemeSamodejno = true;
+        await pripraviPredTeme(null);
+        return;
       }
-      return `<b>Zastarelo.</b> Po generaciji ${formatDan(p.updated_at)} ${glagol}${oklepaj}, ki ${zaimek} priporočila še ne upoštevajo. `
-        + 'Kliknite <b>Regeneriraj priporočila</b>; traja okoli 70 sekund, trenutna različica ostane vidna, dokler nova ni pripravljena.';
+      if (aktivnaFaza === 'pred') renderPredPregled();
+      clearTimeout(predTemeCasovnik);
+      if (t?.status === 'pripravlja') predTemeCasovnik = setTimeout(naloziPredTeme, 4000);
     }
 
-    // Regenerate, print: one listener on the workshop block.
-    document.addEventListener('click', (e) => {
-      const regen = e.target.closest('#delavnica [data-regen]');
-      if (regen) { regeneriraj(aktivniTab, regen.dataset.regen, regen); return; }
-      if (e.target.closest('#delavnica [data-natisni]')) {
-        document.body.classList.add('tisk-delavnica');
-        window.print();
-        document.body.classList.remove('tisk-delavnica');
+    async function pripraviPredTeme(gumb) {
+      if (gumb) gumb.disabled = true;
+      const res = await fetch(`/api/companies/${id}/pred-teme`, { method: 'POST' }).catch(() => null);
+      const r = res ? await res.json().catch(() => null) : null;
+      if (res?.status === 202 && r) {
+        predTeme = { ...r, nalozeno: true };
+      } else if (res?.status !== 409) {
+        if (gumb) { gumb.disabled = false; alert('Priprave tem ni bilo mogoče začeti. Poskusite znova.'); }
       }
-    });
-
-    // company.html#delavnica (link from the answer page): open and show it.
-    function odpriDelavnicoIzNaslova() {
-      if (location.hash !== '#delavnica') return;
-      const d = document.getElementById('delavnica');
-      if (!d) return;
-      d.open = true;
-      requestAnimationFrame(() => d.scrollIntoView({ block: 'start' }));
+      if (aktivnaFaza === 'pred') renderPredPregled();
+      clearTimeout(predTemeCasovnik);
+      predTemeCasovnik = setTimeout(naloziPredTeme, 4000);
     }
-    window.addEventListener('hashchange', odpriDelavnicoIzNaslova);
 
     // ── Answers by respondent ─────────────────────────────────────────────
     function renderOdgovori() {
       const el = document.getElementById('odgovori-section');
       const vpr = vprasalniki();
+      const faza = FAZE.find(f => f.id === aktivnaFaza);
+      // One questionnaire in the part: its name instead of tabs.
+      const opis = vpr.length === 1
+        ? `${esc(vpr[0].naziv)} · ${sklon(vpr[0].st, SKLON_ODGOVOR)}`
+        : 'Ena vrstica je en izpolnjevalec. Povzetek pripravi AI, celoten vprašalnik je en klik stran.';
       const glava = `
         <header class="panel__head panel__head--plain" style="flex-wrap:wrap">
           <div style="min-width:0">
-            <h2 class="panel__title" id="odgNaslov">Odgovori</h2>
-            <p class="panel__desc">Ena vrstica je en izpolnjevalec. Povzetek pripravi AI, celoten vprašalnik je en klik stran.</p>
+            <h2 class="panel__title" id="odgNaslov">${faza ? faza.odgovori : 'Odgovori'}</h2>
+            <p class="panel__desc">${opis}</p>
           </div>
         </header>`;
       if (!vpr.length) {
-        el.innerHTML = glava + '<p class="empty-line">Podjetje še nima odgovorov.</p>';
+        el.innerHTML = glava + `<p class="empty-line">${faza ? faza.prazno : 'Podjetje še nima odgovorov.'}</p>`;
         return;
       }
+      if (!vpr.some(v => v.qid === aktivniTab)) aktivniTab = vpr[0].qid;
       const odgZaTab = odgovori.filter(o => o.questionnaire_id === aktivniTab);
       const prikazani = vsiOdgovori ? odgZaTab : odgZaTab.slice(0, MAX_ODGOVOROV);
 
@@ -901,8 +1056,8 @@
 
       el.innerHTML = `
         ${glava}
-        <div class="tabs odg-tabs" role="tablist" aria-label="Vprašalnik">${zavihki}</div>
-        ${vrstice || '<p class="empty-line">Za ta vprašalnik ni odgovorov, samo priporočila.</p>'}
+        ${vpr.length > 1 ? `<div class="tabs odg-tabs" role="tablist" aria-label="Vprašalnik">${zavihki}</div>` : '<div style="height:var(--space-3)"></div>'}
+        ${vrstice || '<p class="empty-line">Za ta vprašalnik ni odgovorov.</p>'}
         ${odgZaTab.length > MAX_ODGOVOROV ? `
           <footer class="panel__foot">
             <span>Prikazanih ${prikazani.length} od ${odgZaTab.length}</span>
@@ -945,7 +1100,7 @@
 
     // ── Side column below: per questionnaire, management ──────────────────
     function renderMeta() {
-      const vpr = vprasalniki();
+      const vpr = vprasalniki(null);
       const najvec = Math.max(1, ...vpr.map(v => v.st));
       document.getElementById('meta').innerHTML = `
         ${vpr.length ? `
@@ -972,16 +1127,15 @@
       document.getElementById('btn-gdpr').addEventListener('click', izbrisiPodjetje);
     }
 
-    // One questionnaire choice for the workshop and the answers.
+    // One questionnaire in the answers list of the active part.
     function izberiTab(qid) {
       if (qid === aktivniTab) return;
       aktivniTab = qid;
       vsiOdgovori = false;
-      renderDelavnica();
       renderOdgovori();
     }
 
-    // Questionnaire links in the header, workshop tabs, answer tabs.
+    // Part tabs, questionnaire links in the header, answer tabs.
     stran.addEventListener('click', (e) => {
       const dok = e.target.closest('[data-dok]');
       if (dok) {
@@ -991,19 +1145,29 @@
         document.querySelector(`#prodajni-predlog [data-dok="${predlogDok}"]`)?.focus();
         return;
       }
-      const el = e.target.closest('[data-tab]');
+      const del = e.target.closest('[data-del]');
+      if (del) {
+        if (del.dataset.del !== aktivnaFaza) izberiFazo(del.dataset.del);
+        document.querySelector(`#faze [data-del="${aktivnaFaza}"]`)?.focus();
+        return;
+      }
+      // Header link: the part of that questionnaire, its answers.
+      const q = e.target.closest('[data-q]');
+      if (q) {
+        e.preventDefault();
+        const qid = Number(q.dataset.q);
+        const v = vprasalniki(null).find(x => x.qid === qid);
+        if (aktivnaFaza !== null && v && v.faza !== aktivnaFaza) izberiFazo(v.faza, { qid });
+        else izberiTab(qid);
+        document.getElementById('odgovori-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        return;
+      }
+      const el = e.target.closest('#odgovori-section [data-tab]');
       if (!el) return;
       e.preventDefault();
       const qid = Number(el.dataset.tab);
-      const ovoj = el.closest('#delavnica, #odgovori-section');
       izberiTab(qid);
-      if (el.classList.contains('qlink')) {
-        const d = document.getElementById('delavnica');
-        d.open = true;
-        d.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else if (ovoj) {
-        document.querySelector(`#${ovoj.id} .tab[data-tab="${qid}"]`)?.focus();
-      }
+      document.querySelector(`#odgovori-section .tab[data-tab="${qid}"]`)?.focus();
     });
 
     // ── Actions ───────────────────────────────────────────────────────────
@@ -1032,30 +1196,6 @@
       el.disabled = false;
       if (!ok) { el.value = podjetje.status; return; }
       renderStatus();
-    }
-
-    async function regeneriraj(qid, mode, gumb) {
-      const vse = mode === 'vse';
-      const cas = vse ? 'nekaj minut' : 'okoli 70 sekund';
-      if (!confirm(`Zagnati regeneracijo ${vse ? 'VSEGA (povzetki in priporočila)' : 'priporočil'}? (${cas})`)) return;
-      const st = gumb.closest('#delavnica').querySelector('[data-status]');
-      gumb.disabled = true;
-      const res = await fetch(`/api/companies/${id}/regenerate-ai`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ mode, questionnaire_id: qid }),
-      }).catch(() => null);
-      gumb.disabled = false;
-      st.hidden = false;
-      if (!res?.ok) {
-        st.className = 'callout callout--danger work__status';
-        st.textContent = 'Regeneracije ni bilo mogoče sprožiti. Poskusite znova.';
-        return;
-      }
-      st.className = 'callout callout--info work__status';
-      st.textContent = vse
-        ? `Sproženo ob ${ura(new Date())}. Povzetki in priporočila bodo pripravljeni čez nekaj minut; nato osvežite stran. Do takrat ostane vidna trenutna različica.`
-        : `Sproženo ob ${ura(new Date())}. Nova priporočila bodo pripravljena čez okoli 70 sekund; nato osvežite stran. Do takrat ostane vidna trenutna različica.`;
     }
 
     // Package for Claude: the server gives the data, the questions of
@@ -1132,22 +1272,24 @@
       opombeShranjene = podjetje.interne_opombe || '';
       mozniDvojnik = data.mozni_dvojnik ?? null;
       odgovori     = data.responses ?? [];
-      priporocila  = data.priporocila ?? [];
-      P = await import('/admin/popis.js').catch((err) => { console.error('[popis]', err); return null; });
-      // ?q=ID preselects the questionnaire (link from the answer page).
+      [P, R] = await Promise.all([
+        import('/admin/popis.js').catch((err) => { console.error('[popis]', err); return null; }),
+        import('/admin/pred.js').catch((err) => { console.error('[pred]', err); return null; }),
+      ]);
+      // Part from #pred / #po / #drugo, else where the answers are. ?q=ID
+      // (link from the answer page) opens the part of that questionnaire.
+      aktivnaFaza = privzetaFaza();
       const q = Number(qs('q'));
-      if (q && vprasalniki().some(v => v.qid === q)) aktivniTab = q;
+      const zaQ = q ? vprasalniki(null).find(v => v.qid === q) : null;
+      if (zaQ && aktivnaFaza !== null) aktivnaFaza = zaQ.faza;
+      aktivniTab = zaQ ? zaQ.qid : (vprasalniki()[0]?.qid ?? null);
 
       const izvoz = document.getElementById('btn-izvoz');
       izvoz.hidden = false;
       izvoz.addEventListener('click', () => izvoziZaClaude(izvoz));
 
       renderStran();
-      odpriDelavnicoIzNaslova();
-      // The proposal above the workshop changes height when it arrives, so a
-      // #delavnica deep link is anchored again afterwards.
-      await naloziPredlog();
-      odpriDelavnicoIzNaslova();
+      await Promise.all([naloziPredlog(), naloziPredTeme()]);
     })();
   </script>
 </body>

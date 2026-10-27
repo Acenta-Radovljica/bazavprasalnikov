@@ -22,7 +22,7 @@ await pool.query(readFileSync(SQL_009, 'utf-8'));
 //    ker jih po vsakem zagonu ostane dva vec. Odgovore je treba pobrisati
 //    prve zaradi tujega kljuca.
 //    Isto za izvoz-api in prodajni-predlog-api (test-izvoz-*, test-predlog-*).
-const TESTNI = `slug LIKE 'test-snapshot-%' OR slug LIKE 'test-izvoz-%' OR slug LIKE 'test-predlog-%'`;
+const TESTNI = `slug LIKE 'test-snapshot-%' OR slug LIKE 'test-izvoz-%' OR slug LIKE 'test-predlog-%' OR slug LIKE 'test-pred-%'`;
 await pool.query(`DELETE FROM responses WHERE questionnaire_id IN (SELECT id FROM questionnaires WHERE ${TESTNI})`);
 await pool.query(`DELETE FROM company_priporocila WHERE questionnaire_id IN (SELECT id FROM questionnaires WHERE ${TESTNI})`);
 await pool.query(`DELETE FROM questionnaires WHERE ${TESTNI}`);
@@ -37,6 +37,12 @@ await pool.query('TRUNCATE prodajni_predlogi RESTART IDENTITY');
 
 // 6. Oddaje popisa opravil (migracija 016); vprasalnik sam ostane (seed).
 await pool.query(`DELETE FROM responses WHERE questionnaire_id IN (SELECT id FROM questionnaires WHERE slug = 'popis-opravil')`);
+
+// 7. Teme pred delavnico (migracija 019) in zacetni deli seedanih vprasalnikov
+//    (test/pred-api.test.mjs jih spreminja prek API-ja).
+await pool.query('TRUNCATE pred_teme');
+await pool.query(`UPDATE questionnaires SET faza = 'pred' WHERE slug IN ('pred-delavnico', 'napredni-ai')`);
+await pool.query(`UPDATE questionnaires SET faza = 'po' WHERE slug IN ('moj-ai-nacrt', 'popis-opravil')`);
 
 const r = await pool.query(`
   SELECT (SELECT count(*) FROM process_sessions)::int AS sej,

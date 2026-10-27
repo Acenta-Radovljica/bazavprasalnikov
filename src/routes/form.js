@@ -3,7 +3,7 @@ import express from 'express';
 import { dbQuery } from '../db.js';
 import { hashIp } from '../utils/normalize.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
-import { sproziPovzetek } from '../ai/queue.js';
+import { sproziPovzetek, sproziPredTemeZaOdgovor } from '../ai/queue.js';
 import { snapshotIzVrstice } from '../lib/snapshot.js';
 import { SCORE_SLUG, validirajOddajo } from '../score/oddaja.js';
 import { shraniOddajo } from '../score/shrani.js';
@@ -618,6 +618,8 @@ router.post('/:slug', async (req, res) => {
   console.log(`[form/${slug}] shranjeno: company=${companyId} response=${responseId}`);
 
   if (responseId) sproziPovzetek(responseId);
+  // Themes "Kaj jim vzame najvec casa" (only for questionnaires before the workshop).
+  if (responseId) sproziPredTemeZaOdgovor(companyId, questionnaireId);
 
   res.json({ ok: true, responseId, companyId });
 });

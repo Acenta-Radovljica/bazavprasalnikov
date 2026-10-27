@@ -3,7 +3,7 @@ import express from 'express';
 import { dbQuery } from '../db.js';
 import { hashIp } from '../utils/normalize.js';
 import { najdiPodjetjeAI } from '../ai/match_company.js';
-import { sproziPovzetek, sproziKvalifikacija } from '../ai/queue.js';
+import { sproziPovzetek, sproziKvalifikacija, sproziPredTemeZaOdgovor } from '../ai/queue.js';
 import { basicAuth } from '../middleware/auth.js';
 import { snapshotPoId } from '../lib/snapshot.js';
 
@@ -93,6 +93,9 @@ async function obdelajSubmission({ payload, ip, questionnaireId }) {
   // (samo je_lead_vprasalnik=TRUE) in varovalka (ne prepise rocne ocene) sta
   // znotraj modula, zato je klic tu vedno varen ne glede na vprasalnik.
   sproziKvalifikacija(companyId, questionnaireId);
+
+  // Themes "Kaj jim vzame najvec casa" (only for questionnaires before the workshop).
+  if (responseId) sproziPredTemeZaOdgovor(companyId, questionnaireId);
 
   return {
     status: 200,

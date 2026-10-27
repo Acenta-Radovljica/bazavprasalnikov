@@ -194,9 +194,8 @@ let s = await page.evaluate(() => {
     napaka: p.querySelector('#pp-napaka')?.textContent || '',
     pdf: p.querySelector('#pp-pdf')?.getAttribute('href'),
     gumbi: [...p.querySelectorAll('.e-feature-actions button, .e-feature-actions a')].filter(b => !b.hidden).map(b => b.textContent.trim()),
-    delavnica: document.querySelector('#delavnica h2')?.textContent,
-    delavnicaPod: document.querySelector('#delavnica .desc')?.textContent || '',
-    predlogY: box(p).top, delavnicaY: box(document.getElementById('delavnica')).top,
+    delavnica: !!document.getElementById('delavnica'),
+    predlogY: box(p).top, odgovoriY: box(document.getElementById('odgovori-section')).top,
     stranX: box(document.querySelector('.pp-stran')).left, predlogX: box(p).left,
     opombe: !!document.querySelector('.pp-stran #opombe'),
   };
@@ -211,7 +210,9 @@ t('opozorila nad dokumentom za direktorja', s.opozorila.includes('Preverite pred
 t('novejsa neuspela priprava je vidna', s.napaka.includes('Zadnja priprava ni uspela'), s.napaka);
 t('PDF povezava', s.pdf === `/api/companies/${cid}/prodajni-predlog/pdf`);
 t('akcije: Pripravi znova, PDF, Kopiraj', ['Pripravi znova', 'Natisni / PDF za direktorja', 'Kopiraj'].every(g => s.gumbi.includes(g)), JSON.stringify(s.gumbi));
-t('priprava na delavnico pod predlogom', s.delavnica === 'Priprava na delavnico' && s.delavnicaY > s.predlogY && s.delavnicaPod.includes('AI priporočila · Test predloga'), JSON.stringify([s.delavnica, s.delavnicaPod]));
+// Since 27. 10. 2026 the page is split before / after the workshop and the
+// old "Priprava na delavnico" is gone (test/pred-api.test.mjs covers the split).
+t('priprave na delavnico ni vec, odgovori pod predlogom', !s.delavnica && s.odgovoriY > s.predlogY, JSON.stringify([s.delavnica, s.predlogY, s.odgovoriY]));
 t('stranski stolpec desno z opombami', s.stranX > s.predlogX && s.opombe);
 
 await page.click('#prodajni-predlog [data-dok="matjaz"]');
@@ -283,12 +284,12 @@ s = await page.evaluate(() => {
   const p = document.getElementById('prodajni-predlog').getBoundingClientRect();
   return {
     preliv: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    predlog: y('#prodajni-predlog'), opombe: y('.pp-stran'), delavnica: y('#delavnica'),
+    predlog: y('#prodajni-predlog'), opombe: y('.pp-stran'), odgovori: y('#odgovori-section'),
     zavihkiSirina: zav.reduce((a, b) => a + b, 0), sw, pw: p.width,
   };
 });
 t('telefon: brez vodoravnega prelivanja', s.preliv <= 1, `${s.preliv}px`);
-t('telefon: predlog, nato opombe, nato delavnica', s.predlog < s.opombe && s.opombe < s.delavnica, JSON.stringify(s));
+t('telefon: predlog, nato opombe, nato odgovori', s.predlog < s.opombe && s.opombe < s.odgovori, JSON.stringify(s));
 t('telefon: zavihka cez vso sirino kartice', s.sw > s.pw * 0.8, `${s.sw} od ${s.pw}`);
 
 t('brez JS napak na strani', napake.length === 0, JSON.stringify(napake.slice(0, 3)));
